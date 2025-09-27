@@ -66,10 +66,6 @@
 ```
 lib/
 ├── 📁 models/         # Khai báo các model
-│   ├── category.dart     # Model danh mục
-│   ├── transaction.dart  # Model giao dịch
-│   ├── loan.dart        # Model khoản vay
-│   └── notification.dart # Model thông báo
 ├── 📁 database/       # DatabaseHelper và các truy vấn SQLite
 │   └── database_helper.dart
 ├── 📁 screens/        # Các màn hình giao diện
@@ -77,8 +73,6 @@ lib/
 │   ├── transaction_screen.dart
 │   └── settings_screen.dart
 ├── 📁 widgets/        # Các widget dùng chung
-│   ├── custom_button.dart
-│   └── transaction_card.dart
 └── 📄 main.dart       # File chạy chính
 ```
 
@@ -103,27 +97,14 @@ lib/
 
 *[Thêm screenshots của ứng dụng tại đây]*
 
-## 🤝 Đóng Góp
-
-Chúng tôi hoan nghênh mọi đóng góp! Nếu bạn muốn đóng góp:
-
-1. Fork dự án
-2. Tạo branch tính năng (`git checkout -b feature/AmazingFeature`)
-3. Commit thay đổi (`git commit -m 'Add some AmazingFeature'`)
-4. Push lên branch (`git push origin feature/AmazingFeature`)
-5. Tạo Pull Request
-
-## 📄 License
-
-Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
-
 ## 👨‍💻 Tác Giả
 
 **Nguyễn Lê Hoàn Hảo**
+**Woòng Hồ Tuấn Nguyên**
+**Đoàn Đức Long**
 - 🎓 Sinh viên năm 4 HUTECH
 - 📚 Đề tài đồ án chuyên ngành Công nghệ Phần mềm
-- 📧 Email: [your-email@example.com]
-- 💼 LinkedIn: [Your LinkedIn Profile]
+- 📧 Email: [nguyenlehoanhao2004@gmail.com]
 
 ---
 
