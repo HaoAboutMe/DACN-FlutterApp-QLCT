@@ -99,8 +99,8 @@ lib/
 
 ## 👨‍💻 Tác Giả
 
-**Nguyễn Lê Hoàn Hảo | **
-**Woòng Hồ Tuấn Nguyên | **
+**Nguyễn Lê Hoàn Hảo** |
+**Woòng Hồ Tuấn Nguyên** |
 **Đoàn Đức Long**
 - 🎓 Sinh viên năm 4 HUTECH
 - 📚 Đề tài đồ án chuyên ngành Công nghệ Phần mềm
