@@ -110,5 +110,5 @@ lib/
 
 <div align="center">
   <p>⭐ Nếu dự án hữu ích, hãy cho một star nhé! ⭐</p>
-  <p>Được tạo với ❤️ bởi Nguyễn Lê Hoàn Hảo</p>
+  <p>Được tạo với ❤️ bởi Nguyễn Lê Hoàn Hảo, Woòng Hồ Tuấn Nguyên, Đoàn Đức Long</p>
 </div>
