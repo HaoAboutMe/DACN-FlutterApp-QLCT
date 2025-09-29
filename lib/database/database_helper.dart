@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/category.dart';
-import '../models/transaction.dart' as transaction_model;
-import '../models/loan.dart';
+import '../models/category_tmp.dart';
+import '../models/transaction_tmp.dart' as transaction_model;
+import '../models/loan_tmp.dart';
 import '../models/notification_data.dart';
-import '../models/user.dart';
+import '../models/user_tmp.dart';
 
 /// Lớp DatabaseHelper quản lý cơ sở dữ liệu SQLite cho ứng dụng quản lý chi tiêu
 /// Sử dụng singleton pattern để đảm bảo chỉ có một instance duy nhất
