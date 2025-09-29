@@ -105,9 +105,8 @@ class Transaction {
   /// Kiểm tra xem giao dịch có liên quan đến vay/nợ không
   bool get isLoanRelated => ['loan_given', 'loan_received', 'debt_paid', 'debt_collected'].contains(type);
 
-  /// Định dạng số tiền theo chuẩn Việt Nam (VD: 1.000.000 ₫)
+  /// Định dạng số tiền theo định dạng Việt Nam
   String get formattedAmount {
-    // Custom Vietnamese currency formatter
     String amountStr = amount.toStringAsFixed(0);
 
     // Add thousand separators
@@ -115,10 +114,10 @@ class Transaction {
     int count = 0;
     for (int i = amountStr.length - 1; i >= 0; i--) {
       if (count == 3) {
-        result = '.' + result;
+        result = '.$result';
         count = 0;
       }
-      result = amountStr[i] + result;
+      result = '${amountStr[i]}$result';
       count++;
     }
 
