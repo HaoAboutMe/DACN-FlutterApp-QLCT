@@ -19,7 +19,7 @@ class DatabaseHelper {
 
   // Thông tin database
   static const String _databaseName = 'expense_tracker.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2; // Tăng version để trigger migration
 
   // Tên các bảng
   static const String _tableUsers = 'users';
@@ -67,6 +67,10 @@ class DatabaseHelper {
   static const String _colLoanReminderEnabled = 'reminderEnabled';
   static const String _colLoanReminderDays = 'reminderDays';
   static const String _colLoanLastReminderSent = 'lastReminderSent';
+  /// Cột đánh dấu khoản vay/nợ cũ hay mới
+  /// 0 = khoản vay/nợ mới (tạo transaction và cập nhật số dư khi khởi tạo)
+  /// 1 = khoản vay/nợ cũ (chỉ ghi nhận, không tạo transaction ban đầu)
+  static const String _colLoanIsOldDebt = 'isOldDebt';
   static const String _colLoanCreatedAt = 'createdAt';
   static const String _colLoanUpdatedAt = 'updatedAt';
 
@@ -137,7 +141,7 @@ class DatabaseHelper {
         )
       ''');
 
-      // Tạo bảng loans
+      // Tạo bảng loans với cột isOldDebt
       await db.execute('''
         CREATE TABLE $_tableLoans (
           $_colLoanId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,6 +157,7 @@ class DatabaseHelper {
           $_colLoanReminderEnabled INTEGER NOT NULL DEFAULT 0,
           $_colLoanReminderDays INTEGER,
           $_colLoanLastReminderSent TEXT,
+          $_colLoanIsOldDebt INTEGER NOT NULL DEFAULT 0 CHECK ($_colLoanIsOldDebt IN (0, 1)),
           $_colLoanCreatedAt TEXT NOT NULL,
           $_colLoanUpdatedAt TEXT NOT NULL
         )
@@ -245,8 +250,21 @@ class DatabaseHelper {
   Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
     log('Nâng cấp database từ phiên bản $oldVersion lên $newVersion');
 
-    // Thêm logic nâng cấp database ở đây khi có phiên bản mới
-    // Ví dụ: ALTER TABLE, CREATE INDEX mới, etc.
+    try {
+      if (oldVersion < 2) {
+        // Thêm cột isOldDebt vào bảng loans
+        await db.execute('''
+          ALTER TABLE $_tableLoans 
+          ADD COLUMN $_colLoanIsOldDebt INTEGER NOT NULL DEFAULT 0 CHECK ($_colLoanIsOldDebt IN (0, 1))
+        ''');
+        log('Đã thêm cột isOldDebt vào bảng loans');
+      }
+
+      log('Nâng cấp database thành công');
+    } catch (e) {
+      log('Lỗi nâng cấp database: $e');
+      rethrow;
+    }
   }
 
   // ==================== CRUD cho Users ====================
@@ -700,6 +718,42 @@ class DatabaseHelper {
     }
   }
 
+  /// Lấy danh sách nợ cũ (isOldDebt = 1)
+  /// Đây là những khoản vay/nợ đã tồn tại từ trước, chỉ ghi nhận không tạo transaction ban đầu
+  Future<List<Loan>> getOldDebts() async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableLoans,
+        where: '$_colLoanIsOldDebt = ?',
+        whereArgs: [1],
+        orderBy: '$_colLoanDate DESC, $_colLoanId DESC',
+      );
+      return List.generate(maps.length, (i) => Loan.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy danh sách nợ cũ: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy danh sách khoản vay mới (isOldDebt = 0)
+  /// Đây là những khoản vay/nợ mới tạo, sẽ tạo transaction và cập nhật số dư
+  Future<List<Loan>> getNewLoans() async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableLoans,
+        where: '$_colLoanIsOldDebt = ?',
+        whereArgs: [0],
+        orderBy: '$_colLoanDate DESC, $_colLoanId DESC',
+      );
+      return List.generate(maps.length, (i) => Loan.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy danh sách khoản vay mới: $e');
+      rethrow;
+    }
+  }
+
   // ==================== CRUD cho Notifications ====================
 
   /// Thêm thông báo mới
@@ -804,40 +858,128 @@ class DatabaseHelper {
 
   /// Tạo khoản vay kèm giao dịch trong một transaction
   /// Đảm bảo dữ liệu nhất quán khi tạo loan và transaction liên quan
+  ///
+  /// Logic xử lý:
+  /// - Nếu isOldDebt = 1 (nợ cũ): chỉ insert loan, KHÔNG tạo transaction, KHÔNG cập nhật số dư
+  /// - Nếu isOldDebt = 0 (nợ mới): insert loan + transaction, cập nhật số dư:
+  ///   + lend (cho vay) → tạo transaction 'loan_given', trừ số dư
+  ///   + borrow (vay mới) → tạo transaction 'loan_received', cộng số dư
   Future<Map<String, int>> createLoanWithTransaction({
     required Loan loan,
     required transaction_model.Transaction transaction,
+    int userId = 1, // Mặc định userId = 1, có thể truyền vào
   }) async {
     final db = await database;
 
     try {
       late int loanId;
-      late int transactionId;
+      int? transactionId;
 
       await db.transaction((txn) async {
         // 1. Tạo loan trước
         loanId = await txn.insert(_tableLoans, loan.toMap());
         log('Tạo loan với ID: $loanId');
 
-        // 2. Tạo transaction với loanId vừa tạo
-        final transactionWithLoanId = transaction.copyWith(loanId: loanId);
-        transactionId = await txn.insert(_tableTransactions, transactionWithLoanId.toMap());
-        log('Tạo transaction với ID: $transactionId');
+        // 2. Kiểm tra isOldDebt để quyết định có tạo transaction hay không
+        if (loan.isOldDebt == 0) {
+          // Khoản vay/nợ mới: tạo transaction và cập nhật số dư
+          log('Đây là khoản vay/nợ mới, tạo transaction và cập nhật số dư');
+
+          // Tạo transaction với loanId vừa tạo
+          final transactionWithLoanId = transaction.copyWith(loanId: loanId);
+          transactionId = await txn.insert(_tableTransactions, transactionWithLoanId.toMap());
+          log('Tạo transaction với ID: $transactionId');
+
+          // Cập nhật số dư người dùng
+          await _updateUserBalanceInTransaction(
+            txn,
+            userId,
+            loan.amount,
+            transaction.type
+          );
+        } else {
+          // Khoản vay/nợ cũ: chỉ ghi nhận, không tạo transaction ban đầu
+          log('Đây là khoản vay/nợ cũ, chỉ ghi nhận không tạo transaction ban đầu');
+          transactionId = null;
+        }
       });
 
       log('Tạo loan kèm transaction thành công');
-      return {'loanId': loanId, 'transactionId': transactionId};
+      return {
+        'loanId': loanId,
+        'transactionId': transactionId ?? -1
+      };
     } catch (e) {
       log('Lỗi tạo loan kèm transaction: $e');
       rethrow;
     }
   }
 
+  /// Cập nhật số dư người dùng trong transaction (helper method)
+  Future<void> _updateUserBalanceInTransaction(
+    Transaction txn,
+    int userId,
+    double amount,
+    String transactionType,
+  ) async {
+    // Lấy số dư hiện tại
+    final userMaps = await txn.query(
+      _tableUsers,
+      where: '$_colUserId = ?',
+      whereArgs: [userId],
+    );
+
+    if (userMaps.isEmpty) {
+      throw Exception('Không tìm thấy người dùng với ID: $userId');
+    }
+
+    final currentUser = User.fromMap(userMaps.first);
+    double newBalance = currentUser.balance;
+
+    // Tính toán số dư mới
+    switch (transactionType) {
+      case 'income':
+      case 'debt_collected':
+      case 'loan_received': // Nhận tiền vay
+        newBalance += amount;
+        break;
+      case 'expense':
+      case 'loan_given': // Cho vay
+      case 'debt_paid':
+        newBalance -= amount;
+        break;
+    }
+
+    // Cập nhật số dư
+    final updatedUser = currentUser.copyWith(
+      balance: newBalance,
+      updatedAt: DateTime.now(),
+    );
+
+    await txn.update(
+      _tableUsers,
+      updatedUser.toMap(),
+      where: '$_colUserId = ?',
+      whereArgs: [userId],
+    );
+
+    log('Cập nhật số dư user ID $userId: ${currentUser.balance} -> $newBalance');
+  }
+
   /// Đánh dấu khoản vay đã thanh toán và tạo giao dịch thanh toán
   /// Sử dụng transaction để đảm bảo tính nhất quán
+  ///
+  /// Logic xử lý:
+  /// Bất kể loan mới hay cũ (isOldDebt = 0 hoặc 1), khi đánh dấu Paid thì:
+  /// - Update loan status = 'paid', paidDate = now
+  /// - Thêm transaction thanh toán:
+  ///   + 'debt_paid' nếu borrow (trả nợ) → trừ số dư
+  ///   + 'debt_collected' nếu lend (thu nợ) → cộng số dư
+  /// - Cập nhật số dư tương ứng
   Future<bool> markLoanAsPaid({
     required int loanId,
     required transaction_model.Transaction paymentTransaction,
+    int userId = 1, // Mặc định userId = 1, có thể truyền vào
   }) async {
     final db = await database;
 
@@ -870,13 +1012,21 @@ class DatabaseHelper {
           whereArgs: [loanId],
         );
 
-        log('Cập nhật loan ID $loanId thành trạng thái paid');
+        log('Cập nhật loan ID $loanId thành trạng thái paid (isOldDebt: ${currentLoan.isOldDebt})');
 
-        // 3. Tạo transaction thanh toán
+        // 3. Tạo transaction thanh toán (bất kể loan cũ hay mới)
         final transactionWithLoanId = paymentTransaction.copyWith(loanId: loanId);
         await txn.insert(_tableTransactions, transactionWithLoanId.toMap());
 
-        log('Tạo transaction thanh toán cho loan ID $loanId');
+        log('Tạo transaction thanh toán cho loan ID $loanId với type: ${paymentTransaction.type}');
+
+        // 4. Cập nhật số dư người dùng
+        await _updateUserBalanceInTransaction(
+          txn,
+          userId,
+          paymentTransaction.amount,
+          paymentTransaction.type,
+        );
       });
 
       log('Đánh dấu loan đã thanh toán thành công');
@@ -898,50 +1048,7 @@ class DatabaseHelper {
 
     try {
       await db.transaction((txn) async {
-        // 1. Lấy số dư hiện tại
-        final userMaps = await txn.query(
-          _tableUsers,
-          where: '$_colUserId = ?',
-          whereArgs: [userId],
-        );
-
-        if (userMaps.isEmpty) {
-          throw Exception('Không tìm thấy người dùng với ID: $userId');
-        }
-
-        final currentUser = User.fromMap(userMaps.first);
-        double newBalance = currentUser.balance;
-
-        // 2. Tính toán số dư mới
-        switch (transactionType) {
-          case 'income':
-          case 'debt_collected':
-            newBalance += amount;
-            break;
-          case 'expense':
-          case 'loan_given':
-          case 'debt_paid':
-            newBalance -= amount;
-            break;
-          case 'loan_received':
-            newBalance += amount;
-            break;
-        }
-
-        // 3. Cập nhật số dư
-        final updatedUser = currentUser.copyWith(
-          balance: newBalance,
-          updatedAt: DateTime.now(),
-        );
-
-        await txn.update(
-          _tableUsers,
-          updatedUser.toMap(),
-          where: '$_colUserId = ?',
-          whereArgs: [userId],
-        );
-
-        log('Cập nhật số dư user ID $userId: ${currentUser.balance} -> $newBalance');
+        await _updateUserBalanceInTransaction(txn, userId, amount, transactionType);
       });
 
       return true;
@@ -1025,7 +1132,7 @@ class DatabaseHelper {
     try {
       final db = await database;
       final result = await db.rawQuery('''
-        SELECT 
+        SELECT
           c.$_colCategoryName as categoryName,
           c.$_colCategoryIcon as categoryIcon,
           SUM(t.$_colTransactionAmount) as totalAmount,
