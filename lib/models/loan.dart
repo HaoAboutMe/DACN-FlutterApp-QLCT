@@ -41,6 +41,11 @@ class Loan {
   /// Lần nhắc nhở cuối cùng (nullable)
   final DateTime? lastReminderSent;
 
+  /// Đánh dấu khoản vay/nợ cũ hay mới
+  /// 0 = khoản vay/nợ mới (sẽ tạo transaction và cập nhật số dư khi tạo)
+  /// 1 = khoản vay/nợ cũ (chỉ ghi nhận, không tạo transaction ban đầu)
+  final int isOldDebt;
+
   /// Thời gian tạo bản ghi
   final DateTime createdAt;
 
@@ -61,6 +66,7 @@ class Loan {
     required this.reminderEnabled,
     this.reminderDays,
     this.lastReminderSent,
+    this.isOldDebt = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -81,6 +87,7 @@ class Loan {
       reminderEnabled: (map['reminderEnabled'] as int) == 1,
       reminderDays: map['reminderDays'] as int?,
       lastReminderSent: map['lastReminderSent'] != null ? DateTime.parse(map['lastReminderSent'] as String) : null,
+      isOldDebt: (map['isOldDebt'] as int?) ?? 0,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
     );
@@ -102,6 +109,7 @@ class Loan {
       'reminderEnabled': reminderEnabled ? 1 : 0,
       'reminderDays': reminderDays,
       'lastReminderSent': lastReminderSent?.toIso8601String(),
+      'isOldDebt': isOldDebt,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -122,6 +130,7 @@ class Loan {
     bool? reminderEnabled,
     int? reminderDays,
     DateTime? lastReminderSent,
+    int? isOldDebt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -139,6 +148,7 @@ class Loan {
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderDays: reminderDays ?? this.reminderDays,
       lastReminderSent: lastReminderSent ?? this.lastReminderSent,
+      isOldDebt: isOldDebt ?? this.isOldDebt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -191,6 +201,12 @@ class Loan {
     }
   }
 
+  /// Kiểm tra xem có phải là khoản vay/nợ cũ không
+  bool get isOld => isOldDebt == 1;
+
+  /// Kiểm tra xem có phải là khoản vay/nợ mới không
+  bool get isNew => isOldDebt == 0;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -208,6 +224,7 @@ class Loan {
         other.reminderEnabled == reminderEnabled &&
         other.reminderDays == reminderDays &&
         other.lastReminderSent == lastReminderSent &&
+        other.isOldDebt == isOldDebt &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt;
   }
@@ -227,12 +244,13 @@ class Loan {
         reminderEnabled.hashCode ^
         reminderDays.hashCode ^
         lastReminderSent.hashCode ^
+        isOldDebt.hashCode ^
         createdAt.hashCode ^
         updatedAt.hashCode;
   }
 
   @override
   String toString() {
-    return 'Loan(id: $id, personName: $personName, personPhone: $personPhone, amount: $amount, loanType: $loanType, loanDate: $loanDate, dueDate: $dueDate, status: $status, description: $description, paidDate: $paidDate, reminderEnabled: $reminderEnabled, reminderDays: $reminderDays, lastReminderSent: $lastReminderSent, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Loan(id: $id, personName: $personName, personPhone: $personPhone, amount: $amount, loanType: $loanType, loanDate: $loanDate, dueDate: $dueDate, status: $status, description: $description, paidDate: $paidDate, reminderEnabled: $reminderEnabled, reminderDays: $reminderDays, lastReminderSent: $lastReminderSent, isOldDebt: $isOldDebt, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
