@@ -7,6 +7,7 @@ import '../models/transaction.dart' as transaction_model;
 import '../models/loan.dart';
 import '../models/notification_data.dart';
 import '../models/user.dart';
+import '../models/budget.dart';
 
 /// Lớp DatabaseHelper quản lý cơ sở dữ liệu SQLite cho ứng dụng quản lý chi tiêu
 /// Sử dụng singleton pattern để đảm bảo chỉ có một instance duy nhất
@@ -19,7 +20,7 @@ class DatabaseHelper {
 
   // Thông tin database
   static const String _databaseName = 'expense_tracker.db';
-  static const int _databaseVersion = 2; // Tăng version để trigger migration
+  static const int _databaseVersion = 3; // Tăng version để trigger migration cho budget
 
   // Tên các bảng
   static const String _tableUsers = 'users';
@@ -27,6 +28,7 @@ class DatabaseHelper {
   static const String _tableTransactions = 'transactions';
   static const String _tableLoans = 'loans';
   static const String _tableNotifications = 'notifications';
+  static const String _tableBudgets = 'budgets'; // Bảng ngân sách riêng biệt
 
   // Cột của bảng users
   static const String _colUserId = 'id';
@@ -40,6 +42,7 @@ class DatabaseHelper {
   static const String _colCategoryName = 'name';
   static const String _colCategoryIcon = 'icon';
   static const String _colCategoryType = 'type';
+  static const String _colCategoryBudget = 'budget'; // Hạn mức chi tiêu cho danh mục
   static const String _colCategoryCreatedAt = 'createdAt';
 
   // Cột của bảng transactions
@@ -82,6 +85,14 @@ class DatabaseHelper {
   static const String _colNotificationBody = 'body';
   static const String _colNotificationSentAt = 'sentAt';
   static const String _colNotificationIsRead = 'isRead';
+
+  // Cột của bảng budgets (bảng ngân sách riêng biệt)
+  static const String _colBudgetId = 'id';
+  static const String _colBudgetAmount = 'amount';
+  static const String _colBudgetCategoryId = 'category_id';
+  static const String _colBudgetStartDate = 'start_date';
+  static const String _colBudgetEndDate = 'end_date';
+  static const String _colBudgetCreatedAt = 'created_at';
 
   /// Getter để lấy instance database
   /// Tạo database mới nếu chưa tồn tại
@@ -136,6 +147,7 @@ class DatabaseHelper {
           $_colCategoryName TEXT NOT NULL,
           $_colCategoryIcon TEXT NOT NULL,
           $_colCategoryType TEXT NOT NULL CHECK ($_colCategoryType IN ('income', 'expense')),
+          $_colCategoryBudget REAL DEFAULT 0, -- Hạn mức chi tiêu cho danh mục
           $_colCategoryCreatedAt TEXT NOT NULL,
           UNIQUE($_colCategoryName, $_colCategoryType)
         )
@@ -203,6 +215,20 @@ class DatabaseHelper {
         )
       ''');
 
+      // Tạo bảng budgets
+      await db.execute('''
+        CREATE TABLE $_tableBudgets (
+          $_colBudgetId INTEGER PRIMARY KEY AUTOINCREMENT,
+          $_colBudgetAmount REAL NOT NULL CHECK ($_colBudgetAmount >= 0),
+          $_colBudgetCategoryId INTEGER NOT NULL,
+          $_colBudgetStartDate TEXT NOT NULL,
+          $_colBudgetEndDate TEXT NOT NULL,
+          $_colBudgetCreatedAt TEXT NOT NULL,
+          
+          FOREIGN KEY ($_colBudgetCategoryId) REFERENCES $_tableCategories ($_colCategoryId) ON DELETE CASCADE
+        )
+      ''');
+
       // Tạo các index để tối ưu hiệu suất
       await _createIndexes(db);
 
@@ -239,6 +265,12 @@ class DatabaseHelper {
         ON $_tableNotifications ($_colNotificationLoanId, $_colNotificationSentAt)
       ''');
 
+      // Index cho bảng budgets
+      await db.execute('''
+        CREATE INDEX idx_budgets_category_id 
+        ON $_tableBudgets ($_colBudgetCategoryId)
+      ''');
+
       log('Tạo indexes thành công');
     } catch (e) {
       log('Lỗi tạo indexes: $e');
@@ -258,6 +290,30 @@ class DatabaseHelper {
           ADD COLUMN $_colLoanIsOldDebt INTEGER NOT NULL DEFAULT 0 CHECK ($_colLoanIsOldDebt IN (0, 1))
         ''');
         log('Đã thêm cột isOldDebt vào bảng loans');
+      }
+
+      if (oldVersion < 3) {
+        // Tạo bảng budgets
+        await db.execute('''
+          CREATE TABLE $_tableBudgets (
+            $_colBudgetId INTEGER PRIMARY KEY AUTOINCREMENT,
+            $_colBudgetAmount REAL NOT NULL CHECK ($_colBudgetAmount >= 0),
+            $_colBudgetCategoryId INTEGER NOT NULL,
+            $_colBudgetStartDate TEXT NOT NULL,
+            $_colBudgetEndDate TEXT NOT NULL,
+            $_colBudgetCreatedAt TEXT NOT NULL,
+            
+            FOREIGN KEY ($_colBudgetCategoryId) REFERENCES $_tableCategories ($_colCategoryId) ON DELETE CASCADE
+          )
+        ''');
+        log('Đã tạo bảng budgets');
+
+        // Thêm cột budget vào bảng categories
+        await db.execute('''
+          ALTER TABLE $_tableCategories 
+          ADD COLUMN $_colCategoryBudget REAL DEFAULT 0
+        ''');
+        log('Đã thêm cột budget vào bảng categories');
       }
 
       log('Nâng cấp database thành công');
@@ -1069,6 +1125,7 @@ class DatabaseHelper {
         await txn.delete(_tableLoans);
         await txn.delete(_tableCategories);
         await txn.delete(_tableUsers);
+        await txn.delete(_tableBudgets);
       });
 
       log('Xóa toàn bộ dữ liệu thành công');
@@ -1148,6 +1205,325 @@ class DatabaseHelper {
       return result;
     } catch (e) {
       log('Lỗi lấy báo cáo chi tiêu theo danh mục: $e');
+      rethrow;
+    }
+  }
+
+  // ==================== CRUD cho Budgets ====================
+
+  /// Thêm ngân sách mới
+  Future<int> insertBudget(Budget budget) async {
+    try {
+      final db = await database;
+      final id = await db.insert(_tableBudgets, budget.toMap());
+      log('Thêm budget thành công với ID: $id');
+      return id;
+    } catch (e) {
+      log('Lỗi thêm budget: $e');
+      rethrow;
+    }
+  }
+
+  /// Cập nhật ngân sách
+  Future<int> updateBudget(Budget budget) async {
+    try {
+      final db = await database;
+      final count = await db.update(
+        _tableBudgets,
+        budget.toMap(),
+        where: '$_colBudgetId = ?',
+        whereArgs: [budget.id],
+      );
+      log('Cập nhật budget thành công');
+      return count;
+    } catch (e) {
+      log('Lỗi cập nhật budget: $e');
+      rethrow;
+    }
+  }
+
+  /// Xóa ngân sách
+  Future<int> deleteBudget(int id) async {
+    try {
+      final db = await database;
+      final count = await db.delete(
+        _tableBudgets,
+        where: '$_colBudgetId = ?',
+        whereArgs: [id],
+      );
+      log('Xóa budget thành công');
+      return count;
+    } catch (e) {
+      log('Lỗi xóa budget: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tất cả ngân sách
+  Future<List<Budget>> getAllBudgets() async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableBudgets,
+        orderBy: '$_colBudgetStartDate DESC, $_colBudgetId DESC',
+      );
+      return List.generate(maps.length, (i) => Budget.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy danh sách budgets: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy ngân sách theo ID
+  Future<Budget?> getBudgetById(int id) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetId = ?',
+        whereArgs: [id],
+      );
+      if (maps.isNotEmpty) {
+        return Budget.fromMap(maps.first);
+      }
+      return null;
+    } catch (e) {
+      log('Lỗi lấy budget theo ID: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy ngân sách theo danh mục
+  Future<List<Budget>> getBudgetsByCategory(int categoryId) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetCategoryId = ?',
+        whereArgs: [categoryId],
+        orderBy: '$_colBudgetStartDate DESC',
+      );
+      return List.generate(maps.length, (i) => Budget.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy budgets theo category: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy ngân sách đang hoạt động (trong khoảng thời gian hiện tại)
+  Future<List<Budget>> getActiveBudgets() async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final maps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetStartDate <= ? AND $_colBudgetEndDate >= ?',
+        whereArgs: [now, now],
+        orderBy: '$_colBudgetAmount DESC',
+      );
+      return List.generate(maps.length, (i) => Budget.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy budgets đang hoạt động: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy ngân sách đang hoạt động theo danh mục
+  Future<Budget?> getActiveBudgetByCategory(int categoryId) async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final maps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetCategoryId = ? AND $_colBudgetStartDate <= ? AND $_colBudgetEndDate >= ?',
+        whereArgs: [categoryId, now, now],
+        orderBy: '$_colBudgetStartDate DESC',
+        limit: 1,
+      );
+
+      if (maps.isNotEmpty) {
+        return Budget.fromMap(maps.first);
+      }
+      return null;
+    } catch (e) {
+      log('Lỗi lấy budget đang hoạt động theo category: $e');
+      rethrow;
+    }
+  }
+
+  // ==================== Các hàm theo dõi ngân sách ====================
+
+  /// Tính tổng chi tiêu theo danh mục trong khoảng thời gian ngân sách
+  Future<double> getCategoryExpenseInBudgetPeriod(int categoryId, DateTime startDate, DateTime endDate) async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery('''
+        SELECT SUM($_colTransactionAmount) as total
+        FROM $_tableTransactions
+        WHERE $_colTransactionType = 'expense'
+        AND $_colTransactionCategoryId = ?
+        AND $_colTransactionDate BETWEEN ? AND ?
+      ''', [categoryId, startDate.toIso8601String(), endDate.toIso8601String()]);
+
+      return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+    } catch (e) {
+      log('Lỗi tính chi tiêu theo category trong budget period: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy báo cáo tiến độ ngân sách cho tất cả danh mục có ngân sách đang hoạt động
+  Future<List<Map<String, dynamic>>> getBudgetProgress() async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final result = await db.rawQuery('''
+        SELECT 
+          b.$_colBudgetId as budgetId,
+          b.$_colBudgetAmount as budgetAmount,
+          b.$_colBudgetStartDate as startDate,
+          b.$_colBudgetEndDate as endDate,
+          c.$_colCategoryId as categoryId,
+          c.$_colCategoryName as categoryName,
+          c.$_colCategoryIcon as categoryIcon,
+          COALESCE(SUM(t.$_colTransactionAmount), 0) as totalSpent
+        FROM $_tableBudgets b
+        INNER JOIN $_tableCategories c ON b.$_colBudgetCategoryId = c.$_colCategoryId
+        LEFT JOIN $_tableTransactions t ON t.$_colTransactionCategoryId = c.$_colCategoryId 
+          AND t.$_colTransactionType = 'expense'
+          AND t.$_colTransactionDate BETWEEN b.$_colBudgetStartDate AND b.$_colBudgetEndDate
+        WHERE b.$_colBudgetStartDate <= ? AND b.$_colBudgetEndDate >= ?
+        GROUP BY b.$_colBudgetId, b.$_colBudgetAmount, b.$_colBudgetStartDate, b.$_colBudgetEndDate, 
+                 c.$_colCategoryId, c.$_colCategoryName, c.$_colCategoryIcon
+        ORDER BY (COALESCE(SUM(t.$_colTransactionAmount), 0) / b.$_colBudgetAmount) DESC
+      ''', [now, now]);
+
+      return result.map((row) {
+        final budgetAmount = (row['budgetAmount'] as num).toDouble();
+        final totalSpent = (row['totalSpent'] as num).toDouble();
+        final progressPercentage = budgetAmount > 0 ? (totalSpent / budgetAmount) * 100 : 0.0;
+
+        return {
+          ...row,
+          'progressPercentage': progressPercentage,
+          'remainingAmount': budgetAmount - totalSpent,
+          'isOverBudget': totalSpent > budgetAmount,
+        };
+      }).toList();
+    } catch (e) {
+      log('Lỗi lấy báo cáo tiến độ ngân sách: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy báo cáo tiến độ ngân sách cho danh mục cụ thể
+  Future<Map<String, dynamic>?> getBudgetProgressByCategory(int categoryId) async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final result = await db.rawQuery('''
+        SELECT 
+          b.$_colBudgetId as budgetId,
+          b.$_colBudgetAmount as budgetAmount,
+          b.$_colBudgetStartDate as startDate,
+          b.$_colBudgetEndDate as endDate,
+          c.$_colCategoryId as categoryId,
+          c.$_colCategoryName as categoryName,
+          c.$_colCategoryIcon as categoryIcon,
+          COALESCE(SUM(t.$_colTransactionAmount), 0) as totalSpent
+        FROM $_tableBudgets b
+        INNER JOIN $_tableCategories c ON b.$_colBudgetCategoryId = c.$_colCategoryId
+        LEFT JOIN $_tableTransactions t ON t.$_colTransactionCategoryId = c.$_colCategoryId 
+          AND t.$_colTransactionType = 'expense'
+          AND t.$_colTransactionDate BETWEEN b.$_colBudgetStartDate AND b.$_colBudgetEndDate
+        WHERE c.$_colCategoryId = ?
+          AND b.$_colBudgetStartDate <= ? AND b.$_colBudgetEndDate >= ?
+        GROUP BY b.$_colBudgetId, b.$_colBudgetAmount, b.$_colBudgetStartDate, b.$_colBudgetEndDate, 
+                 c.$_colCategoryId, c.$_colCategoryName, c.$_colCategoryIcon
+        ORDER BY b.$_colBudgetStartDate DESC
+        LIMIT 1
+      ''', [categoryId, now, now]);
+
+      if (result.isEmpty) return null;
+
+      final row = result.first;
+      final budgetAmount = (row['budgetAmount'] as num).toDouble();
+      final totalSpent = (row['totalSpent'] as num).toDouble();
+      final progressPercentage = budgetAmount > 0 ? (totalSpent / budgetAmount) * 100 : 0.0;
+
+      return {
+        ...row,
+        'progressPercentage': progressPercentage,
+        'remainingAmount': budgetAmount - totalSpent,
+        'isOverBudget': totalSpent > budgetAmount,
+      };
+    } catch (e) {
+      log('Lỗi lấy tiến độ ngân sách theo category: $e');
+      rethrow;
+    }
+  }
+
+  /// Kiểm tra xem có danh mục nào vượt ngân sách không
+  Future<List<Map<String, dynamic>>> getOverBudgetCategories() async {
+    try {
+      final progressList = await getBudgetProgress();
+      return progressList.where((item) => item['isOverBudget'] == true).toList();
+    } catch (e) {
+      log('Lỗi lấy danh sách categories vượt ngân sách: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tổng ngân sách đang hoạt động
+  Future<double> getTotalActiveBudget() async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final result = await db.rawQuery('''
+        SELECT SUM($_colBudgetAmount) as total
+        FROM $_tableBudgets
+        WHERE $_colBudgetStartDate <= ? AND $_colBudgetEndDate >= ?
+      ''', [now, now]);
+
+      return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+    } catch (e) {
+      log('Lỗi tính tổng ngân sách đang hoạt động: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tổng chi tiêu trong tháng hiện tại
+  Future<double> getTotalExpenseThisMonth() async {
+    try {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      return await getTotalExpenseInPeriod(startOfMonth, endOfMonth);
+    } catch (e) {
+      log('Lỗi tính tổng chi tiêu tháng hiện tại: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy danh mục có ngân sách đang hoạt động (có budget > 0 trong categories hoặc có budget riêng)
+  Future<List<Category>> getCategoriesWithBudget() async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableCategories,
+        where: '$_colCategoryBudget > 0 OR $_colCategoryId IN (SELECT DISTINCT $_colBudgetCategoryId FROM $_tableBudgets WHERE $_colBudgetStartDate <= ? AND $_colBudgetEndDate >= ?)',
+        whereArgs: [DateTime.now().toIso8601String(), DateTime.now().toIso8601String()],
+        orderBy: '$_colCategoryName ASC',
+      );
+      return List.generate(maps.length, (i) => Category.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy categories có ngân sách: $e');
       rethrow;
     }
   }

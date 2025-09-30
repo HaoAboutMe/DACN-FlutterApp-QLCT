@@ -14,6 +14,9 @@ class Category {
   /// Loại danh mục: "income" (thu nhập) hoặc "expense" (chi tiêu)
   final String type;
 
+  /// Hạn mức chi tiêu cho danh mục này (null = không giới hạn, 0.0 = không có ngân sách)
+  final double? budget;
+
   /// Thời gian tạo danh mục
   final DateTime createdAt;
 
@@ -22,6 +25,7 @@ class Category {
     required this.name,
     required this.icon,
     required this.type,
+    this.budget = 0.0,
     required this.createdAt,
   });
 
@@ -32,6 +36,7 @@ class Category {
       name: map['name'] as String,
       icon: map['icon'] as String,
       type: map['type'] as String,
+      budget: map['budget'] != null ? (map['budget'] as num).toDouble() : 0.0,
       createdAt: DateTime.parse(map['createdAt'] as String),
     );
   }
@@ -43,6 +48,7 @@ class Category {
       'name': name,
       'icon': icon,
       'type': type,
+      'budget': budget,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -53,6 +59,7 @@ class Category {
     String? name,
     String? icon,
     String? type,
+    double? budget,
     DateTime? createdAt,
   }) {
     return Category(
@@ -60,6 +67,7 @@ class Category {
       name: name ?? this.name,
       icon: icon ?? this.icon,
       type: type ?? this.type,
+      budget: budget ?? this.budget,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -70,6 +78,9 @@ class Category {
   /// Kiểm tra xem danh mục có phải là chi tiêu không
   bool get isExpense => type == 'expense';
 
+  /// Kiểm tra xem danh mục có thiết lập ngân sách không
+  bool get hasBudget => budget != null && budget! > 0;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -78,6 +89,7 @@ class Category {
         other.name == name &&
         other.icon == icon &&
         other.type == type &&
+        other.budget == budget &&
         other.createdAt == createdAt;
   }
 
@@ -87,11 +99,12 @@ class Category {
         name.hashCode ^
         icon.hashCode ^
         type.hashCode ^
+        budget.hashCode ^
         createdAt.hashCode;
   }
 
   @override
   String toString() {
-    return 'Category(id: $id, name: $name, icon: $icon, type: $type, createdAt: $createdAt)';
+    return 'Category(id: $id, name: $name, icon: $icon, type: $type, budget: $budget, createdAt: $createdAt)';
   }
 }
