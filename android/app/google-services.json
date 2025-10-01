@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "827019702547",
+    "project_id": "whales-spent",
+    "storage_bucket": "whales-spent.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827019702547:android:5fb6c216607412314ceae6",
+        "android_client_info": {
+          "package_name": "com.example.app_qlct"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "827019702547-ggsb7h7pieqel0ks3gmq79rt4kv9tok9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.app_qlct",
+            "certificate_hash": "eae8924d408406d3cdd5f1ec393ec975b6d86ecf"
+          }
+        },
+        {
+          "client_id": "827019702547-8hede3f9j6v6k1h6oi4crlu7nv72sgjk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaaiPVgowMVnSpTK_BWytgetjMVudsCd0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "827019702547-8hede3f9j6v6k1h6oi4crlu7nv72sgjk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "827019702547-kfvj2bkvi8pi0t1da1imr2tbsrba39fh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.appQlct"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
