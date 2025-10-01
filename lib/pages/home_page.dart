@@ -70,8 +70,8 @@ class HomePage extends StatelessWidget {
                           isGuest
                               ? 'G'
                               : (user.displayName?.isNotEmpty == true
-                                  ? user.displayName![0].toUpperCase()
-                                  : user.email?[0].toUpperCase() ?? 'U'),
+                              ? user.displayName![0].toUpperCase()
+                              : user.email?[0].toUpperCase() ?? 'U'),
                         ),
                       ),
                       const SizedBox(width: 12),

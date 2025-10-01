@@ -395,20 +395,20 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
                             : Text(
-                                _isSignUpMode ? 'Sign Up' : 'Sign In',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                          _isSignUpMode ? 'Sign Up' : 'Sign In',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -423,24 +423,24 @@ class _AuthPageState extends State<AuthPage> {
                             : _signInWithGoogle,
                         icon: _isGoogleSignInLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
                             : Image.asset(
-                                'assets/google_logo.png',
-                                height: 20,
-                                width: 20,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.login,
-                                    size: 20,
-                                    color: Colors.grey[600],
-                                  );
-                                },
-                              ),
+                          'assets/google_logo.png',
+                          height: 20,
+                          width: 20,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.login,
+                              size: 20,
+                              color: Colors.grey[600],
+                            );
+                          },
+                        ),
                         label: Text(
                           'Sign in with Google',
                           style: TextStyle(
