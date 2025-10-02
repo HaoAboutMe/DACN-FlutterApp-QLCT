@@ -567,6 +567,22 @@ class DatabaseHelper {
     }
   }
 
+  /// Lấy giao dịch gần đây với giới hạn số lượng
+  Future<List<transaction_model.Transaction>> getRecentTransactions({int limit = 10}) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableTransactions,
+        orderBy: '$_colTransactionDate DESC, $_colTransactionId DESC',
+        limit: limit,
+      );
+      return List.generate(maps.length, (i) => transaction_model.Transaction.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy danh sách giao dịch gần đây: $e');
+      rethrow;
+    }
+  }
+
   /// Lấy giao dịch theo ID
   Future<transaction_model.Transaction?> getTransactionById(int id) async {
     try {
