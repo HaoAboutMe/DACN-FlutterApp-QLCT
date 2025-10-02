@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../database/database_helper.dart';
-import '../models/user.dart';
+import '../../database/database_helper.dart';
+import '../../models/user.dart';
 
 class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});

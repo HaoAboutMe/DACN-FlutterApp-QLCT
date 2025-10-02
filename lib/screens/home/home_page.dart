@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../database/database_helper.dart';
-import '../models/user.dart';
-import '../models/transaction.dart' as transaction_model;
-import '../models/category.dart';
-import 'home/home_colors.dart';
-import 'home/widgets/greeting_appbar.dart';
-import 'home/widgets/balance_overview.dart';
-import 'home/widgets/quick_actions.dart';
-import 'home/widgets/recent_transactions.dart';
+import '../../database/database_helper.dart';
+import '../../models/user.dart';
+import '../../models/transaction.dart' as transaction_model;
+import '../../models/category.dart';
+import 'home_colors.dart';
+import 'widgets/greeting_appbar.dart';
+import 'widgets/balance_overview.dart';
+import 'widgets/quick_actions.dart';
+import 'widgets/recent_transactions.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
