@@ -1,4 +1,5 @@
 #📱 Mô tả dự án cũ
+
 Đây là một ứng dụng quản lý chi tiêu cá nhân được phát triển bằng Flutter và sử dụng SQLite để lưu trữ dữ liệu. Ứng dụng tập trung vào việc giúp người dùng dễ dàng ghi lại, theo dõi và phân tích các khoản thu nhập, chi tiêu, vay/nợ trong đời sống hàng ngày, đồng thời hỗ trợ lập hạn mức chi tiêu (ngân sách) để kiểm soát chi tiêu tốt hơn.  
 
 ##🔑 Khởi đầu khi sử dụng app  
