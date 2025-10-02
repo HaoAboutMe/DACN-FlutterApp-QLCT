@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/initial_screen.dart';
 import 'screens/home_page.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Check if InitialScreen should be shown
+  final isFirstRun = await InitialScreen.shouldShowInitialScreen();
+
+  runApp(MyApp(isFirstRun: isFirstRun));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isFirstRun;
+
+  const MyApp({super.key, required this.isFirstRun});
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +27,8 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // Set InitialScreen as the home screen
-      home: const InitialScreen(),
+      // Show InitialScreen or HomePage based on isFirstRun
+      home: isFirstRun ? const InitialScreen() : const HomePage(),
       // Define named routes
       routes: {
         '/home': (context) => const HomePage(),

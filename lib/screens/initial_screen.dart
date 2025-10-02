@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import '../models/user.dart';
 
 class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});
+
+  static Future<bool> shouldShowInitialScreen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isFirstRun') ?? true;
+  }
 
   @override
   State<InitialScreen> createState() => _InitialScreenState();
@@ -127,6 +133,10 @@ class _InitialScreenState extends State<InitialScreen> {
 
       await DatabaseHelper().insertUser(user);
 
+      // Save isFirstRun = false
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isFirstRun', false);
+
       // Navigate to HomePage
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
@@ -245,20 +255,20 @@ class _InitialScreenState extends State<InitialScreen> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(brightBlue),
-                                ),
-                              )
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(brightBlue),
+                          ),
+                        )
                             : Text(
-                                _currentStep == 3 ? 'Hoàn tất' : 'Tiếp tục',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                          _currentStep == 3 ? 'Hoàn tất' : 'Tiếp tục',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -592,3 +602,4 @@ class _InitialScreenState extends State<InitialScreen> {
     );
   }
 }
+
