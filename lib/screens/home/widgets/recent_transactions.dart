@@ -8,11 +8,13 @@ import 'empty_state.dart';
 class RecentTransactions extends StatelessWidget {
   final List<transaction_model.Transaction> transactions;
   final Map<int, Category> categoriesMap;
+  final VoidCallback? onViewAllPressed;
 
   const RecentTransactions({
     super.key,
     required this.transactions,
     required this.categoriesMap,
+    this.onViewAllPressed,
   });
 
   @override
@@ -33,13 +35,27 @@ class RecentTransactions extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Giao dịch gần đây',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Giao dịch gần đây',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: HomeColors.textPrimary,
+                ),
+              ),
+              if (onViewAllPressed != null)
+                GestureDetector(
+                  onTap: onViewAllPressed,
+                  child: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: HomeColors.primary,
+                    size: 20,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           transactions.isEmpty

@@ -139,20 +139,26 @@ class BalanceOverview extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _OverviewStatCard(
-                title: 'Cho vay',
-                amount: totalLent,
-                isVisible: isBalanceVisible,
-                color: HomeColors.loanGiven,
+              child: Tooltip(
+                message: 'Bao gồm cả khoản vay trước khi dùng ứng dụng',
+                child: _OverviewStatCard(
+                  title: 'Cho vay',
+                  amount: totalLent,
+                  isVisible: isBalanceVisible,
+                  color: HomeColors.loanGiven,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _OverviewStatCard(
-                title: 'Đi vay',
-                amount: totalBorrowed,
-                isVisible: isBalanceVisible,
-                color: HomeColors.loanReceived,
+              child: Tooltip(
+                message: 'Bao gồm cả khoản vay trước khi dùng ứng dụng',
+                child: _OverviewStatCard(
+                  title: 'Đi vay',
+                  amount: totalBorrowed,
+                  isVisible: isBalanceVisible,
+                  color: HomeColors.loanReceived,
+                ),
               ),
             ),
           ],
