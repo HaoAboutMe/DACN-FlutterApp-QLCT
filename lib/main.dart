@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check nếu đây là lần chạy đầu tiên chạy
+  // Check if InitialScreen should be shown
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();
 
   runApp(MyApp(isFirstRun: isFirstRun));
