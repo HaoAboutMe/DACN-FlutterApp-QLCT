@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category.dart';
 import '../models/transaction.dart' as transaction_model;
 import '../models/loan.dart';
@@ -401,6 +402,29 @@ class DatabaseHelper {
     } catch (e) {
       log('Lỗi lấy user theo ID: $e');
       rethrow;
+    }
+  }
+
+  /// Lấy số dư hiện tại của user đang đăng nhập
+  Future<double> getCurrentBalance() async {
+    try {
+      final currentUserId = await getCurrentUserId();
+      final user = await getUserById(currentUserId);
+      return user?.balance ?? 0.0;
+    } catch (e) {
+      log('Error getting current balance: $e');
+      return 0.0;
+    }
+  }
+
+  /// Lấy user hiện tại đang đăng nhập
+  Future<User?> getCurrentUser() async {
+    try {
+      final currentUserId = await getCurrentUserId();
+      return await getUserById(currentUserId);
+    } catch (e) {
+      log('Error getting current user: $e');
+      return null;
     }
   }
 
@@ -939,9 +963,10 @@ class DatabaseHelper {
   Future<Map<String, int>> createLoanWithTransaction({
     required Loan loan,
     required transaction_model.Transaction transaction,
-    int userId = 1, // Mặc định userId = 1, có thể truyền vào
   }) async {
     final db = await database;
+    // Get current user ID dynamically
+    final currentUserId = await getCurrentUserId();
 
     try {
       late int loanId;
@@ -962,12 +987,12 @@ class DatabaseHelper {
           transactionId = await txn.insert(_tableTransactions, transactionWithLoanId.toMap());
           log('Tạo transaction với ID: $transactionId');
 
-          // Cập nhật số dư người dùng
+          // Cập nhật số dư người dùng với currentUserId động
           await _updateUserBalanceInTransaction(
-            txn,
-            userId,
-            loan.amount,
-            transaction.type
+              txn,
+              currentUserId,
+              loan.amount,
+              transaction.type
           );
         } else {
           // Khoản vay/nợ cũ: chỉ ghi nhận, không tạo transaction ban đầu
@@ -976,7 +1001,7 @@ class DatabaseHelper {
         }
       });
 
-      log('Tạo loan kèm transaction thành công');
+      log('Tạo loan kèm transaction thành công cho user ID: $currentUserId');
       return {
         'loanId': loanId,
         'transactionId': transactionId ?? -1
@@ -989,11 +1014,17 @@ class DatabaseHelper {
 
   /// Cập nhật số dư người dùng trong transaction (helper method)
   Future<void> _updateUserBalanceInTransaction(
-    Transaction txn,
-    int userId,
-    double amount,
-    String transactionType,
-  ) async {
+      Transaction txn,
+      int userId,
+      double amount,
+      String transactionType,
+      ) async {
+    // Debug log để theo dõi input parameters
+    log('=== DEBUG _updateUserBalanceInTransaction ===');
+    log('Input userId: $userId');
+    log('Input amount: $amount');
+    log('Input transactionType: $transactionType');
+
     // Lấy số dư hiện tại
     final userMaps = await txn.query(
       _tableUsers,
@@ -1008,17 +1039,21 @@ class DatabaseHelper {
     final currentUser = User.fromMap(userMaps.first);
     double newBalance = currentUser.balance;
 
+    log('Current user balance before update: ${currentUser.balance}');
+
     // Tính toán số dư mới
     switch (transactionType) {
       case 'income':
       case 'debt_collected':
       case 'loan_received': // Nhận tiền vay
         newBalance += amount;
+        log('Adding $amount to balance (type: $transactionType)');
         break;
       case 'expense':
       case 'loan_given': // Cho vay
       case 'debt_paid':
         newBalance -= amount;
+        log('Subtracting $amount from balance (type: $transactionType)');
         break;
     }
 
@@ -1036,6 +1071,7 @@ class DatabaseHelper {
     );
 
     log('Cập nhật số dư user ID $userId: ${currentUser.balance} -> $newBalance');
+    log('=== END DEBUG _updateUserBalanceInTransaction ===');
   }
 
   /// Đánh dấu khoản vay đã thanh toán và tạo giao dịch thanh toán
@@ -1051,11 +1087,15 @@ class DatabaseHelper {
   Future<bool> markLoanAsPaid({
     required int loanId,
     required transaction_model.Transaction paymentTransaction,
-    int userId = 1, // Mặc định userId = 1, có thể truyền vào
+    int? userId, // Không còn hardcode = 1
   }) async {
     final db = await database;
 
     try {
+      // Lấy userId hiện tại nếu không được truyền vào
+      final currentUserId = userId ?? await getCurrentUserId();
+      log('Using user ID: $currentUserId for marking loan as paid');
+
       await db.transaction((txn) async {
         // 1. Lấy thông tin loan hiện tại
         final loanMaps = await txn.query(
@@ -1095,7 +1135,7 @@ class DatabaseHelper {
         // 4. Cập nhật số dư người dùng
         await _updateUserBalanceInTransaction(
           txn,
-          userId,
+          currentUserId, // Sử dụng currentUserId thay vì hardcode
           paymentTransaction.amount,
           paymentTransaction.type,
         );
@@ -1112,15 +1152,19 @@ class DatabaseHelper {
   /// Cập nhật số dư người dùng sau giao dịch
   /// Sử dụng transaction để đảm bảo tính nhất quán
   Future<bool> updateUserBalanceAfterTransaction({
-    required int userId,
+    int? userId, // Không còn hardcode = 1
     required double amount,
     required String transactionType,
   }) async {
     final db = await database;
 
     try {
+      // Lấy userId hiện tại nếu không được truyền vào
+      final currentUserId = userId ?? await getCurrentUserId();
+      log('Using user ID: $currentUserId for updating balance after transaction');
+
       await db.transaction((txn) async {
-        await _updateUserBalanceInTransaction(txn, userId, amount, transactionType);
+        await _updateUserBalanceInTransaction(txn, currentUserId, amount, transactionType);
       });
 
       return true;
@@ -1540,6 +1584,41 @@ class DatabaseHelper {
       return List.generate(maps.length, (i) => Category.fromMap(maps[i]));
     } catch (e) {
       log('Lỗi lấy categories có ngân sách: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy user ID hiện tại từ SharedPreferences
+  /// Trả về 1 nếu không tìm thấy (fallback cho compatibility)
+  Future<int> getCurrentUserId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('currentUserId') ?? 1;
+      log('Current user ID: $userId');
+      return userId;
+    } catch (e) {
+      log('Error getting current user ID: $e');
+      return 1; // Fallback
+    }
+  }
+
+  /// Xóa toàn bộ database (cho debug/reset)
+  Future<void> resetDatabase() async {
+    try {
+      final databasesPath = await getDatabasesPath();
+      final path = join(databasesPath, _databaseName);
+
+      await deleteDatabase(path);
+      _database = null;
+
+      // Reset SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('currentUserId');
+      await prefs.setBool('isFirstRun', true);
+
+      log('Database reset successfully');
+    } catch (e) {
+      log('Error resetting database: $e');
       rethrow;
     }
   }

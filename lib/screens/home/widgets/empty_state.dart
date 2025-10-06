@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../home_colors.dart';
 import '../home_icons.dart';
 
 class EmptyState extends StatelessWidget {

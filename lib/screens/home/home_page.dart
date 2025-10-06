@@ -8,6 +8,8 @@ import 'widgets/greeting_appbar.dart';
 import 'widgets/balance_overview.dart';
 import 'widgets/quick_actions.dart';
 import 'widgets/recent_transactions.dart';
+import '../add_transaction/add_transaction_page.dart';
+import '../add_loan/add_loan_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -43,10 +45,18 @@ class _HomePageState extends State<HomePage> {
         _isLoading = true;
       });
 
-      // Load user data
-      final users = await _databaseHelper.getAllUsers();
-      if (users.isNotEmpty) {
-        _currentUser = users.first;
+      // Get current user ID from SharedPreferences and load user data
+      final currentUserId = await _databaseHelper.getCurrentUserId();
+      final currentUser = await _databaseHelper.getUserById(currentUserId);
+
+      if (currentUser != null) {
+        _currentUser = currentUser;
+      } else {
+        // If user not found, get the first available user (fallback)
+        final users = await _databaseHelper.getAllUsers();
+        if (users.isNotEmpty) {
+          _currentUser = users.first;
+        }
       }
 
       // Load recent transactions
@@ -56,8 +66,9 @@ class _HomePageState extends State<HomePage> {
       final categories = await _databaseHelper.getAllCategories();
       _categoriesMap = {for (var category in categories) category.id!: category};
 
-      // Calculate overview statistics
+      // Calculate overview statistics and current balance
       await _calculateOverviewStats();
+      await _updateCurrentBalance();
 
       setState(() {
         _isLoading = false;
@@ -79,6 +90,7 @@ class _HomePageState extends State<HomePage> {
       _totalLent = 0;
       _totalBorrowed = 0;
 
+      // Calculate income and expense from transactions (unchanged)
       for (final transaction in allTransactions) {
         switch (transaction.type) {
           case 'income':
@@ -86,18 +98,64 @@ class _HomePageState extends State<HomePage> {
             _totalIncome += transaction.amount;
             break;
           case 'expense':
+          case 'debt_paid':
             _totalExpense += transaction.amount;
             break;
-          case 'loan_given':
-            _totalLent += transaction.amount;
-            break;
-          case 'loan_received':
-            _totalBorrowed += transaction.amount;
-            break;
+        // Remove loan calculations from transactions as we'll calculate directly from loans table
+        }
+      }
+
+      // Calculate loan statistics directly from loans table to include both old and new loans
+      await _calculateLoanStats();
+    } catch (e) {
+      debugPrint('Error calculating overview stats: $e');
+    }
+  }
+
+  /// Calculate loan statistics directly from loans table
+  /// This includes both old debts (isOldDebt = 1) and new loans (isOldDebt = 0)
+  Future<void> _calculateLoanStats() async {
+    try {
+      final allLoans = await _databaseHelper.getAllLoans();
+
+      _totalLent = 0;
+      _totalBorrowed = 0;
+
+      for (final loan in allLoans) {
+        // Only count active loans (not paid/completed)
+        if (loan.status == 'active') {
+          if (loan.loanType == 'lend') {
+            _totalLent += loan.amount;
+          } else if (loan.loanType == 'borrow') {
+            _totalBorrowed += loan.amount;
+          }
         }
       }
     } catch (e) {
-      debugPrint('Error calculating overview stats: $e');
+      debugPrint('Error calculating loan stats: $e');
+    }
+  }
+
+  /// Lấy số dư hiện tại của user từ database (không tính toán lại)
+  /// Số dư đã được cập nhật chính xác qua các phương thức updateUserBalanceAfterTransaction
+  Future<void> _updateCurrentBalance() async {
+    try {
+      // Get current user ID from SharedPreferences
+      final currentUserId = await _databaseHelper.getCurrentUserId();
+
+      // Lấy số dư hiện tại từ database (đã được cập nhật chính xác)
+      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      if (currentUser != null) {
+        // Chỉ cập nhật UI state, không modify database
+        setState(() {
+          _currentUser = currentUser;
+        });
+        debugPrint('Current balance for user ID $currentUserId: ${currentUser.balance}');
+      } else {
+        debugPrint('Warning: Current user with ID $currentUserId not found');
+      }
+    } catch (e) {
+      debugPrint('Error getting current balance: $e');
     }
   }
 
@@ -107,13 +165,26 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _showComingSoonSnackBar(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Tính năng $feature sẽ được phát triển trong bước tiếp theo'),
-        backgroundColor: HomeColors.primary,
-      ),
+  Future<void> _navigateToAddTransaction(String transactionType) async {
+    Widget targetPage;
+
+    // Navigate to appropriate page based on transaction type
+    if (transactionType == 'loan_given' || transactionType == 'loan_received') {
+      // Navigate to AddLoanPage for loan transactions
+      targetPage = AddLoanPage(preselectedType: transactionType);
+    } else {
+      // Navigate to AddTransactionPage for income/expense transactions
+      targetPage = AddTransactionPage(preselectedType: transactionType);
+    }
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (context) => targetPage),
     );
+
+    // Refresh data if transaction/loan was successfully added
+    if (result == true) {
+      await _loadData();
+    }
   }
 
   void _handleNotificationPressed() {
@@ -132,40 +203,40 @@ class _HomePageState extends State<HomePage> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
-              ),
-            )
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
+        ),
+      )
           : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    BalanceOverview(
-                      currentUser: _currentUser,
-                      isBalanceVisible: _isBalanceVisible,
-                      onVisibilityToggle: _toggleBalanceVisibility,
-                      totalIncome: _totalIncome,
-                      totalExpense: _totalExpense,
-                      totalLent: _totalLent,
-                      totalBorrowed: _totalBorrowed,
-                    ),
-                    const SizedBox(height: 24),
-                    QuickActions(
-                      onIncomePressed: () => _showComingSoonSnackBar('thêm thu nhập'),
-                      onExpensePressed: () => _showComingSoonSnackBar('thêm chi tiêu'),
-                      onLoanGivenPressed: () => _showComingSoonSnackBar('cho vay'),
-                      onLoanReceivedPressed: () => _showComingSoonSnackBar('đi vay'),
-                    ),
-                    const SizedBox(height: 24),
-                    RecentTransactions(
-                      transactions: _recentTransactions,
-                      categoriesMap: _categoriesMap,
-                    ),
-                  ],
-                ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              BalanceOverview(
+                currentUser: _currentUser,
+                isBalanceVisible: _isBalanceVisible,
+                onVisibilityToggle: _toggleBalanceVisibility,
+                totalIncome: _totalIncome,
+                totalExpense: _totalExpense,
+                totalLent: _totalLent,
+                totalBorrowed: _totalBorrowed,
               ),
-            ),
+              const SizedBox(height: 24),
+              QuickActions(
+                onIncomePressed: () => _navigateToAddTransaction('income'),
+                onExpensePressed: () => _navigateToAddTransaction('expense'),
+                onLoanGivenPressed: () => _navigateToAddTransaction('loan_given'),
+                onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
+              ),
+              const SizedBox(height: 24),
+              RecentTransactions(
+                transactions: _recentTransactions,
+                categoriesMap: _categoriesMap,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
