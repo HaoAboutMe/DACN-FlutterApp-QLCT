@@ -6,7 +6,7 @@ import 'screens/home/home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check if InitialScreen should be shown
+  // Check nếu đây là lần chạy đầu tiên chạy
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();
 
   runApp(MyApp(isFirstRun: isFirstRun));
