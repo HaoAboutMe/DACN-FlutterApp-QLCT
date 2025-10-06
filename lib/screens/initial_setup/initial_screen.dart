@@ -8,6 +8,7 @@ class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});
 
   static Future<bool> shouldShowInitialScreen() async {
+    // Lấy SharedPreferences instance
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('isFirstRun') ?? true;
   }
@@ -38,8 +39,9 @@ class _InitialScreenState extends State<InitialScreen> {
     super.dispose();
   }
 
+  /// Hàm chuyển sang bước tiếp theo
   void _nextStep() {
-    // Validation for step 2 (name input)
+    // Bắt lỗi bước 1 (name input)
     if (_currentStep == 1) {
       if (_nameController.text.trim().isEmpty) {
         _showValidationSnackbar('Vui lòng nhập tên');
@@ -47,7 +49,7 @@ class _InitialScreenState extends State<InitialScreen> {
       }
     }
 
-    // Validation for step 3 (balance input)
+    // Bắt lỗi bước 2 (balance input)
     if (_currentStep == 2) {
       if (_balanceController.text.trim().isEmpty) {
         _showValidationSnackbar('Vui lòng nhập số dư');
@@ -69,6 +71,7 @@ class _InitialScreenState extends State<InitialScreen> {
     }
   }
 
+  /// Hàm quay lại bước trước
   void _previousStep() {
     if (_currentStep > 0) {
       setState(() {
@@ -82,7 +85,10 @@ class _InitialScreenState extends State<InitialScreen> {
     }
   }
 
+  /// Hàm hiển thị snackbar lỗi (Lỗi không nhập tên hoặc số dư)
+  /// Chỉ cần gọi hàm _showValidationSnackbar('Nội dung lỗi');
   void _showValidationSnackbar(String message) {
+    //Gọi snackbar của context hiện tại
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -99,8 +105,10 @@ class _InitialScreenState extends State<InitialScreen> {
     );
   }
 
+  /// Hàm hoàn tất thiết lập ban đầu
   Future<void> _completeSetup() async {
-    // Final validation
+    // Kiểm tra lỗi nhập liệu
+    // Mặc dù đã kiểm tra ở bước trước nhưng vẫn kiểm tra lại để chắc chắn
     if (_nameController.text.trim().isEmpty) {
       _showValidationSnackbar('Vui lòng nhập tên của bạn');
       return;
@@ -111,6 +119,8 @@ class _InitialScreenState extends State<InitialScreen> {
       return;
     }
 
+    // Khai báo biến balance và chuyển đổi chuỗi sang double được định dạng phù hợp
+    // Nếu không chuyển đổi được thì báo lỗi
     double balance;
     try {
       balance = double.parse(_balanceController.text.replaceAll(',', ''));
@@ -119,11 +129,13 @@ class _InitialScreenState extends State<InitialScreen> {
       return;
     }
 
+    // Gắn cờ isLoading để hiển thị loading indicator
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Khởi tạo đối tượng User và lưu vào database
       final user = User(
         name: _nameController.text.trim(),
         balance: balance,
@@ -135,13 +147,14 @@ class _InitialScreenState extends State<InitialScreen> {
 
       // Save isFirstRun = false
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isFirstRun', false);
+      await prefs.setBool('isFirstRun', false); // Đánh dấu đã hoàn tất thiết lập ban đầu
 
-      // Navigate to HomePage
+      // Nếu mounted (trang vẫn còn hiển thị) thì chuyển hướng đến trang chính
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
+
       if (mounted) {
         _showValidationSnackbar('Có lỗi xảy ra khi lưu thông tin: $e');
       }
@@ -160,6 +173,7 @@ class _InitialScreenState extends State<InitialScreen> {
 
     return Scaffold(
       backgroundColor: darkBlue,
+      // SafeArea để tránh bị che khuất bởi notch hoặc status bar
       body: SafeArea(
         child: Column(
           children: [
