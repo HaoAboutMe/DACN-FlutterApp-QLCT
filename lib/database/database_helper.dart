@@ -434,12 +434,86 @@ class DatabaseHelper {
   Future<int> insertCategory(Category category) async {
     try {
       final db = await database;
-      final id = await db.insert(_tableCategories, category.toMap());
+
+      // Chuẩn hóa tên danh mục
+      final normalizedName = category.name.trim();
+
+      // Kiểm tra trùng lặp
+      final exists = await existsCategoryByNameIcon(
+          normalizedName,
+          category.type,
+          category.icon
+      );
+
+      if (exists) {
+        throw Exception('DUPLICATE_CATEGORY');
+      }
+
+      // Tạo category mới với tên đã chuẩn hóa
+      final normalizedCategory = category.copyWith(name: normalizedName);
+
+      final id = await db.insert(_tableCategories, normalizedCategory.toMap());
       log('Thêm category thành công với ID: $id');
       return id;
     } catch (e) {
       log('Lỗi thêm category: $e');
       rethrow;
+    }
+  }
+
+  /// Kiểm tra tồn tại category theo tên, loại và icon
+  Future<bool> existsCategoryByNameIcon(String name, String type, String icon) async {
+    try {
+      final db = await database;
+      final result = await db.query(
+        _tableCategories,
+        where: 'LOWER(TRIM($_colCategoryName)) = ? AND $_colCategoryType = ? AND $_colCategoryIcon = ?',
+        whereArgs: [name.toLowerCase().trim(), type, icon],
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      log('Lỗi kiểm tra category tồn tại: $e');
+      return false;
+    }
+  }
+
+  /// Tìm kiếm categories theo từ khóa và nhóm
+  Future<List<Category>> searchCategories({
+    required String type,
+    String? keyword,
+    List<String>? iconList,
+  }) async {
+    try {
+      final db = await database;
+
+      String whereClause = '$_colCategoryType = ?';
+      List<dynamic> whereArgs = [type];
+
+      // Thêm điều kiện tìm kiếm theo tên
+      if (keyword != null && keyword.trim().isNotEmpty) {
+        whereClause += ' AND LOWER($_colCategoryName) LIKE ?';
+        whereArgs.add('%${keyword.toLowerCase().trim()}%');
+      }
+
+      // Thêm điều kiện lọc theo danh sách icon
+      if (iconList != null && iconList.isNotEmpty) {
+        final iconPlaceholders = iconList.map((e) => '?').join(',');
+        whereClause += ' AND $_colCategoryIcon IN ($iconPlaceholders)';
+        whereArgs.addAll(iconList);
+      }
+
+      final List<Map<String, dynamic>> maps = await db.query(
+        _tableCategories,
+        where: whereClause,
+        whereArgs: whereArgs,
+        orderBy: '$_colCategoryName ASC',
+      );
+
+      return List.generate(maps.length, (i) => Category.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi tìm kiếm categories: $e');
+      return [];
     }
   }
 
