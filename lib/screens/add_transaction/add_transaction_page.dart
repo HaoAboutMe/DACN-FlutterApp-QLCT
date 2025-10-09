@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
+import '../../widgets/category_picker_sheet.dart';
 import '../home/home_colors.dart';
 
 class AddTransactionPage extends StatefulWidget {
@@ -355,12 +355,25 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   IconData _getCategoryIcon(String iconName) {
+    // Handle empty or null icon names
+    if (iconName.isEmpty) {
+      return Icons.category;
+    }
+
+    // Try to parse as codePoint (for newer categories created via category picker)
+    final codePoint = int.tryParse(iconName);
+    if (codePoint != null) {
+      return IconData(codePoint, fontFamily: 'MaterialIcons');
+    }
+
+    // If not a codePoint, map string to Flutter icon (for default categories)
     const categoryIcons = {
       'restaurant': Icons.restaurant,
       'food': Icons.restaurant,
       'transport': Icons.directions_car,
       'directions_car': Icons.directions_car,
       'shopping_cart': Icons.shopping_cart,
+      'shopping_bag': Icons.shopping_bag,
       'shopping': Icons.shopping_cart,
       'home': Icons.home,
       'medical_services': Icons.medical_services,
@@ -371,9 +384,18 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       'business': Icons.work,
       'savings': Icons.savings,
       'entertainment': Icons.movie,
+      'movie': Icons.movie,
       'travel': Icons.flight,
+      'flight': Icons.flight,
       'utilities': Icons.electrical_services,
+      'electrical_services': Icons.electrical_services,
+      'attach_money': Icons.attach_money,
+      'card_giftcard': Icons.card_giftcard,
+      'trending_up': Icons.trending_up,
+      'fitness_center': Icons.fitness_center,
+      'more_horiz': Icons.more_horiz,
       'other': Icons.category,
+      'category': Icons.category,
     };
 
     return categoryIcons[iconName.toLowerCase()] ?? Icons.category;
@@ -698,6 +720,20 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               return null;
             },
           ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _showAddCategorySheet,
+              child: const Text(
+                'Thêm danh mục mới',
+                style: TextStyle(
+                  color: HomeColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -794,6 +830,47 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         ),
       ),
     );
+  }
+
+  // Mở CategoryPickerSheet mới
+  Future<void> _showAddCategorySheet() async {
+    final selectedCategory = await openCategoryPickerSheet(
+      context,
+      type: _selectedType,
+      selected: _selectedCategoryId != null && _filteredCategories.isNotEmpty
+          ? _filteredCategories.cast<Category?>().firstWhere((c) => c?.id == _selectedCategoryId, orElse: () => null)
+          : null,
+    );
+
+    if (selectedCategory != null) {
+      // Tải lại danh sách categories để có category mới
+      await _loadCategories();
+
+      // Cập nhật category được chọn
+      if (mounted) {
+        setState(() {
+          _selectedCategoryId = selectedCategory.id;
+        });
+
+        // Hiển thị thông báo thành công nếu là category mới
+        if (selectedCategory.id != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('Đã chọn danh mục "${selectedCategory.name}"'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
