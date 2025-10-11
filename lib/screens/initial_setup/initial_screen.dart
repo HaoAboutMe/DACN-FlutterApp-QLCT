@@ -61,6 +61,12 @@ class _InitialScreenState extends State<InitialScreen> {
       setState(() {
         _currentStep++;
       });
+
+      // Dismiss keyboard when moving to step 3 (Success step)
+      if (_currentStep == 3) {
+        FocusScope.of(context).unfocus();
+      }
+
       _pageController.animateToPage(
         _currentStep,
         duration: const Duration(milliseconds: 300),
@@ -173,6 +179,7 @@ class _InitialScreenState extends State<InitialScreen> {
 
     return Scaffold(
       backgroundColor: darkBlue,
+      resizeToAvoidBottomInset: true, // Enable automatic screen resize for keyboard
       // SafeArea để tránh bị che khuất bởi notch hoặc status bar
       body: SafeArea(
         child: Column(
@@ -219,7 +226,7 @@ class _InitialScreenState extends State<InitialScreen> {
               ),
             ),
 
-            // Body Section (55% of screen height)
+            // Body Section (55% of screen height) - Now with proper scrolling
             Expanded(
               flex: 55,
               child: Container(
@@ -231,15 +238,26 @@ class _InitialScreenState extends State<InitialScreen> {
                     topRight: Radius.circular(40),
                   ),
                 ),
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _buildWelcomeStep(),
-                    _buildNameStep(),
-                    _buildBalanceStep(),
-                    _buildSuccessStep(),
-                  ],
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                  ),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.55 - 40, // Subtract for border radius
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildWelcomeStep(),
+                        _buildNameStep(),
+                        _buildBalanceStep(),
+                        _buildSuccessStep(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

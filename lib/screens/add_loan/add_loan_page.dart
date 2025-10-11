@@ -273,6 +273,7 @@ class _AddLoanPageState extends State<AddLoanPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: HomeColors.background,
+      resizeToAvoidBottomInset: true, // Enable automatic screen resize for keyboard
       appBar: AppBar(
         title: const Text(
           'Thêm khoản vay / nợ mới',
@@ -285,33 +286,41 @@ class _AddLoanPageState extends State<AddLoanPage>
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTypeSelector(),
-                const SizedBox(height: 24),
-                _buildPersonNameField(),
-                const SizedBox(height: 20),
-                _buildPersonPhoneField(),
-                const SizedBox(height: 20),
-                _buildAmountField(),
-                const SizedBox(height: 20),
-                _buildDateSelectors(),
-                const SizedBox(height: 20),
-                _buildDescriptionField(),
-                const SizedBox(height: 20),
-                _buildOldDebtToggle(), // New widget for old debt toggle
-                const SizedBox(height: 20),
-                _buildReminderSettings(),
-                const SizedBox(height: 32),
-                _buildSaveButton(),
-              ],
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTypeSelector(),
+                  const SizedBox(height: 24),
+                  _buildPersonNameField(),
+                  const SizedBox(height: 20),
+                  _buildPersonPhoneField(),
+                  const SizedBox(height: 20),
+                  _buildAmountField(),
+                  const SizedBox(height: 20),
+                  _buildDescriptionField(),
+                  const SizedBox(height: 20),
+                  _buildDateSelectors(),
+                  const SizedBox(height: 20),
+                  _buildReminderSettings(),
+                  const SizedBox(height: 20),
+                  _buildOldDebtToggle(),
+                  const SizedBox(height: 32),
+                  _buildSaveButton(),
+                  const SizedBox(height: 20), // Extra space for better scrolling
+                ],
+              ),
             ),
           ),
         ),
