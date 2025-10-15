@@ -22,10 +22,10 @@ class MyApp extends StatelessWidget {
       title: 'Whales Spent',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E88E5), // Primary blue color
+          seedColor: const Color(0xFF00A8CC), // Ocean Blue - màu xanh nước biển của cá heo
         ),
         useMaterial3: true,
-      ),
+      ), // <--- Missing comma added here
       // Show InitialScreen or HomePage based on isFirstRun
       home: isFirstRun ? const InitialScreen() : const HomePage(),
       // Define named routes

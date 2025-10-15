@@ -93,6 +93,28 @@ class Loan {
     );
   }
 
+  /// Tạo đối tượng Loan từ JSON (sử dụng khi load mock data)
+  factory Loan.fromJson(Map<String, dynamic> json) {
+    return Loan(
+      id: json['id'] as int?,
+      personName: json['personName'] ?? '',
+      personPhone: json['personPhone'] as String?,
+      amount: (json['amount'] as num).toDouble(),
+      loanType: json['loanType'] ?? '',
+      loanDate: DateTime.parse(json['loanDate']),
+      dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+      status: json['status'] ?? '',
+      description: json['description'] as String?,
+      paidDate: json['paidDate'] != null ? DateTime.tryParse(json['paidDate']) : null,
+      reminderEnabled: json['reminderEnabled'] ?? false,
+      reminderDays: json['reminderDays'] as int?,
+      lastReminderSent: json['lastReminderSent'] != null ? DateTime.tryParse(json['lastReminderSent']) : null,
+      isOldDebt: json['isOldDebt'] ?? 0,
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.parse(json['createdAt']),
+    );
+  }
+
   /// Chuyển đổi đối tượng Loan thành Map (sử dụng khi lưu vào database)
   Map<String, dynamic> toMap() {
     return {

@@ -1676,23 +1676,29 @@ class DatabaseHelper {
     }
   }
 
-  /// Xóa toàn bộ database (cho debug/reset)
+  /// Xóa toàn bộ database và tạo lại từ đầu
   Future<void> resetDatabase() async {
     try {
       final databasesPath = await getDatabasesPath();
       final path = join(databasesPath, _databaseName);
 
+      // Đóng database hiện tại nếu đang mở
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
+
+      // Xóa file database
       await deleteDatabase(path);
-      _database = null;
+      log('Database đã được xóa và sẽ tạo lại từ đầu');
 
-      // Reset SharedPreferences
+      // Xóa SharedPreferences để reset app về trạng thái ban đầu
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('currentUserId');
-      await prefs.setBool('isFirstRun', true);
+      await prefs.clear();
+      log('SharedPreferences đã được xóa');
 
-      log('Database reset successfully');
     } catch (e) {
-      log('Error resetting database: $e');
+      log('Lỗi khi reset database: $e');
       rethrow;
     }
   }
