@@ -10,6 +10,8 @@ import 'widgets/quick_actions.dart';
 import 'widgets/recent_transactions.dart';
 import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
+import '../loan_list_screen.dart';
+import '../transactions_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -229,9 +231,40 @@ class _HomePageState extends State<HomePage> {
                 onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
               ),
               const SizedBox(height: 24),
+              // Add a button to navigate to Loan List Screen
+              Card(
+                elevation: 2,
+                child: ListTile(
+                  leading: const Icon(Icons.account_balance_wallet, color: Colors.green),
+                  title: const Text('Quản lý Khoản vay / đi vay'),
+                  subtitle: const Text('Xem danh sách tất cả khoản vay và đi vay'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoanListScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
               RecentTransactions(
                 transactions: _recentTransactions,
                 categoriesMap: _categoriesMap,
+                onViewAllPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TransactionsScreen(),
+                    ),
+                  );
+
+                  // Refresh dữ liệu khi quay lại từ TransactionsScreen
+                  // vì có thể đã có thay đổi về giao dịch hoặc số dư
+                  await _loadData();
+                },
               ),
             ],
           ),
