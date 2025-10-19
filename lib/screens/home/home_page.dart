@@ -10,8 +10,8 @@ import 'widgets/quick_actions.dart';
 import 'widgets/recent_transactions.dart';
 import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
-import '../loan_list_screen.dart';
-import '../transactions_screen.dart';
+import '../loan/loan_list_screen.dart';
+import '../transaction/transactions_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
