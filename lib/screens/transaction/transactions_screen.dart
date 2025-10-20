@@ -414,15 +414,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         backgroundColor: HomeColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        // Chỉ hiện leading khi ở chế độ multi-select
+        automaticallyImplyLeading: false,
         leading: _isMultiSelectMode
           ? IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
               onPressed: _exitMultiSelectMode,
             )
-          : IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
+          : null, // Loại bỏ nút back vì đây là tab chính
         actions: [
           if (_isMultiSelectMode && _selectedTransactions.isNotEmpty)
             IconButton(

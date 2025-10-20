@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/initial_setup/initial_screen.dart';
-import 'screens/home/home_page.dart';
+import 'screens/main_navigation_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,12 +25,12 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF00A8CC), // Ocean Blue - màu xanh nước biển của cá heo
         ),
         useMaterial3: true,
-      ), // <--- Missing comma added here
-      // Show InitialScreen or HomePage based on isFirstRun
-      home: isFirstRun ? const InitialScreen() : const HomePage(),
+      ),
+      // Show InitialScreen or MainNavigationWrapper based on isFirstRun
+      home: isFirstRun ? const InitialScreen() : const MainNavigationWrapper(),
       // Define named routes
       routes: {
-        '/home': (context) => const HomePage(),
+        '/home': (context) => const MainNavigationWrapper(),
         '/initial': (context) => const InitialScreen(),
       },
       debugShowCheckedModeBanner: false, // Remove debug banner
