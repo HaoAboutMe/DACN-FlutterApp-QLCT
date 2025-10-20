@@ -6,6 +6,9 @@ import 'loan/loan_list_screen.dart';
 import 'statistics/statistics_screen.dart';
 import 'profile/profile_screen.dart';
 
+/// GlobalKey để truy cập MainNavigationWrapper từ bất kỳ đâu
+final GlobalKey<_MainNavigationWrapperState> mainNavigationKey = GlobalKey<_MainNavigationWrapperState>();
+
 /// MainNavigationWrapper - Wrapper chính quản lý navigation bar động
 /// Sử dụng IndexedStack để giữ trạng thái các trang khi chuyển tab
 /// Hỗ trợ ẩn/hiện navigation bar khi scroll
@@ -98,6 +101,17 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       },
       child: screen,
     );
+  }
+
+  /// Public method để chuyển tab từ bên ngoài
+  void switchToTab(int index) {
+    if (index >= 0 && index < _screens.length && index != _currentIndex) {
+      setState(() {
+        _currentIndex = index;
+        _lastScrollOffset = 0;
+        _isNavBarVisible = true;
+      });
+    }
   }
 
   /// Xử lý khi tap vào navigation item

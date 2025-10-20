@@ -27,10 +27,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // Show InitialScreen or MainNavigationWrapper based on isFirstRun
-      home: isFirstRun ? const InitialScreen() : const MainNavigationWrapper(),
+      home: isFirstRun ? const InitialScreen() : MainNavigationWrapper(key: mainNavigationKey),
       // Define named routes
       routes: {
-        '/home': (context) => const MainNavigationWrapper(),
+        '/home': (context) => MainNavigationWrapper(key: mainNavigationKey),
         '/initial': (context) => const InitialScreen(),
       },
       debugShowCheckedModeBanner: false, // Remove debug banner
