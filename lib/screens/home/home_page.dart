@@ -12,6 +12,7 @@ import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
 import '../loan/loan_list_screen.dart';
 import '../transaction/transactions_screen.dart';
+import '../main_navigation_wrapper.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -231,39 +232,12 @@ class _HomePageState extends State<HomePage> {
                 onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
               ),
               const SizedBox(height: 24),
-              // Add a button to navigate to Loan List Screen
-              Card(
-                elevation: 2,
-                child: ListTile(
-                  leading: const Icon(Icons.account_balance_wallet, color: Colors.green),
-                  title: const Text('Quản lý Khoản vay / đi vay'),
-                  subtitle: const Text('Xem danh sách tất cả khoản vay và đi vay'),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoanListScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
               RecentTransactions(
                 transactions: _recentTransactions,
                 categoriesMap: _categoriesMap,
-                onViewAllPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TransactionsScreen(),
-                    ),
-                  );
-
-                  // Refresh dữ liệu khi quay lại từ TransactionsScreen
-                  // vì có thể đã có thay đổi về giao dịch hoặc số dư
-                  await _loadData();
+                onViewAllPressed: () {
+                  // Chuyển sang tab Giao dịch (index 1) thay vì push route mới
+                  mainNavigationKey.currentState?.switchToTab(1);
                 },
               ),
             ],

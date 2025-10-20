@@ -49,10 +49,23 @@ class RecentTransactions extends StatelessWidget {
               if (onViewAllPressed != null)
                 GestureDetector(
                   onTap: onViewAllPressed,
-                  child: const Icon(
-                    Icons.arrow_forward_ios,
-                    color: HomeColors.primary,
-                    size: 20,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Tất cả',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: HomeColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: HomeColors.primary,
+                        size: 16,
+                      ),
+                    ],
                   ),
                 ),
             ],
