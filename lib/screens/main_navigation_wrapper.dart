@@ -57,7 +57,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         // Chỉ xử lý ScrollUpdateNotification
         if (scrollNotification is ScrollUpdateNotification) {
           final currentOffset = scrollNotification.metrics.pixels;
-          final maxScroll = scrollNotification.metrics.maxScrollExtent;
 
           // Kiểm tra hướng scroll
           if (currentOffset > _lastScrollOffset && currentOffset > 50) {
@@ -76,7 +75,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             }
           }
 
-          // Luôn hiện navigation bar khi ở đầu trang
+          // Luôn hiện navigation bar khi ở đầu trang (scroll position = 0)
           if (currentOffset <= 0) {
             if (!_isNavBarVisible) {
               setState(() {
@@ -85,14 +84,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             }
           }
 
-          // Luôn hiện navigation bar khi ở cuối trang
-          if (currentOffset >= maxScroll) {
-            if (!_isNavBarVisible) {
-              setState(() {
-                _isNavBarVisible = true;
-              });
-            }
-          }
+          // Loại bỏ logic tự động hiện khi ở cuối trang
+          // Người dùng phải vuốt lên để hiện lại navigation bar
 
           _lastScrollOffset = currentOffset;
         }
