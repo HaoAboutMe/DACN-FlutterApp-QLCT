@@ -7,6 +7,8 @@ import '../add_loan/add_loan_page.dart';
 import 'loan_detail_screen.dart';
 import '../main_navigation_wrapper.dart';
 
+enum LoanTypeFilter { all, lendNew, lendOld, borrowNew, borrowOld }
+
 class LoanListScreen extends StatefulWidget {
   const LoanListScreen({super.key});
 
@@ -22,6 +24,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   List<int> _selectedIds = [];
   bool _isLoading = true;
   String _currentFilter = 'Tất cả'; // Tất cả, Tuần, Tháng, Năm, Sắp hết hạn
+  LoanTypeFilter _loanTypeFilter = LoanTypeFilter.all;
   bool _isSelectionMode = false;
 
   @override
@@ -109,6 +112,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   void _applyFilter() {
     final now = DateTime.now();
     setState(() {
+      // First, filter by time
       switch (_currentFilter) {
         case 'Tuần':
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -138,8 +142,43 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         default: // Tất cả
           _filteredLoans = List.from(_loans);
       }
+
+      // Then, filter by loan type (lend/borrow) and new/old
+      switch (_loanTypeFilter) {
+        case LoanTypeFilter.lendNew:
+          _filteredLoans = _filteredLoans.where((loan) =>
+            loan.loanType == 'lend' && loan.isOldDebt == 0
+          ).toList();
+          break;
+        case LoanTypeFilter.lendOld:
+          _filteredLoans = _filteredLoans.where((loan) =>
+            loan.loanType == 'lend' && loan.isOldDebt == 1
+          ).toList();
+          break;
+        case LoanTypeFilter.borrowNew:
+          _filteredLoans = _filteredLoans.where((loan) =>
+            loan.loanType == 'borrow' && loan.isOldDebt == 0
+          ).toList();
+          break;
+        case LoanTypeFilter.borrowOld:
+          _filteredLoans = _filteredLoans.where((loan) =>
+            loan.loanType == 'borrow' && loan.isOldDebt == 1
+          ).toList();
+          break;
+        case LoanTypeFilter.all:
+          // No additional filtering
+          break;
+      }
+
       // Sort by date, newest first
       _filteredLoans.sort((a, b) => b.loanDate.compareTo(a.loanDate));
+    });
+  }
+
+  void _onLoanTypeFilterChanged(LoanTypeFilter filter) {
+    setState(() {
+      _loanTypeFilter = filter;
+      _applyFilter();
     });
   }
 
@@ -407,16 +446,92 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     return Scaffold(
       backgroundColor: HomeColors.background,
       appBar: AppBar(
-        title: Text(
-          _isSelectionMode
-              ? '${_selectedIds.length} đã chọn'
-              : 'Khoản vay / Đi vay',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: _isSelectionMode
+            ? Text(
+                '${_selectedIds.length} đã chọn',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              )
+            : DropdownButtonHideUnderline(
+                child: DropdownButton<LoanTypeFilter>(
+                  value: _loanTypeFilter,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.white,
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                  dropdownColor: HomeColors.primary,
+                  onChanged: (LoanTypeFilter? newValue) {
+                    if (newValue != null) {
+                      _onLoanTypeFilterChanged(newValue);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem<LoanTypeFilter>(
+                      value: LoanTypeFilter.all,
+                      child: Text(
+                        'Tất cả khoản vay',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem<LoanTypeFilter>(
+                      value: LoanTypeFilter.lendNew,
+                      child: Text(
+                        'Cho vay mới',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem<LoanTypeFilter>(
+                      value: LoanTypeFilter.lendOld,
+                      child: Text(
+                        'Cho vay cũ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem<LoanTypeFilter>(
+                      value: LoanTypeFilter.borrowNew,
+                      child: Text(
+                        'Đi vay mới',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem<LoanTypeFilter>(
+                      value: LoanTypeFilter.borrowOld,
+                      child: Text(
+                        'Đi vay cũ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
         backgroundColor: HomeColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -631,7 +746,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                 child: Material(
                                   borderRadius: BorderRadius.circular(12),
                                   color: isSelected
-                                      ? HomeColors.primary.withOpacity(0.1)
+                                      ? HomeColors.primary.withValues(alpha: 0.1)
                                       : HomeColors.cardBackground,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
@@ -684,7 +799,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                               height: 48,
                                               margin: const EdgeInsets.only(right: 12),
                                               decoration: BoxDecoration(
-                                                color: loanColor.withOpacity(0.1),
+                                                color: loanColor.withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(12),
                                               ),
                                               child: Icon(
@@ -719,8 +834,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                                       ),
                                                       decoration: BoxDecoration(
                                                         color: loan.isOldDebt == 0
-                                                            ? HomeColors.primary.withOpacity(0.1)
-                                                            : Colors.grey.withOpacity(0.2),
+                                                            ? HomeColors.primary.withValues(alpha: 0.1)
+                                                            : Colors.grey.withValues(alpha: 0.2),
                                                         borderRadius: BorderRadius.circular(8),
                                                       ),
                                                       child: Text(
@@ -768,7 +883,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                                         vertical: 2,
                                                       ),
                                                       decoration: BoxDecoration(
-                                                        color: _getStatusColor(loan).withOpacity(0.1),
+                                                        color: _getStatusColor(loan).withValues(alpha: 0.1),
                                                         borderRadius: BorderRadius.circular(6),
                                                       ),
                                                       child: Text(
@@ -859,7 +974,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
