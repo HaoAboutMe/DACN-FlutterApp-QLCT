@@ -14,7 +14,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(90);
+  Size get preferredSize => const Size.fromHeight(60);
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +22,10 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: HomeColors.primary,
       elevation: 0,
       automaticallyImplyLeading: false,
-      toolbarHeight: 90,
+      toolbarHeight: 60,
       flexibleSpace: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               _buildAppLogo(),
@@ -41,8 +41,8 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Widget _buildAppLogo() {
     return Container(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
       ),
@@ -58,7 +58,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: const Icon(
               HomeIcons.wallet,
               color: Colors.white,
-              size: 24,
+              size: 20,
             ),
           );
         },
@@ -75,18 +75,18 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
           Text(
             'Xin chào, ${currentUser?.name ?? 'bạn'}!',
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(
             'Quản lý chi tiêu Whales Spent',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: HomeColors.appBarTextSecondary,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.normal,
+              color: Colors.white70,
             ),
           ),
         ],
@@ -95,40 +95,49 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildNotificationButton() {
-    return IconButton(
-      icon: Stack(
-        children: [
-          const Icon(
-            HomeIcons.notification,
-            color: Colors.white,
-            size: 28,
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: HomeColors.notificationBadge,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              constraints: const BoxConstraints(
-                minWidth: 16,
-                minHeight: 16,
-              ),
-              child: const Text(
-                '0',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        icon: Stack(
+          children: [
+            const Icon(
+              HomeIcons.notification,
+              color: Colors.white,
+              size: 22,
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: HomeColors.notificationBadge,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                textAlign: TextAlign.center,
+                constraints: const BoxConstraints(
+                  minWidth: 14,
+                  minHeight: 14,
+                ),
+                child: const Text(
+                  '0',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        onPressed: onNotificationPressed,
       ),
-      onPressed: onNotificationPressed,
     );
   }
 }
