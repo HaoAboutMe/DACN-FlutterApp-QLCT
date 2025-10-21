@@ -592,8 +592,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               if (value == null || value.isEmpty) {
                 return 'Vui lòng nhập số tiền';
               }
-              final amount = double.tryParse(value.replaceAll(',', ''));
-              if (amount == null || amount <= 0) {
+
+              // Sử dụng CurrencyFormatter.parseAmount để đảm bảo consistency
+              final amount = CurrencyFormatter.parseAmount(value);
+
+              debugPrint('=== VALIDATION DEBUG ===');
+              debugPrint('Input value: "$value"');
+              debugPrint('Parsed amount: $amount');
+              debugPrint('Is valid: ${amount > 0}');
+              debugPrint('========================');
+
+              if (amount <= 0) {
                 return 'Số tiền phải lớn hơn 0';
               }
               return null;

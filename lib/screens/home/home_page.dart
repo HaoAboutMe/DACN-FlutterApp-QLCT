@@ -21,7 +21,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   User? _currentUser;
@@ -39,7 +39,36 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Called when app lifecycle changes - reload data when app becomes active
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshHomeData();
+    }
+  }
+
+  /// Public method to refresh home data - can be called from MainNavigationWrapper
+  Future<void> _refreshHomeData() async {
+    debugPrint('🏠 HomePage: _refreshHomeData() called');
+    if (!mounted) return;
+    await _loadData();
+  }
+
+  /// Public method for external calls from MainNavigationWrapper
+  Future<void> refreshData() async {
+    debugPrint('🏠 HomePage: refreshData() called from external');
+    if (!mounted) return;
+    await _loadData();
   }
 
   Future<void> _loadData() async {
@@ -184,9 +213,35 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(builder: (context) => targetPage),
     );
 
-    // Refresh data if transaction/loan was successfully added
+    // ✅ REALTIME: Refresh data if transaction/loan was successfully added
     if (result == true) {
-      await _loadData();
+      debugPrint('🔄 HomePage: Transaction/Loan added successfully, refreshing data...');
+      await _refreshHomeData();
+    }
+  }
+
+  /// ✅ REALTIME: Handle navigation from quick actions with return value checking
+  Future<void> _handleQuickActionNavigation(String actionType) async {
+    debugPrint('🚀 HomePage: Quick action triggered - $actionType');
+
+    // Navigate based on action type and wait for result
+    bool? result;
+
+    switch (actionType) {
+      case 'view_transactions':
+        // Switch to Transaction tab instead of pushing new route
+        mainNavigationKey.currentState?.switchToTab(1);
+        return; // No need to refresh since tab switching already handles reload
+
+      case 'view_loans':
+        // Switch to Loan tab instead of pushing new route
+        mainNavigationKey.currentState?.switchToTab(2);
+        return; // No need to refresh since tab switching already handles reload
+
+      default:
+        // For add operations, use existing _navigateToAddTransaction
+        await _navigateToAddTransaction(actionType);
+        return;
     }
   }
 
@@ -210,40 +265,46 @@ class _HomePageState extends State<HomePage> {
           valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
         ),
       )
-          : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              BalanceOverview(
-                currentUser: _currentUser,
-                isBalanceVisible: _isBalanceVisible,
-                onVisibilityToggle: _toggleBalanceVisibility,
-                totalIncome: _totalIncome,
-                totalExpense: _totalExpense,
-                totalLent: _totalLent,
-                totalBorrowed: _totalBorrowed,
+          : RefreshIndicator(
+              onRefresh: _refreshHomeData,
+              color: HomeColors.primary,
+              backgroundColor: HomeColors.cardBackground,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      BalanceOverview(
+                        currentUser: _currentUser,
+                        isBalanceVisible: _isBalanceVisible,
+                        onVisibilityToggle: _toggleBalanceVisibility,
+                        totalIncome: _totalIncome,
+                        totalExpense: _totalExpense,
+                        totalLent: _totalLent,
+                        totalBorrowed: _totalBorrowed,
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActions(
+                        onIncomePressed: () => _navigateToAddTransaction('income'),
+                        onExpensePressed: () => _navigateToAddTransaction('expense'),
+                        onLoanGivenPressed: () => _navigateToAddTransaction('loan_given'),
+                        onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
+                      ),
+                      const SizedBox(height: 24),
+                      RecentTransactions(
+                        transactions: _recentTransactions,
+                        categoriesMap: _categoriesMap,
+                        onViewAllPressed: () {
+                          // Chuyển sang tab Giao dịch (index 1) thay vì push route mới
+                          mainNavigationKey.currentState?.switchToTab(1);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 24),
-              QuickActions(
-                onIncomePressed: () => _navigateToAddTransaction('income'),
-                onExpensePressed: () => _navigateToAddTransaction('expense'),
-                onLoanGivenPressed: () => _navigateToAddTransaction('loan_given'),
-                onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
-              ),
-              const SizedBox(height: 24),
-              RecentTransactions(
-                transactions: _recentTransactions,
-                categoriesMap: _categoriesMap,
-                onViewAllPressed: () {
-                  // Chuyển sang tab Giao dịch (index 1) thay vì push route mới
-                  mainNavigationKey.currentState?.switchToTab(1);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

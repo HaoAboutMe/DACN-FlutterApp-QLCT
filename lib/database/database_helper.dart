@@ -784,19 +784,87 @@ class DatabaseHelper {
     }
   }
 
-  /// Xóa khoản vay
+  /// Xóa khoản vay và cập nhật số dư user nếu là khoản vay mới
   Future<int> deleteLoan(int id) async {
     try {
       final db = await database;
+
+      // Lấy thông tin khoản vay trước khi xóa
+      final loanMaps = await db.query(
+        _tableLoans,
+        where: '$_colLoanId = ?',
+        whereArgs: [id],
+      );
+
+      if (loanMaps.isEmpty) {
+        log('Loan không tồn tại với ID: $id');
+        return 0;
+      }
+
+      final loan = Loan.fromMap(loanMaps.first);
+      log('Đang xóa loan: ${loan.personName}, type: ${loan.loanType}, isOldDebt: ${loan.isOldDebt}');
+
+      // Nếu là khoản vay mới (isOldDebt = 0), cần cập nhật số dư user
+      if (loan.isOldDebt == 0) {
+        await _updateUserBalanceAfterLoanDeletion(loan);
+      }
+
+      // Xóa các transaction liên quan đến loan này
+      await db.delete(
+        _tableTransactions,
+        where: '$_colTransactionLoanId = ?',
+        whereArgs: [id],
+      );
+
+      // Xóa loan
       final count = await db.delete(
         _tableLoans,
         where: '$_colLoanId = ?',
         whereArgs: [id],
       );
-      log('Xóa loan thành công');
+
+      log('Xóa loan thành công, đã xóa $count bản ghi');
       return count;
     } catch (e) {
       log('Lỗi xóa loan: $e');
+      rethrow;
+    }
+  }
+
+  /// Cập nhật số dư user sau khi xóa khoản vay mới
+  Future<void> _updateUserBalanceAfterLoanDeletion(Loan loan) async {
+    try {
+      // Lấy thông tin user hiện tại
+      final currentUserId = await getCurrentUserId();
+      final currentUser = await getUserById(currentUserId);
+
+      if (currentUser == null) {
+        log('Không tìm thấy user hiện tại');
+        return;
+      }
+
+      double balanceChange = 0;
+
+      // Tính toán thay đổi số dư dựa trên loại khoản vay
+      if (loan.loanType == 'lend') {
+        // Xóa khoản cho vay mới -> cộng lại tiền vào số dư (vì khi tạo đã bị trừ)
+        balanceChange = loan.amount;
+        log('Xóa khoản cho vay mới ${loan.amount} -> cộng lại vào số dư');
+      } else if (loan.loanType == 'borrow') {
+        // Xóa khoản đi vay mới -> trừ tiền khỏi số dư (vì khi tạo đã được cộng)
+        balanceChange = -loan.amount;
+        log('Xóa khoản đi vay mới ${loan.amount} -> trừ khỏi số dư');
+      }
+
+      // Cập nhật số dư mới
+      final newBalance = currentUser.balance + balanceChange;
+      final updatedUser = currentUser.copyWith(balance: newBalance);
+
+      await updateUser(updatedUser);
+
+      log('Đã cập nhật số dư từ ${currentUser.balance} thành $newBalance (thay đổi: $balanceChange)');
+    } catch (e) {
+      log('Lỗi cập nhật số dư sau khi xóa loan: $e');
       rethrow;
     }
   }

@@ -7,6 +7,7 @@ import '../home/home_colors.dart';
 import '../home/home_icons.dart';
 import 'edit_transaction_screen.dart';
 import 'transaction_detail_screen.dart';
+import '../main_navigation_wrapper.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -18,7 +19,7 @@ class TransactionsScreen extends StatefulWidget {
 enum TimeFilter { week, month, year }
 enum TypeFilter { all, income, expense }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
+class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBindingObserver {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   List<transaction_model.Transaction> _transactions = [];
@@ -32,10 +33,35 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Called when app lifecycle changes - reload when app becomes active
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
+  }
+
+  /// Public method to reload data - can be called from MainNavigationWrapper
   Future<void> _loadData() async {
+    if (!mounted) return;
+    await _loadCategories();
+    await _fetchTransactions();
+  }
+
+  /// Public method for external calls from MainNavigationWrapper
+  Future<void> loadData() async {
+    debugPrint('💳 TransactionsScreen: loadData() called from external');
+    if (!mounted) return;
     await _loadCategories();
     await _fetchTransactions();
   }
@@ -255,6 +281,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         });
 
         await _fetchTransactions();
+
+        // Trigger HomePage reload after deleting transactions that affect balance
+        mainNavigationKey.currentState?.refreshHomePage();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -588,175 +617,196 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ],
                     ),
                   )
-                : _transactions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long,
-                              size: 64,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Không có giao dịch nào',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'trong khoảng thời gian này',
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _transactions.length,
-                        itemBuilder: (ctx, i) {
-                          final transaction = _transactions[i];
-                          final category = transaction.categoryId != null
-                              ? _categoriesMap[transaction.categoryId!]
-                              : null;
-                          final isSelected = _selectedTransactions.contains(transaction);
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Material(
-                              borderRadius: BorderRadius.circular(12),
-                              color: isSelected
-                                ? HomeColors.primary.withValues(alpha: 0.1)
-                                : HomeColors.cardBackground,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () => _onTransactionTap(transaction),
-                                onLongPress: () => _onLongPress(transaction),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: isSelected
-                                      ? Border.all(color: HomeColors.primary, width: 2)
-                                      : null,
-                                    boxShadow: !isSelected ? [
-                                      BoxShadow(
-                                        color: HomeColors.cardShadow,
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    color: HomeColors.primary,
+                    backgroundColor: HomeColors.cardBackground,
+                    child: _transactions.isEmpty
+                        ? ListView(
+                            // Need ListView for RefreshIndicator to work on empty content
+                            children: [
+                              Container(
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.receipt_long,
+                                      size: 64,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Không có giao dịch nào',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ] : null,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Selection/Icon
-                                      if (_isMultiSelectMode)
-                                        Container(
-                                          margin: const EdgeInsets.only(right: 12),
-                                          child: Icon(
-                                            isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                            color: isSelected ? HomeColors.primary : Colors.grey,
-                                            size: 24,
-                                          ),
-                                        )
-                                      else
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          margin: const EdgeInsets.only(right: 12),
-                                          decoration: BoxDecoration(
-                                            color: HomeColors.getTransactionIconBackground(
-                                              _getTransactionColor(transaction.type)
-                                            ),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Icon(
-                                            _getTransactionIcon(transaction),
-                                            color: _getTransactionColor(transaction.type),
-                                            size: 24,
-                                          ),
-                                        ),
-
-                                      // Transaction Details
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              transaction.description,
-                                              style: const TextStyle(
-                                                color: HomeColors.textPrimary,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              category?.name ?? 'Khác',
-                                              style: TextStyle(
-                                                color: HomeColors.textSecondary,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-                                              style: TextStyle(
-                                                color: HomeColors.textSecondary,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'trong khoảng thời gian này',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 14,
                                       ),
-
-                                      // Amount and Edit Button
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            _getTransactionAmountDisplay(transaction),
-                                            style: TextStyle(
-                                              color: _getTransactionColor(transaction.type),
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          if (!_isMultiSelectMode) ...[
-                                            const SizedBox(height: 8),
-                                            GestureDetector(
-                                              onTap: () => _editTransaction(transaction),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(8),
-                                                decoration: BoxDecoration(
-                                                  color: HomeColors.primary.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Icon(
-                                                  Icons.edit,
-                                                  color: HomeColors.primary,
-                                                  size: 16,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      '↓ Kéo xuống để làm mới',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: HomeColors.primary,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _transactions.length,
+                            itemBuilder: (ctx, i) {
+                              final transaction = _transactions[i];
+                              final category = transaction.categoryId != null
+                                  ? _categoriesMap[transaction.categoryId!]
+                                  : null;
+                              final isSelected = _selectedTransactions.contains(transaction);
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Material(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isSelected
+                                    ? HomeColors.primary.withValues(alpha: 0.1)
+                                    : HomeColors.cardBackground,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () => _onTransactionTap(transaction),
+                                    onLongPress: () => _onLongPress(transaction),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: isSelected
+                                          ? Border.all(color: HomeColors.primary, width: 2)
+                                          : null,
+                                        boxShadow: !isSelected ? [
+                                          BoxShadow(
+                                            color: HomeColors.cardShadow,
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ] : null,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Selection/Icon
+                                          if (_isMultiSelectMode)
+                                            Container(
+                                              margin: const EdgeInsets.only(right: 12),
+                                              child: Icon(
+                                                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                                                color: isSelected ? HomeColors.primary : Colors.grey,
+                                                size: 24,
+                                              ),
+                                            )
+                                          else
+                                            Container(
+                                              width: 48,
+                                              height: 48,
+                                              margin: const EdgeInsets.only(right: 12),
+                                              decoration: BoxDecoration(
+                                                color: HomeColors.getTransactionIconBackground(
+                                                  _getTransactionColor(transaction.type)
+                                                ),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Icon(
+                                                _getTransactionIcon(transaction),
+                                                color: _getTransactionColor(transaction.type),
+                                                size: 24,
+                                              ),
+                                            ),
+
+                                          // Transaction Details
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  transaction.description,
+                                                  style: const TextStyle(
+                                                    color: HomeColors.textPrimary,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  category?.name ?? 'Khác',
+                                                  style: TextStyle(
+                                                    color: HomeColors.textSecondary,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
+                                                  style: TextStyle(
+                                                    color: HomeColors.textSecondary,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          // Amount and Edit Button
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                _getTransactionAmountDisplay(transaction),
+                                                style: TextStyle(
+                                                  color: _getTransactionColor(transaction.type),
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              if (!_isMultiSelectMode) ...[
+                                                const SizedBox(height: 8),
+                                                GestureDetector(
+                                                  onTap: () => _editTransaction(transaction),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(8),
+                                                    decoration: BoxDecoration(
+                                                      color: HomeColors.primary.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.edit,
+                                                      color: HomeColors.primary,
+                                                      size: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
           ),
         ],
       ),
