@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/user.dart';
 import '../../../utils/currency_formatter.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
 
-class BalanceOverview extends StatelessWidget {
+class BalanceOverview extends StatefulWidget {
   final User? currentUser;
   final bool isBalanceVisible;
   final VoidCallback onVisibilityToggle;
@@ -23,6 +24,35 @@ class BalanceOverview extends StatelessWidget {
     required this.totalLent,
     required this.totalBorrowed,
   });
+
+  @override
+  State<BalanceOverview> createState() => _BalanceOverviewState();
+}
+
+class _BalanceOverviewState extends State<BalanceOverview> {
+  bool _isExpanded = true;
+  static const String _prefKey = 'overviewExpanded';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpandedState();
+  }
+
+  Future<void> _loadExpandedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isExpanded = prefs.getBool(_prefKey) ?? true;
+    });
+  }
+
+  Future<void> _toggleExpanded() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+    await prefs.setBool(_prefKey, _isExpanded);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +74,14 @@ class BalanceOverview extends StatelessWidget {
         children: [
           _buildHeader(),
           _buildCurrentBalance(),
-          _buildStatsGrid(),
+          AnimatedCrossFade(
+            firstChild: _buildStatsGrid(),
+            secondChild: const SizedBox.shrink(),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            duration: const Duration(milliseconds: 300),
+          ),
         ],
       ),
     );
@@ -62,13 +99,32 @@ class BalanceOverview extends StatelessWidget {
             color: HomeColors.textPrimary,
           ),
         ),
-        IconButton(
-          onPressed: onVisibilityToggle,
-          icon: Icon(
-            isBalanceVisible ? HomeIcons.visible : HomeIcons.hidden,
-            color: HomeColors.primary,
-            size: 24,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: _toggleExpanded,
+              icon: AnimatedRotation(
+                turns: _isExpanded ? 0 : 0.5,
+                duration: const Duration(milliseconds: 300),
+                child: Icon(
+                  _isExpanded ? Icons.unfold_less : Icons.unfold_more,
+                  color: HomeColors.primary,
+                  size: 24,
+                ),
+              ),
+              tooltip: _isExpanded ? 'Thu gọn' : 'Mở rộng',
+            ),
+            IconButton(
+              onPressed: widget.onVisibilityToggle,
+              icon: Icon(
+                widget.isBalanceVisible ? HomeIcons.visible : HomeIcons.hidden,
+                color: HomeColors.primary,
+                size: 24,
+              ),
+              tooltip: widget.isBalanceVisible ? 'Ẩn số dư' : 'Hiện số dư',
+            ),
+          ],
         ),
       ],
     );
@@ -97,8 +153,8 @@ class BalanceOverview extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            isBalanceVisible
-                ? CurrencyFormatter.formatVND(currentUser?.balance ?? 0)
+            widget.isBalanceVisible
+                ? CurrencyFormatter.formatVND(widget.currentUser?.balance ?? 0)
                 : '••••••••',
             style: const TextStyle(
               fontSize: 24,
@@ -119,8 +175,8 @@ class BalanceOverview extends StatelessWidget {
             Expanded(
               child: _OverviewStatCard(
                 title: 'Thu nhập',
-                amount: totalIncome,
-                isVisible: isBalanceVisible,
+                amount: widget.totalIncome,
+                isVisible: widget.isBalanceVisible,
                 color: HomeColors.income,
               ),
             ),
@@ -128,8 +184,8 @@ class BalanceOverview extends StatelessWidget {
             Expanded(
               child: _OverviewStatCard(
                 title: 'Chi tiêu',
-                amount: totalExpense,
-                isVisible: isBalanceVisible,
+                amount: widget.totalExpense,
+                isVisible: widget.isBalanceVisible,
                 color: HomeColors.expense,
               ),
             ),
@@ -143,8 +199,8 @@ class BalanceOverview extends StatelessWidget {
                 message: 'Bao gồm cả khoản vay trước khi dùng ứng dụng',
                 child: _OverviewStatCard(
                   title: 'Cho vay',
-                  amount: totalLent,
-                  isVisible: isBalanceVisible,
+                  amount: widget.totalLent,
+                  isVisible: widget.isBalanceVisible,
                   color: HomeColors.loanGiven,
                 ),
               ),
@@ -155,8 +211,8 @@ class BalanceOverview extends StatelessWidget {
                 message: 'Bao gồm cả khoản vay trước khi dùng ứng dụng',
                 child: _OverviewStatCard(
                   title: 'Đi vay',
-                  amount: totalBorrowed,
-                  isVisible: isBalanceVisible,
+                  amount: widget.totalBorrowed,
+                  isVisible: widget.isBalanceVisible,
                   color: HomeColors.loanReceived,
                 ),
               ),
