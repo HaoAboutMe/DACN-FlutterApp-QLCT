@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../models/loan.dart';
+import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
 import '../../database/database_helper.dart';
 import '../home/home_colors.dart';
+import 'edit_loan_screen.dart';
+import '../main_navigation_wrapper.dart';
 
 /// LoanDetailScreen - Màn hình chi tiết khoản vay/đi vay
 /// Features: Hiển thị đầy đủ thông tin, nút chỉnh sửa, layout đẹp với Ocean Blue theme
@@ -94,42 +97,269 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     return _loan!.loanType == 'lend' ? HomeColors.loanGiven : HomeColors.loanReceived;
   }
 
-  void _showEditDialog(BuildContext context) {
-    showDialog(
+  Future<void> _navigateToEditLoan() async {
+    if (_loan == null) return;
+
+    debugPrint('🚀 Navigating to EditLoanScreen...');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditLoanScreen(loan: _loan!),
+      ),
+    );
+
+    debugPrint('🔄 Returned from EditLoanScreen with result: $result');
+
+    // ✅ REALTIME: Reload loan data if changes were made
+    if (result == true) {
+      await _loadLoanData();
+
+      // ✅ REALTIME: Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  '✅ Khoản vay đã được cập nhật!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            backgroundColor: HomeColors.income,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Return true to notify parent screens (e.g., LoanListScreen)
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    }
+  }
+
+  Future<void> _markLoanAsPaid() async {
+    if (_loan == null || _loan!.status == 'completed' || _loan!.status == 'paid') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Khoản vay này đã được thanh toán rồi!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: HomeColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Thông báo',
+        title: const Text(
+          '💰 Xác nhận thanh toán',
           style: TextStyle(
             color: HomeColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        content: Text(
-          '🛠️ Tính năng chỉnh sửa đang được phát triển.',
-          style: TextStyle(
-            color: HomeColors.textSecondary,
-            fontSize: 16,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _loan!.loanType == 'lend'
+                  ? 'Xác nhận rằng ${_loan!.personName} đã trả nợ?'
+                  : 'Xác nhận rằng bạn đã trả nợ cho ${_loan!.personName}?',
+              style: const TextStyle(
+                color: HomeColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _getLoanColor().withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.attach_money,
+                    color: _getLoanColor(),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Số tiền: ${CurrencyFormatter.formatVND(_loan!.amount)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: _getLoanColor(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _loan!.loanType == 'lend'
+                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatVND(_loan!.amount)}'
+                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(_loan!.amount)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.primary,
+              backgroundColor: HomeColors.income,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Xác nhận',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
+
+    if (confirmed != true) return;
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Đang xử lý...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Create payment transaction
+      final transactionType = _loan!.loanType == 'lend' ? 'debt_collected' : 'debt_paid';
+      final description = _loan!.loanType == 'lend'
+          ? 'Thu hồi nợ từ ${_loan!.personName}'
+          : 'Trả nợ cho ${_loan!.personName}';
+
+      final paymentTransaction = transaction_model.Transaction(
+        amount: _loan!.amount,
+        description: description,
+        date: DateTime.now(),
+        categoryId: null,
+        loanId: _loan!.id,
+        type: transactionType,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Mark loan as paid
+      await _databaseHelper.markLoanAsPaid(
+        loanId: _loan!.id!,
+        paymentTransaction: paymentTransaction,
+      );
+
+      debugPrint('✅ Loan marked as paid successfully');
+
+      // Reload loan data
+      await _loadLoanData();
+
+      // Trigger HomePage reload
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                _loan!.loanType == 'lend'
+                    ? '✅ Đã thu hồi nợ thành công!'
+                    : '✅ Đã trả nợ thành công!',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: HomeColors.income,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Return to previous screen
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      debugPrint('❌ Error marking loan as paid: $e');
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('❌ Lỗi: ${e.toString()}'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
   Widget _buildInfoRow({
@@ -245,7 +475,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: () => _showEditDialog(context),
+            onPressed: _navigateToEditLoan,
             tooltip: 'Chỉnh sửa',
           ),
         ],
@@ -498,22 +728,47 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                           ],
                         ),
 
-                      const SizedBox(height: 80), // Space for FAB
+                      const SizedBox(height: 100), // Space for FABs
                     ],
                   ),
                 ),
       floatingActionButton: _loan != null
-          ? FloatingActionButton.extended(
-              onPressed: () => _showEditDialog(context),
-              backgroundColor: HomeColors.primary,
-              icon: const Icon(Icons.edit, color: Colors.white),
-              label: const Text(
-                'Chỉnh sửa',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Mark as Paid button (only show if loan is not paid)
+                if (_loan!.status != 'completed' && _loan!.status != 'paid')
+                  FloatingActionButton.extended(
+                    onPressed: _markLoanAsPaid,
+                    backgroundColor: HomeColors.income,
+                    heroTag: 'markPaid',
+                    icon: const Icon(Icons.check_circle, color: Colors.white),
+                    label: Text(
+                      _loan!.loanType == 'lend' ? 'Đã thu nợ' : 'Đã trả nợ',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                if (_loan!.status != 'completed' && _loan!.status != 'paid')
+                  const SizedBox(height: 12),
+                // Edit button
+                FloatingActionButton.extended(
+                  onPressed: _navigateToEditLoan,
+                  backgroundColor: HomeColors.primary,
+                  heroTag: 'edit',
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  label: const Text(
+                    'Chỉnh sửa',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             )
           : null,
     );
