@@ -30,6 +30,10 @@ class BalanceOverview extends StatefulWidget {
 }
 
 class _BalanceOverviewState extends State<BalanceOverview> {
+  // Static cache to preserve state across widget rebuilds
+  static bool? _cachedExpandedState;
+  static bool _isFirstBuild = true;
+
   bool _isExpanded = true;
   static const String _prefKey = 'overviewExpanded';
 
@@ -40,22 +44,48 @@ class _BalanceOverviewState extends State<BalanceOverview> {
   }
 
   Future<void> _loadExpandedState() async {
+    // If we already have cached state, use it immediately
+    if (_cachedExpandedState != null) {
+      setState(() {
+        _isExpanded = _cachedExpandedState!;
+      });
+      return;
+    }
+
+    // First time loading: get from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isExpanded = prefs.getBool(_prefKey) ?? true;
-    });
+    final savedState = prefs.getBool(_prefKey) ?? true;
+
+    // Cache the state and update UI
+    _cachedExpandedState = savedState;
+
+    if (mounted) {
+      setState(() {
+        _isExpanded = savedState;
+      });
+    }
   }
 
   Future<void> _toggleExpanded() async {
-    final prefs = await SharedPreferences.getInstance();
+    final newState = !_isExpanded;
+
     setState(() {
-      _isExpanded = !_isExpanded;
+      _isExpanded = newState;
     });
-    await prefs.setBool(_prefKey, _isExpanded);
+
+    // Update both cache and persistent storage
+    _cachedExpandedState = newState;
+    _isFirstBuild = false;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, newState);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use cached state immediately if available to prevent flicker
+    final displayExpanded = _cachedExpandedState ?? _isExpanded;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -74,14 +104,18 @@ class _BalanceOverviewState extends State<BalanceOverview> {
         children: [
           _buildHeader(),
           _buildCurrentBalance(),
-          AnimatedCrossFade(
-            firstChild: _buildStatsGrid(),
-            secondChild: const SizedBox.shrink(),
-            crossFadeState: _isExpanded
-                ? CrossFadeState.showFirst
-                : CrossFadeState.showSecond,
-            duration: const Duration(milliseconds: 300),
-          ),
+          // Only show animation after first build
+          if (_isFirstBuild && _cachedExpandedState == null)
+            displayExpanded ? _buildStatsGrid() : const SizedBox.shrink()
+          else
+            AnimatedCrossFade(
+              firstChild: _buildStatsGrid(),
+              secondChild: const SizedBox.shrink(),
+              crossFadeState: displayExpanded
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              duration: const Duration(milliseconds: 300),
+            ),
         ],
       ),
     );
