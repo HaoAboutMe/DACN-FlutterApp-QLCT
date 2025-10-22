@@ -69,7 +69,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   String _getStatusText() {
     if (_loan == null) return '';
-    if (_loan!.status == 'completed') return 'Đã hoàn thành';
+
+    // ✅ Kiểm tra trạng thái thanh toán TRƯỚC (đồng bộ với loan_list_screen)
+    if (_loan!.status == 'completed' || _loan!.status == 'paid') {
+      return 'Đã thanh toán';
+    }
 
     final now = DateTime.now();
     if (_loan!.dueDate == null) return 'Đang hoạt động';
@@ -83,7 +87,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final status = _getStatusText();
     if (status == 'Quá hạn') return Colors.red;
     if (status == 'Sắp hết hạn') return Colors.orange;
-    if (status == 'Đã hoàn thành') return Colors.grey;
+    if (status == 'Đã thanh toán') return HomeColors.income; // ✅ Màu xanh lá cho đã thanh toán
     return HomeColors.income;
   }
 
@@ -301,16 +305,17 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
       debugPrint('✅ Loan marked as paid successfully');
 
-      // Reload loan data
+      // Close loading dialog first
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      // Reload loan data to show updated status
       await _loadLoanData();
 
       // Trigger HomePage reload
       mainNavigationKey.currentState?.refreshHomePage();
 
       if (!mounted) return;
-
-      // Close loading dialog
-      Navigator.of(context).pop();
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -319,23 +324,26 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 8),
-              Text(
-                _loan!.loanType == 'lend'
-                    ? '✅ Đã thu hồi nợ thành công!'
-                    : '✅ Đã trả nợ thành công!',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              Expanded(
+                child: Text(
+                  _loan!.loanType == 'lend'
+                      ? '✅ Đã thu hồi nợ thành công! Trạng thái đã được cập nhật.'
+                      : '✅ Đã trả nợ thành công! Trạng thái đã được cập nhật.',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
           backgroundColor: HomeColors.income,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
         ),
       );
 
-      // Return to previous screen
-      Navigator.of(context).pop(true);
+      // ✅ STAY on detail screen to show updated status
+      // User can see the "Đã thanh toán" badge and paid date
+      // User can manually go back when they want
     } catch (e) {
       debugPrint('❌ Error marking loan as paid: $e');
 
