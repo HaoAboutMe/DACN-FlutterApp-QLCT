@@ -3,6 +3,8 @@ import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
 import '../../database/database_helper.dart';
 import '../home/home_colors.dart';
+import 'edit_loan_screen.dart';
+import '../main_navigation_wrapper.dart';
 
 /// LoanDetailScreen - Màn hình chi tiết khoản vay/đi vay
 /// Features: Hiển thị đầy đủ thông tin, nút chỉnh sửa, layout đẹp với Ocean Blue theme
@@ -94,42 +96,53 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     return _loan!.loanType == 'lend' ? HomeColors.loanGiven : HomeColors.loanReceived;
   }
 
-  void _showEditDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Thông báo',
-          style: TextStyle(
-            color: HomeColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        content: Text(
-          '🛠️ Tính năng chỉnh sửa đang được phát triển.',
-          style: TextStyle(
-            color: HomeColors.textSecondary,
-            fontSize: 16,
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+  Future<void> _navigateToEditLoan() async {
+    if (_loan == null) return;
+
+    debugPrint('🚀 Navigating to EditLoanScreen...');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditLoanScreen(loan: _loan!),
       ),
     );
+
+    debugPrint('🔄 Returned from EditLoanScreen with result: $result');
+
+    // ✅ REALTIME: Reload loan data if changes were made
+    if (result == true) {
+      await _loadLoanData();
+
+      // ✅ REALTIME: Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  '✅ Khoản vay đã được cập nhật!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            backgroundColor: HomeColors.income,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Return true to notify parent screens (e.g., LoanListScreen)
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    }
   }
 
   Widget _buildInfoRow({
@@ -245,7 +258,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: () => _showEditDialog(context),
+            onPressed: _navigateToEditLoan,
             tooltip: 'Chỉnh sửa',
           ),
         ],
@@ -504,7 +517,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 ),
       floatingActionButton: _loan != null
           ? FloatingActionButton.extended(
-              onPressed: () => _showEditDialog(context),
+              onPressed: _navigateToEditLoan,
               backgroundColor: HomeColors.primary,
               icon: const Icon(Icons.edit, color: Colors.white),
               label: const Text(

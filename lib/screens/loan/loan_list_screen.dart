@@ -5,6 +5,7 @@ import '../../utils/currency_formatter.dart';
 import '../home/home_colors.dart';
 import '../add_loan/add_loan_page.dart';
 import 'loan_detail_screen.dart';
+import 'edit_loan_screen.dart';
 import '../main_navigation_wrapper.dart';
 
 enum LoanTypeFilter { all, lendNew, lendOld, borrowNew, borrowOld }
@@ -385,6 +386,48 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       await _loadLoans();
       // Also trigger HomePage reload in case balance changed
       mainNavigationKey.currentState?.refreshHomePage();
+    }
+  }
+
+  Future<void> _navigateToEditLoan(Loan loan) async {
+    debugPrint('🚀 Navigating to EditLoanScreen for loan: ${loan.id}');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditLoanScreen(loan: loan),
+      ),
+    );
+
+    debugPrint('🔄 Returned from EditLoanScreen with result: $result');
+
+    // ✅ REALTIME: Always reload loans when returning from edit
+    if (result == true) {
+      await _loadLoans();
+
+      // ✅ REALTIME: Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  '✅ Khoản vay đã được cập nhật!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            backgroundColor: HomeColors.income,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -901,7 +944,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                             ),
                                           ),
 
-                                          // Amount
+                                          // Amount and Edit button
                                           Column(
                                             crossAxisAlignment: CrossAxisAlignment.end,
                                             children: [
@@ -920,6 +963,42 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color: HomeColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ],
+                                              if (!_isSelectionMode) ...[
+                                                const SizedBox(height: 8),
+                                                InkWell(
+                                                  onTap: () => _navigateToEditLoan(loan),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: HomeColors.primary.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.edit,
+                                                          size: 14,
+                                                          color: HomeColors.primary,
+                                                        ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          'Sửa',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: HomeColors.primary,
+                                                            fontWeight: FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ],
