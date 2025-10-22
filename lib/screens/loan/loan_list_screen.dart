@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
+import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
 import '../home/home_colors.dart';
 import '../add_loan/add_loan_page.dart';
@@ -439,6 +440,223 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     }
   }
 
+  Future<void> _markLoanAsPaid(Loan loan) async {
+    if (loan.status == 'completed' || loan.status == 'paid') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Khoản vay này đã được thanh toán rồi!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: HomeColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '💰 Xác nhận thanh toán',
+          style: TextStyle(
+            color: HomeColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              loan.loanType == 'lend'
+                  ? 'Xác nhận rằng ${loan.personName} đã trả nợ?'
+                  : 'Xác nhận rằng bạn đã trả nợ cho ${loan.personName}?',
+              style: const TextStyle(
+                color: HomeColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _getLoanColor(loan).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.attach_money,
+                    color: _getLoanColor(loan),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Số tiền: ${CurrencyFormatter.formatVND(loan.amount)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: _getLoanColor(loan),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              loan.loanType == 'lend'
+                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatVND(loan.amount)}'
+                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(loan.amount)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: HomeColors.income,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Xác nhận',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Đang xử lý...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Create payment transaction
+      final transactionType = loan.loanType == 'lend' ? 'debt_collected' : 'debt_paid';
+      final description = loan.loanType == 'lend'
+          ? 'Thu hồi nợ từ ${loan.personName}'
+          : 'Trả nợ cho ${loan.personName}';
+
+      final paymentTransaction = transaction_model.Transaction(
+        amount: loan.amount,
+        description: description,
+        date: DateTime.now(),
+        categoryId: null,
+        loanId: loan.id,
+        type: transactionType,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Mark loan as paid
+      await _databaseHelper.markLoanAsPaid(
+        loanId: loan.id!,
+        paymentTransaction: paymentTransaction,
+      );
+
+      debugPrint('✅ Loan ${loan.id} marked as paid successfully');
+
+      // Reload loan list
+      await _loadLoans();
+
+      // Trigger HomePage reload
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loan.loanType == 'lend'
+                      ? '✅ Đã thu hồi nợ từ ${loan.personName}!'
+                      : '✅ Đã trả nợ cho ${loan.personName}!',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: HomeColors.income,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Error marking loan as paid: $e');
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text('❌ Lỗi: ${e.toString()}')),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
   IconData _getLoanIcon(Loan loan) {
     if (loan.loanType == 'lend') {
       return Icons.arrow_upward_rounded;
@@ -456,7 +674,10 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   }
 
   String _getStatusText(Loan loan) {
-    if (loan.status == 'completed') return 'Đã hoàn thành';
+    // Kiểm tra trạng thái thanh toán trước
+    if (loan.status == 'completed' || loan.status == 'paid') {
+      return 'Đã thanh toán';
+    }
 
     final now = DateTime.now();
     if (loan.dueDate == null) return 'Đang hoạt động';
@@ -469,7 +690,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     final status = _getStatusText(loan);
     if (status == 'Quá hạn') return Colors.red;
     if (status == 'Sắp hết hạn') return Colors.orange;
-    if (status == 'Đã hoàn thành') return Colors.grey;
+    if (status == 'Đã thanh toán') return HomeColors.income; // Màu xanh lá cho đã thanh toán
     return HomeColors.income;
   }
 
@@ -968,6 +1189,44 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                               ],
                                               if (!_isSelectionMode) ...[
                                                 const SizedBox(height: 8),
+                                                // Mark as Paid button (only show if not paid)
+                                                if (loan.status != 'completed' && loan.status != 'paid')
+                                                  InkWell(
+                                                    onTap: () => _markLoanAsPaid(loan),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: HomeColors.income.withValues(alpha: 0.1),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.check_circle,
+                                                            size: 14,
+                                                            color: HomeColors.income,
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            loan.loanType == 'lend' ? 'Thu nợ' : 'Trả nợ',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: HomeColors.income,
+                                                              fontWeight: FontWeight.w600,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (loan.status != 'completed' && loan.status != 'paid')
+                                                  const SizedBox(height: 4),
+                                                // Edit button
                                                 InkWell(
                                                   onTap: () => _navigateToEditLoan(loan),
                                                   borderRadius: BorderRadius.circular(8),
