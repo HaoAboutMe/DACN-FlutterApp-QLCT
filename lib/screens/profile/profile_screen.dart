@@ -19,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditingName = false;
   final TextEditingController _nameController = TextEditingController();
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -162,27 +164,221 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? Colors.grey[900] : Colors.grey[50],
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header Section
-            SliverToBoxAdapter(
-              child: _buildHeader(isDark),
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // SliverAppBar với animation
+          _buildAnimatedAppBar(isDark),
+
+          // Feature Grid Section
+          SliverToBoxAdapter(
+            child: _buildFeatureGrid(isDark),
+          ),
+
+          // Settings List Section
+          SliverToBoxAdapter(
+            child: _buildSettingsList(isDark),
+          ),
+
+          // Footer
+          SliverToBoxAdapter(
+            child: _buildFooter(isDark),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Xây dựng SliverAppBar với animation khi cuộn
+  Widget _buildAnimatedAppBar(bool isDark) {
+    return SliverAppBar(
+      expandedHeight: 300.0,
+      floating: false,
+      pinned: true,
+      backgroundColor: isDark ? Colors.grey[850] : Colors.white,
+      elevation: 0,
+      stretch: true,
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Tính toán tỷ lệ co giãn (0.0 = collapsed, 1.0 = expanded)
+          final double maxHeight = 300.0;
+          final double minHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+          final double currentHeight = constraints.maxHeight;
+          final double expandRatio = ((currentHeight - minHeight) / (maxHeight - minHeight)).clamp(0.0, 1.0);
+
+          return FlexibleSpaceBar(
+            centerTitle: false,
+            titlePadding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: 18, // Padding dưới rõ ràng, không dính mép
+              top: 0,
+            ),
+            background: _buildExpandedHeader(isDark, expandRatio),
+            title: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              opacity: expandRatio < 0.2 ? 1.0 : 0.0,
+              child: _buildCollapsedHeader(isDark),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Header khi AppBar mở rộng (expanded)
+  Widget _buildExpandedHeader(bool isDark, double expandRatio) {
+    // Tính toán kích thước động dựa trên expandRatio
+    final double avatarSize = 80 + (expandRatio * 35); // 80-115
+    final double nameFontSize = 16 + (expandRatio * 6); // 16-22
+    final double idFontSize = 12 + (expandRatio * 2); // 12-14
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: 70 + MediaQuery.of(context).padding.top,
+        bottom: 40,
+        left: 20,
+        right: 20,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Avatar với logo - kích thước động
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              width: avatarSize,
+              height: avatarSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF5D5FEF), Color(0xFF00A8CC)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF5D5FEF).withValues(alpha: 0.3 * expandRatio),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(avatarSize / 2),
+                child: Image.asset(
+                  'assets/images/whales-spent-logo.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person,
+                      size: avatarSize * 0.5,
+                      color: Colors.white,
+                    );
+                  },
+                ),
+              ),
             ),
 
-            // Feature Grid Section
-            SliverToBoxAdapter(
-              child: _buildFeatureGrid(isDark),
-            ),
+            SizedBox(height: 14 + (expandRatio * 6)),
 
-            // Settings List Section
-            SliverToBoxAdapter(
-              child: _buildSettingsList(isDark),
-            ),
+            // Tên người dùng (có thể chỉnh sửa)
+            if (_isEditingName)
+              Container(
+                width: 250,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _nameController,
+                  textAlign: TextAlign.center,
+                  autofocus: true,
+                  style: TextStyle(
+                    fontSize: nameFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green, size: 22),
+                          onPressed: () => _saveUserName(_nameController.text),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red, size: 22),
+                          onPressed: () {
+                            setState(() {
+                              _isEditingName = false;
+                              _nameController.text = _userName;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isEditingName = true;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          style: TextStyle(
+                            fontSize: nameFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                            letterSpacing: 0.3,
+                          ),
+                          textAlign: TextAlign.center,
+                          child: Text(
+                            _userName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-            // Footer
-            SliverToBoxAdapter(
-              child: _buildFooter(isDark),
+            SizedBox(height: 6 + (expandRatio * 4)),
+
+            // ID người dùng
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              style: TextStyle(
+                fontSize: idFontSize,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                letterSpacing: 0.5,
+              ),
+              child: Text('ID: $_userId'),
             ),
           ],
         ),
@@ -190,171 +386,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Xây dựng Header với avatar, tên và thông tin người dùng
-  Widget _buildHeader(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[800] : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Avatar với logo
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF5D5FEF), Color(0xFF00A8CC)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF5D5FEF).withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+  /// Header khi AppBar thu gọn (collapsed) - Căn trái theo phong cách TPBank
+  Widget _buildCollapsedHeader(bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Avatar lớn hơn (52px) - Tương đương TPBank
+        Container(
+          width: 55,
+          height: 55,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5D5FEF), Color(0xFF00A8CC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: Image.asset(
-                'assets/images/whales-spent-logo.png',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Colors.white,
-                  );
-                },
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF5D5FEF).withValues(alpha: 0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-            ),
+            ],
           ),
-
-          const SizedBox(height: 16),
-
-          // Tên người dùng (có thể chỉnh sửa)
-          if (_isEditingName)
-            Container(
-              width: 200,
-              child: TextField(
-                controller: _nameController,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-                decoration: InputDecoration(
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.check, color: Colors.green),
-                        onPressed: () => _saveUserName(_nameController.text),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            _isEditingName = false;
-                            _nameController.text = _userName;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            )
-          else
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isEditingName = true;
-                });
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: Image.asset(
+              'assets/images/whales-spent-logo.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.person,
+                  size: 28,
+                  color: Colors.white,
+                );
               },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _userName,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.edit,
-                    size: 18,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                ],
-              ),
             ),
+          ),
+        ),
 
-          const SizedBox(height: 8),
+        const SizedBox(width: 14),
 
-          // ID người dùng
-          Text(
-            'ID: $_userId',
+        // Tên người dùng - Lớn hơn, rõ ràng, căn trái
+        Expanded(
+          child: Text(
+            _userName,
             style: TextStyle(
-              fontSize: 14,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              fontSize: 27,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
+              letterSpacing: 0.3,
+              height: 1.2,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-
-          const SizedBox(height: 12),
-
-          // Badge xác thực
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.verified,
-                  size: 16,
-                  color: Colors.green[700],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Đã xác thực',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
+
 
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
@@ -477,24 +571,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSettingsList(bool isDark) {
     final settings = [
       {
-        'icon': Icons.category_outlined,
-        'title': 'Quản lý danh mục',
-        'subtitle': 'Tùy chỉnh các danh mục thu chi',
+        'icon': Icons.widgets_outlined,
+        'title': 'Thêm Widget',
+        'subtitle': 'Tùy chỉnh widget trên màn hình chính',
       },
       {
-        'icon': Icons.schedule_outlined,
-        'title': 'Chọn giờ nhắc nhở hằng ngày',
-        'subtitle': 'Đặt thời gian nhắc nhở ghi chép chi tiêu',
+        'icon': Icons.language_outlined,
+        'title': 'Tùy chọn ngôn ngữ',
+        'subtitle': 'Thay đổi ngôn ngữ hiển thị',
       },
       {
-        'icon': Icons.lock_reset_outlined,
-        'title': 'Đặt lại mật khẩu ứng dụng',
-        'subtitle': 'Thay đổi mật khẩu bảo vệ ứng dụng',
+        'icon': Icons.attach_money_outlined,
+        'title': 'Tùy chọn loại tiền',
+        'subtitle': 'Chọn đơn vị tiền tệ mặc định',
       },
       {
         'icon': Icons.info_outline,
-        'title': 'Thông tin & hỗ trợ',
-        'subtitle': 'Phiên bản ứng dụng và liên hệ hỗ trợ',
+        'title': 'Về chúng tôi',
+        'subtitle': 'Thông tin về đội ngũ phát triển',
+      },
+      {
+        'icon': Icons.system_update_outlined,
+        'title': 'Phiên bản cập nhật',
+        'subtitle': 'Kiểm tra phiên bản mới nhất',
       },
     ];
 
