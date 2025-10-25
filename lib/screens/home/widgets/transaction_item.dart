@@ -24,7 +24,7 @@ class TransactionItem extends StatelessWidget {
         children: [
           _buildTransactionIcon(),
           const SizedBox(width: 16),
-          _buildTransactionInfo(),
+          _buildTransactionInfo(context),
           _buildTransactionAmount(),
         ],
       ),
@@ -47,17 +47,17 @@ class TransactionItem extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionInfo() {
+  Widget _buildTransactionInfo(BuildContext context) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             category?.name ?? _getTransactionTypeDisplayName(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: HomeColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
@@ -65,7 +65,7 @@ class TransactionItem extends StatelessWidget {
             transaction.description,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -75,7 +75,7 @@ class TransactionItem extends StatelessWidget {
             DateFormat('dd/MM/yyyy HH:mm').format(transaction.date),
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[500],
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
         ],

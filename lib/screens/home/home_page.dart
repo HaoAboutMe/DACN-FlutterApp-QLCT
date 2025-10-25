@@ -254,21 +254,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: GreetingAppBar(
         currentUser: _currentUser,
         onNotificationPressed: _handleNotificationPressed,
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Theme.of(context).colorScheme.primary,
+          ),
         ),
       )
           : RefreshIndicator(
               onRefresh: _refreshHomeData,
-              color: HomeColors.primary,
-              backgroundColor: HomeColors.cardBackground,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(

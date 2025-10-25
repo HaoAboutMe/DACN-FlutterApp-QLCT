@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'config/app_theme.dart';
+import 'providers/theme_provider.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
 
@@ -8,7 +11,12 @@ void main() async {
   // Check if InitialScreen should be shown
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();
 
-  runApp(MyApp(isFirstRun: isFirstRun));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: MyApp(isFirstRun: isFirstRun),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,22 +26,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Whales Spent',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00A8CC), // Ocean Blue - màu xanh nước biển của cá heo
-        ),
-        useMaterial3: true,
-      ),
-      // Show InitialScreen or MainNavigationWrapper based on isFirstRun
-      home: isFirstRun ? const InitialScreen() : MainNavigationWrapper(key: mainNavigationKey),
-      // Define named routes
-      routes: {
-        '/home': (context) => MainNavigationWrapper(key: mainNavigationKey),
-        '/initial': (context) => const InitialScreen(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'Whales Spent',
+          // Sử dụng theme tùy chỉnh
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+          // Show InitialScreen or MainNavigationWrapper based on isFirstRun
+          home: isFirstRun ? const InitialScreen() : MainNavigationWrapper(key: mainNavigationKey),
+          // Define named routes
+          routes: {
+            '/home': (context) => MainNavigationWrapper(key: mainNavigationKey),
+            '/initial': (context) => const InitialScreen(),
+          },
+          debugShowCheckedModeBanner: false, // Remove debug banner
+        );
       },
-      debugShowCheckedModeBanner: false, // Remove debug banner
     );
   }
 }

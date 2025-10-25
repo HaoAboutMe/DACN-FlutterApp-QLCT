@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/transaction.dart' as transaction_model;
 import '../../../models/category.dart';
-import '../home_colors.dart';
 import 'transaction_item.dart';
 import 'empty_state.dart';
 
@@ -19,16 +18,20 @@ class RecentTransactions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: isDark
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.black.withValues(alpha: 0.08),
+            blurRadius: isDark ? 8 : 10,
+            offset: Offset(0, isDark ? 3 : 4),
           ),
         ],
       ),
@@ -38,12 +41,12 @@ class RecentTransactions extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Giao dịch gần đây',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: HomeColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (onViewAllPressed != null)
@@ -56,13 +59,13 @@ class RecentTransactions extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: HomeColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_ios,
-                        color: HomeColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 16,
                       ),
                     ],
@@ -84,7 +87,10 @@ class RecentTransactions extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: transactions.length,
-      separatorBuilder: (context, index) => const Divider(height: 24),
+      separatorBuilder: (context, index) => Divider(
+        height: 24,
+        color: Theme.of(context).dividerColor,
+      ),
       itemBuilder: (context, index) {
         final transaction = transactions[index];
         final category = transaction.categoryId != null

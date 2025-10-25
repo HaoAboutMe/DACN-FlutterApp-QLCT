@@ -18,6 +18,7 @@ class WhaleNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Lấy bottom padding từ MediaQuery để xử lý notch/safe area
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedSlide(
       duration: const Duration(milliseconds: 300),
@@ -29,14 +30,18 @@ class WhaleNavigationBar extends StatelessWidget {
         opacity: isVisible ? 1.0 : 0.0,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark
+              ? const Color(0xFF2d3a4a) // Màu cá voi sát thủ
+              : Colors.white,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00A8CC).withValues(alpha: 0.1),
+                color: isDark
+                  ? Colors.black.withValues(alpha: 0.5)
+                  : const Color(0xFF00A8CC).withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, -5),
               ),
@@ -53,26 +58,31 @@ class WhaleNavigationBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(
+                context: context,
                 index: 0,
                 icon: Icons.home_rounded,
                 label: 'Trang chủ',
               ),
               _buildNavItem(
+                context: context,
                 index: 1,
                 icon: Icons.swap_horiz_rounded,
                 label: 'Giao dịch',
               ),
               _buildNavItem(
+                context: context,
                 index: 2,
                 icon: Icons.account_balance_wallet_rounded,
                 label: 'Cho vay',
               ),
               _buildNavItem(
+                context: context,
                 index: 3,
                 icon: Icons.bar_chart_rounded,
                 label: 'Thống kê',
               ),
               _buildNavItem(
+                context: context,
                 index: 4,
                 icon: Icons.person_rounded,
                 label: 'Cá nhân',
@@ -85,12 +95,17 @@ class WhaleNavigationBar extends StatelessWidget {
   }
 
   Widget _buildNavItem({
+    required BuildContext context,
     required int index,
     required IconData icon,
     required String label,
   }) {
     final isSelected = currentIndex == index;
-    final color = isSelected ? const Color(0xFF00A8CC) : Colors.grey.shade400;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final color = isSelected
+      ? primaryColor
+      : (isDark ? Colors.grey.shade400 : Colors.grey.shade500);
 
     return Expanded(
       child: GestureDetector(
