@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
-import '../home/home_colors.dart';
 import '../home/home_icons.dart';
 import '../../database/database_helper.dart';
 
@@ -68,11 +67,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       case 'income':
       case 'debt_collected':
       case 'loan_received':
-        return HomeColors.income;
+        return const Color(0xFF4CAF50); // Green for income
       case 'expense':
       case 'debt_paid':
       case 'loan_given':
-        return HomeColors.expense;
+        return const Color(0xFFF44336); // Red for expense
       default:
         return Colors.grey;
     }
@@ -114,15 +113,18 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Future<void> _deleteTransaction() async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Xác nhận xóa',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -130,7 +132,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         content: Text(
           'Bạn có chắc chắn muốn xóa giao dịch "${widget.transaction.description}"?',
           style: TextStyle(
-            color: HomeColors.textSecondary,
+            color: colorScheme.onSurfaceVariant,
             fontSize: 16,
           ),
         ),
@@ -140,7 +142,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             child: Text(
               'Hủy',
               style: TextStyle(
-                color: HomeColors.textSecondary,
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -148,7 +150,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.expense,
+              backgroundColor: const Color(0xFFF44336), // Red for delete action
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -176,7 +178,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 'Đã xóa giao dịch thành công!',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: HomeColors.income,
+              backgroundColor: const Color(0xFF4CAF50), // Green for success
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -190,7 +192,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 'Lỗi khi xóa giao dịch: $e',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: HomeColors.expense,
+              backgroundColor: const Color(0xFFF44336), // Red for error
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -242,28 +244,32 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Chi tiết giao dịch',
           style: TextStyle(
-            color: Colors.white,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: HomeColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
           if (widget.onEdit != null)
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
+              icon: Icon(Icons.edit, color: colorScheme.onSurface),
               onPressed: widget.onEdit,
               tooltip: 'Chỉnh sửa',
             ),
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.white),
+            icon: Icon(Icons.delete, color: colorScheme.onSurface),
             onPressed: _deleteTransaction,
             tooltip: 'Xóa',
           ),
@@ -272,7 +278,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
               ),
             )
           : SingleChildScrollView(
@@ -284,11 +290,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: HomeColors.cardBackground,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: HomeColors.cardShadow,
+                          color: colorScheme.shadow.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -301,7 +307,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: HomeColors.getTransactionIconBackground(_getTransactionColor()),
+                            color: _getTransactionColor().withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
@@ -348,11 +354,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: HomeColors.cardBackground,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: HomeColors.cardShadow,
+                          color: colorScheme.shadow.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -366,7 +372,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: HomeColors.textPrimary,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -437,7 +443,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: HomeColors.primary,
+                              backgroundColor: colorScheme.primary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -463,7 +469,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: HomeColors.expense,
+                            backgroundColor: const Color(0xFFF44336), // Red for delete
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -481,6 +487,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Widget _buildDetailRow(String label, String value, IconData icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -490,12 +499,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: HomeColors.primary.withValues(alpha: 0.1),
+              color: colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
-              color: HomeColors.primary,
+              color: colorScheme.primary,
               size: 20,
             ),
           ),
@@ -508,7 +517,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 14,
-                    color: HomeColors.textSecondary,
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -517,7 +526,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   value,
                   style: TextStyle(
                     fontSize: 16,
-                    color: HomeColors.textPrimary,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
