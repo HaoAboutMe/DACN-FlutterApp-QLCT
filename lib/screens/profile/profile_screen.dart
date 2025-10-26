@@ -93,17 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _toggleTheme(bool isDark) async {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     await themeProvider.toggleTheme(isDark);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isDark ? 'Đã chuyển sang chế độ tối' : 'Đã chuyển sang chế độ sáng'),
-          backgroundColor: const Color(0xFF5D5FEF),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 
   /// Lưu tên người dùng vào database
