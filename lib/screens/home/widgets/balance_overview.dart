@@ -85,31 +85,34 @@ class _BalanceOverviewState extends State<BalanceOverview> {
   Widget build(BuildContext context) {
     // Use cached state immediately if available to prevent flicker
     final displayExpanded = _cachedExpandedState ?? _isExpanded;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: isDark
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.black.withValues(alpha: 0.08),
+            blurRadius: isDark ? 8 : 10,
+            offset: Offset(0, isDark ? 3 : 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          _buildCurrentBalance(),
+          _buildHeader(context),
+          _buildCurrentBalance(context),
           // Only show animation after first build
           if (_isFirstBuild && _cachedExpandedState == null)
-            displayExpanded ? _buildStatsGrid() : const SizedBox.shrink()
+            displayExpanded ? _buildStatsGrid(context) : const SizedBox.shrink()
           else
             AnimatedCrossFade(
-              firstChild: _buildStatsGrid(),
+              firstChild: _buildStatsGrid(context),
               secondChild: const SizedBox.shrink(),
               crossFadeState: displayExpanded
                   ? CrossFadeState.showFirst
@@ -121,16 +124,16 @@ class _BalanceOverviewState extends State<BalanceOverview> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Tổng quan',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: HomeColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         Row(
@@ -143,7 +146,7 @@ class _BalanceOverviewState extends State<BalanceOverview> {
                 duration: const Duration(milliseconds: 300),
                 child: Icon(
                   _isExpanded ? Icons.unfold_less : Icons.unfold_more,
-                  color: HomeColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 24,
                 ),
               ),
@@ -153,7 +156,7 @@ class _BalanceOverviewState extends State<BalanceOverview> {
               onPressed: widget.onVisibilityToggle,
               icon: Icon(
                 widget.isBalanceVisible ? HomeIcons.visible : HomeIcons.hidden,
-                color: HomeColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 24,
               ),
               tooltip: widget.isBalanceVisible ? 'Ẩn số dư' : 'Hiện số dư',
@@ -164,24 +167,30 @@ class _BalanceOverviewState extends State<BalanceOverview> {
     );
   }
 
-  Widget _buildCurrentBalance() {
+  Widget _buildCurrentBalance(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: HomeColors.balanceBackground,
+        color: isDark
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
+          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: HomeColors.balanceBorder),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Số dư hiện tại',
             style: TextStyle(
               fontSize: 14,
-              color: HomeColors.primary,
+              color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -190,10 +199,10 @@ class _BalanceOverviewState extends State<BalanceOverview> {
             widget.isBalanceVisible
                 ? CurrencyFormatter.formatVND(widget.currentUser?.balance ?? 0)
                 : '••••••••',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: HomeColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -201,7 +210,7 @@ class _BalanceOverviewState extends State<BalanceOverview> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
     return Column(
       children: [
         Row(

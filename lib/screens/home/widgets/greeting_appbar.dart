@@ -18,8 +18,12 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AppBar(
-      backgroundColor: HomeColors.primary,
+      backgroundColor: isDark
+        ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+        : Theme.of(context).colorScheme.primary, // Light: Xanh biển
       elevation: 0,
       automaticallyImplyLeading: false,
       toolbarHeight: 60,
@@ -28,10 +32,10 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              _buildAppLogo(),
+              _buildAppLogo(context),
               const SizedBox(width: 12),
               _buildGreetingText(),
-              _buildNotificationButton(),
+              _buildNotificationButton(context),
             ],
           ),
         ),
@@ -39,7 +43,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildAppLogo() {
+  Widget _buildAppLogo(BuildContext context) {
     return Container(
       width: 36,
       height: 36,
@@ -52,7 +56,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
         errorBuilder: (context, error, stackTrace) {
           return Container(
             decoration: BoxDecoration(
-              color: HomeColors.logoFallback,
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -94,7 +98,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildNotificationButton() {
+  Widget _buildNotificationButton(BuildContext context) {
     return Container(
       width: 40,
       height: 40,

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
-import '../home/home_colors.dart';
 
 class EditLoanScreen extends StatefulWidget {
   final Loan loan;
@@ -263,8 +262,11 @@ class _EditLoanScreenState extends State<EditLoanScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text(
@@ -321,14 +323,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildTypeSelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -337,12 +342,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Loại khoản vay',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -359,6 +364,8 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildTypeButton(String type, String label, IconData icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isSelected = _selectedType == type;
     final color = _getTypeColor(type);
 
@@ -371,7 +378,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
           color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected ? color : colorScheme.outline.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -379,14 +386,14 @@ class _EditLoanScreenState extends State<EditLoanScreen>
           children: [
             Icon(
               icon,
-              color: isSelected ? color : Colors.grey,
+              color: isSelected ? color : colorScheme.onSurfaceVariant,
               size: 28,
             ),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.grey,
+                color: isSelected ? color : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 14,
               ),
@@ -399,14 +406,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildPersonNameField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -417,10 +427,10 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         children: [
           Text(
             _selectedType == 'lend' ? 'Tên người vay' : 'Tên người cho vay',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -428,21 +438,23 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             controller: _personNameController,
             decoration: InputDecoration(
               hintText: 'Nhập họ tên...',
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.person,
                 color: _getTypeColor(_selectedType),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: _getTypeColor(_selectedType), width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
+            style: TextStyle(color: colorScheme.onSurface),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Vui lòng nhập tên người ${_selectedType == 'lend' ? 'vay' : 'cho vay'}';
@@ -456,14 +468,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildPersonPhoneField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -472,12 +487,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Số điện thoại (tùy chọn)',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -486,18 +501,20 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
               hintText: 'Nhập số điện thoại...',
-              prefixIcon: const Icon(Icons.phone, color: Colors.grey),
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.phone, color: colorScheme.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: HomeColors.primary, width: 2),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
+            style: TextStyle(color: colorScheme.onSurface),
           ),
         ],
       ),
@@ -505,14 +522,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildAmountField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -521,12 +541,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Số tiền',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -539,21 +559,23 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             ],
             decoration: InputDecoration(
               hintText: '0',
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               suffixText: 'đ',
+              suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.attach_money,
                 color: _getTypeColor(_selectedType),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: _getTypeColor(_selectedType), width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
             style: TextStyle(
               fontSize: 18,
@@ -577,14 +599,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildDateSelectors() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -593,12 +618,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Thông tin thời gian',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -608,35 +633,35 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: colorScheme.surface,
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Colors.grey),
+                  Icon(Icons.calendar_today, color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Ngày vay',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
                         '${_loanDate.day}/${_loanDate.month}/${_loanDate.year}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          color: HomeColors.textPrimary,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ],
                   ),
                   const Spacer(),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
                 ],
               ),
             ),
@@ -648,22 +673,22 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: colorScheme.surface,
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.event, color: Colors.grey),
+                  Icon(Icons.event, color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Hạn trả (tùy chọn)',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
@@ -672,7 +697,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                             : 'Chưa đặt hạn trả',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _dueDate != null ? HomeColors.textPrimary : Colors.grey,
+                          color: _dueDate != null ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -681,10 +706,10 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                   if (_dueDate != null)
                     GestureDetector(
                       onTap: () => setState(() => _dueDate = null),
-                      child: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                      child: Icon(Icons.clear, color: colorScheme.onSurfaceVariant, size: 20),
                     ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
                 ],
               ),
             ),
@@ -695,14 +720,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildDescriptionField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -711,12 +739,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Mô tả (tùy chọn)',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -725,18 +753,20 @@ class _EditLoanScreenState extends State<EditLoanScreen>
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Nhập mô tả cho khoản vay/nợ...',
-              prefixIcon: const Icon(Icons.description, color: Colors.grey),
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.description, color: colorScheme.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: HomeColors.primary, width: 2),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
+            style: TextStyle(color: colorScheme.onSurface),
           ),
         ],
       ),
@@ -744,14 +774,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildOldDebtToggle() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -760,21 +793,22 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Loại khoản vay',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
           SwitchListTile(
             title: Text(
               _isOldDebt ? 'Khoản vay cũ (trước khi dùng app)' : 'Khoản vay mới',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
+                color: colorScheme.onSurface,
               ),
             ),
             subtitle: Text(
@@ -783,7 +817,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                   : 'Tạo giao dịch mới và cập nhật số dư',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             value: _isOldDebt,
@@ -800,14 +834,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Widget _buildReminderSettings() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -816,12 +853,12 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Cài đặt nhắc nhở',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -840,11 +877,11 @@ class _EditLoanScreenState extends State<EditLoanScreen>
           ),
           if (_reminderEnabled) ...[
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Nhắc trước (ngày):',
               style: TextStyle(
                 fontSize: 14,
-                color: HomeColors.textPrimary,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -866,7 +903,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                           border: Border.all(
                             color: isSelected
                                 ? _getTypeColor(_selectedType)
-                                : Colors.grey.withValues(alpha: 0.3),
+                                : colorScheme.outline.withValues(alpha: 0.5),
                           ),
                         ),
                         child: Text(
@@ -875,7 +912,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                           style: TextStyle(
                             color: isSelected
                                 ? _getTypeColor(_selectedType)
-                                : Colors.grey,
+                                : colorScheme.onSurfaceVariant,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),

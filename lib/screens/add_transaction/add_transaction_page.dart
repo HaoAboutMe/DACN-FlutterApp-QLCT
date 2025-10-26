@@ -5,7 +5,6 @@ import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/category_picker_sheet.dart';
-import '../home/home_colors.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final String? preselectedType;
@@ -193,7 +192,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: HomeColors.primary,
+              primary: Theme.of(context).colorScheme.primary,
             ),
           ),
           child: child!,
@@ -335,11 +334,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   Color _getTypeColor(String type) {
     switch (type) {
       case 'income':
-        return HomeColors.income;
+        return const Color(0xFF4CAF50); // Green for income
       case 'expense':
-        return HomeColors.expense;
+        return const Color(0xFFF44336); // Red for expense
       default:
-        return HomeColors.primary;
+        return const Color(0xFF2196F3); // Blue for default
     }
   }
 
@@ -403,8 +402,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true, // Enable automatic screen resize for keyboard
       appBar: AppBar(
         title: const Text(
@@ -414,7 +416,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: HomeColors.primary,
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -455,14 +457,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildTypeSelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -471,12 +476,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Loại giao dịch',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -493,6 +498,8 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildTypeButton(String type, String label, IconData icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isSelected = _selectedType == type;
     final color = _getTypeColor(type);
 
@@ -505,7 +512,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected ? color : colorScheme.outline.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -513,14 +520,14 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           children: [
             Icon(
               icon,
-              color: isSelected ? color : Colors.grey,
+              color: isSelected ? color : colorScheme.onSurfaceVariant,
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.grey,
+                color: isSelected ? color : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -533,14 +540,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildAmountField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -549,12 +559,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Số tiền',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -567,21 +577,23 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             ],
             decoration: InputDecoration(
               hintText: '0',
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               suffixText: 'đ',
+              suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.attach_money,
                 color: _getTypeColor(_selectedType),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: _getTypeColor(_selectedType), width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
             style: TextStyle(
               fontSize: 18,
@@ -614,14 +626,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildDescriptionField() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -630,12 +645,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Mô tả',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -644,18 +659,20 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Nhập mô tả cho giao dịch...',
-              prefixIcon: const Icon(Icons.description, color: Colors.grey),
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.description, color: colorScheme.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: HomeColors.primary, width: 2),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
+            style: TextStyle(color: colorScheme.onSurface),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Vui lòng nhập mô tả';
@@ -669,14 +686,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildCategorySelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -685,12 +705,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Danh mục',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -698,18 +718,20 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             initialValue: _selectedCategoryId,
             decoration: InputDecoration(
               hintText: 'Chọn danh mục',
-              prefixIcon: const Icon(Icons.category, color: Colors.grey),
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.category, color: colorScheme.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: HomeColors.primary, width: 2),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.withValues(alpha: 0.05),
+              fillColor: colorScheme.surface,
             ),
+            style: TextStyle(color: colorScheme.onSurface),
             items: _filteredCategories.map((category) {
               return DropdownMenuItem<int>(
                 value: category.id,
@@ -743,10 +765,10 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: _showAddCategorySheet,
-              child: const Text(
+              child: Text(
                 'Thêm danh mục mới',
                 style: TextStyle(
-                  color: HomeColors.primary,
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -758,14 +780,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Widget _buildDateSelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -774,12 +799,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ngày giao dịch',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: HomeColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -788,23 +813,23 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: colorScheme.surface,
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Colors.grey),
+                  Icon(Icons.calendar_today, color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 12),
                   Text(
                     '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: HomeColors.textPrimary,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
                 ],
               ),
             ),

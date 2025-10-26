@@ -3,7 +3,6 @@ import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
 import '../../database/database_helper.dart';
-import '../home/home_colors.dart';
 import 'edit_loan_screen.dart';
 import '../main_navigation_wrapper.dart';
 
@@ -87,8 +86,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final status = _getStatusText();
     if (status == 'Quá hạn') return Colors.red;
     if (status == 'Sắp hết hạn') return Colors.orange;
-    if (status == 'Đã thanh toán') return HomeColors.income; // ✅ Màu xanh lá cho đã thanh toán
-    return HomeColors.income;
+    if (status == 'Đã thanh toán') return const Color(0xFF4CAF50); // Green for completed
+    return const Color(0xFF4CAF50); // Green for active
   }
 
   String _getBadgeText() {
@@ -97,8 +96,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   }
 
   Color _getLoanColor() {
-    if (_loan == null) return HomeColors.primary;
-    return _loan!.loanType == 'lend' ? HomeColors.loanGiven : HomeColors.loanReceived;
+    if (_loan == null) return const Color(0xFF00A8CC); // Default blue
+    return _loan!.loanType == 'lend'
+        ? const Color(0xFFFFA726)  // Orange for lending
+        : const Color(0xFF9575CD); // Purple for borrowing
   }
 
   Future<void> _navigateToEditLoan() async {
@@ -135,7 +136,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 ),
               ],
             ),
-            backgroundColor: HomeColors.income,
+            backgroundColor: const Color(0xFF4CAF50), // Green for success
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             duration: const Duration(seconds: 3),
@@ -164,15 +165,18 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     }
 
     // Show confirmation dialog
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           '💰 Xác nhận thanh toán',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -185,8 +189,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               _loan!.loanType == 'lend'
                   ? 'Xác nhận rằng ${_loan!.personName} đã trả nợ?'
                   : 'Xác nhận rằng bạn đã trả nợ cho ${_loan!.personName}?',
-              style: const TextStyle(
-                color: HomeColors.textSecondary,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 16,
               ),
             ),
@@ -223,7 +227,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(_loan!.amount)}',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -232,15 +236,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.income,
+              backgroundColor: const Color(0xFF4CAF50), // Green for success
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -334,7 +338,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               ),
             ],
           ),
-          backgroundColor: HomeColors.income,
+          backgroundColor: const Color(0xFF4CAF50), // Green for success
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           duration: const Duration(seconds: 4),
@@ -377,6 +381,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     Color? valueColor,
     TextStyle? valueStyle,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -385,10 +392,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: HomeColors.primary.withValues(alpha: 0.1),
+              color: colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: HomeColors.primary, size: 20),
+            child: Icon(icon, color: colorScheme.primary, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -398,7 +405,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: HomeColors.textSecondary,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -411,7 +418,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: valueColor ?? HomeColors.textPrimary,
+                    color: valueColor ?? colorScheme.onSurface,
                   ),
               textAlign: TextAlign.end,
             ),
@@ -426,15 +433,18 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     required IconData titleIcon,
     required List<Widget> children,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: HomeColors.cardBackground,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -445,14 +455,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(titleIcon, color: HomeColors.primary, size: 24),
+              Icon(titleIcon, color: colorScheme.primary, size: 24),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: HomeColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
             ],
@@ -466,23 +476,27 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Chi tiết khoản vay',
           style: TextStyle(
-            color: Colors.white,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: HomeColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
+            icon: Icon(Icons.edit, color: colorScheme.onSurface),
             onPressed: _navigateToEditLoan,
             tooltip: 'Chỉnh sửa',
           ),
@@ -494,14 +508,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
                     strokeWidth: 3,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Đang tải dữ liệu...',
                     style: TextStyle(
-                      color: HomeColors.textSecondary,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 16,
                     ),
                   ),
@@ -516,14 +530,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       Icon(
                         Icons.error_outline,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Không tìm thấy thông tin khoản vay',
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -662,7 +676,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                               icon: Icons.phone,
                               label: 'Số điện thoại',
                               value: _loan!.personPhone!,
-                              valueColor: HomeColors.primary,
+                              valueColor: colorScheme.primary,
                             ),
                         ],
                       ),
@@ -726,11 +740,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                 icon: Icons.check_circle,
                                 label: 'Ngày thanh toán',
                                 value: '${_loan!.paidDate!.day}/${_loan!.paidDate!.month}/${_loan!.paidDate!.year}',
-                                valueColor: HomeColors.income,
-                                valueStyle: TextStyle(
+                                valueColor: const Color(0xFF4CAF50),
+                                valueStyle: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: HomeColors.income,
+                                  color: Color(0xFF4CAF50),
                                 ),
                               ),
                           ],
@@ -749,7 +763,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 if (_loan!.status != 'completed' && _loan!.status != 'paid')
                   FloatingActionButton.extended(
                     onPressed: _markLoanAsPaid,
-                    backgroundColor: HomeColors.income,
+                    backgroundColor: const Color(0xFF4CAF50), // Green for success
                     heroTag: 'markPaid',
                     icon: const Icon(Icons.check_circle, color: Colors.white),
                     label: Text(
@@ -765,7 +779,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 // Edit button
                 FloatingActionButton.extended(
                   onPressed: _navigateToEditLoan,
-                  backgroundColor: HomeColors.primary,
+                  backgroundColor: colorScheme.primary,
                   heroTag: 'edit',
                   icon: const Icon(Icons.edit, color: Colors.white),
                   label: const Text(

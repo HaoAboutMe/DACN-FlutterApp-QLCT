@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
+import '../../providers/theme_provider.dart';
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
 class ProfileScreen extends StatefulWidget {
@@ -12,7 +14,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isDarkMode = false;
   User? _currentUser;
   String _userName = 'Người dùng Whales Spent';
   String _userId = 'WS001234';
@@ -24,7 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadThemeMode();
     _loadCurrentUser();
   }
 
@@ -35,13 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  /// Tải theme mode từ SharedPreferences
-  Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
-    });
-  }
 
   /// Tải thông tin người dùng hiện tại từ database
   Future<void> _loadCurrentUser() async {
@@ -96,21 +89,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Lưu theme mode vào SharedPreferences
-  Future<void> _saveThemeMode(bool isDark) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', isDark);
-    setState(() {
-      _isDarkMode = isDark;
-    });
+  /// Chuyển đổi theme cho toàn bộ ứng dụng
+  Future<void> _toggleTheme(bool isDark) async {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    await themeProvider.toggleTheme(isDark);
 
-    // TODO: Implement theme switching in main app
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isDark ? 'Đã chuyển sang chế độ tối' : 'Đã chuyển sang chế độ sáng'),
-        backgroundColor: const Color(0xFF5D5FEF),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isDark ? 'Đã chuyển sang chế độ tối' : 'Đã chuyển sang chế độ sáng'),
+          backgroundColor: const Color(0xFF5D5FEF),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   /// Lưu tên người dùng vào database
@@ -160,10 +153,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = _isDarkMode;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey[900] : Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
@@ -195,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       expandedHeight: 300.0,
       floating: false,
       pinned: true,
-      backgroundColor: isDark ? Colors.grey[850] : Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       stretch: true,
       flexibleSpace: LayoutBuilder(
@@ -459,8 +453,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'color': const Color(0xFF5D5FEF),
       },
       {
-        'icon': _isDarkMode ? Icons.light_mode : Icons.dark_mode,
-        'title': 'Chế độ\n${_isDarkMode ? 'sáng' : 'tối'}',
+        'icon': isDark ? Icons.light_mode : Icons.dark_mode,
+        'title': 'Chế độ\n${isDark ? 'sáng' : 'tối'}',
         'color': const Color(0xFF00A8CC),
         'isToggle': true,
       },
@@ -502,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             isDark: isDark,
             onTap: () {
               if (feature['isToggle'] == true) {
-                _saveThemeMode(!_isDarkMode);
+                _toggleTheme(!isDark);
               } else {
                 _showFeatureSnackbar(feature['title'] as String);
               }
@@ -525,11 +519,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey[800] : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -557,7 +551,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black87,
+                color: Theme.of(context).colorScheme.onSurface,
                 height: 1.2,
               ),
             ),
@@ -600,11 +594,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[800] : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -618,7 +612,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Icon(
                   Icons.settings,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -626,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -640,7 +634,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (index > 0)
                   Divider(
                     height: 1,
-                    color: isDark ? Colors.grey[700] : Colors.grey[200],
+                    color: Theme.of(context).dividerColor,
                   ),
                 ListTile(
                   leading: Container(
@@ -659,20 +653,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     setting['title'] as String,
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   subtitle: Text(
                     setting['subtitle'] as String,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                   trailing: Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: isDark ? Colors.grey[400] : Colors.grey[400],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                   onTap: () => _showFeatureSnackbar(setting['title'] as String),
                 ),

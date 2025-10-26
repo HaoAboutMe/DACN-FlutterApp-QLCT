@@ -49,8 +49,11 @@ class LoanItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
-      elevation: 2,
+      elevation: isDark ? 4 : 2,
+      color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       child: InkWell(
@@ -76,21 +79,29 @@ class LoanItemCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             loan.personName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: loan.isOldDebt == 0 ? const Color(0xFF00A8CC).withOpacity(0.1) : Colors.grey[300],
+                            color: loan.isOldDebt == 0
+                              ? const Color(0xFF00A8CC).withValues(alpha: isDark ? 0.2 : 0.1)
+                              : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             getBadgeText(),
                             style: TextStyle(
                               fontSize: 12,
-                              color: loan.isOldDebt == 0 ? const Color(0xFF00A8CC) : Colors.grey[700],
+                              color: loan.isOldDebt == 0
+                                ? const Color(0xFF00A8CC)
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,
                             )
                           ),
@@ -98,24 +109,46 @@ class LoanItemCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(CurrencyFormatter.formatVND(loan.amount),
-                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    Text(
+                      CurrencyFormatter.formatVND(loan.amount),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
-                          child: Text('Bắt đầu: ${loan.loanDate.day}/${loan.loanDate.month}/${loan.loanDate.year}',
-                               style: const TextStyle(fontSize: 12)),
+                          child: Text(
+                            'Bắt đầu: ${loan.loanDate.day}/${loan.loanDate.month}/${loan.loanDate.year}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                         if (loan.dueDate != null)
                           Expanded(
-                            child: Text('Hết hạn: ${loan.dueDate!.day}/${loan.dueDate!.month}/${loan.dueDate!.year}',
-                                 style: const TextStyle(fontSize: 12)),
+                            child: Text(
+                              'Hết hạn: ${loan.dueDate!.day}/${loan.dueDate!.month}/${loan.dueDate!.year}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(getStatusText(), style: TextStyle(color: getStatusColor(), fontSize: 13)),
+                    Text(
+                      getStatusText(),
+                      style: TextStyle(
+                        color: getStatusColor(),
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),

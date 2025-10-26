@@ -223,12 +223,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Xác nhận xóa',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -236,7 +236,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
         content: Text(
           'Bạn có chắc muốn xóa ${_selectedTransactions.length} giao dịch này không?',
           style: TextStyle(
-            color: HomeColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 16,
           ),
         ),
@@ -246,7 +246,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
             child: Text(
               'Hủy',
               style: TextStyle(
-                color: HomeColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -373,14 +373,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: _isMultiSelectMode
             ? Text(
                 '${_selectedTransactions.length} đã chọn',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -388,28 +390,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
             : DropdownButtonHideUnderline(
                 child: DropdownButton<TypeFilter>(
                   value: _typeFilter,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
-                  dropdownColor: HomeColors.primary,
+                  dropdownColor: isDark
+                    ? const Color(0xFF2d3a4a)
+                    : Theme.of(context).colorScheme.primary,
                   onChanged: (TypeFilter? newValue) {
                     if (newValue != null) {
                       _onTypeFilterChanged(newValue);
                     }
                   },
-                  items: const [
+                  items: [
                     DropdownMenuItem<TypeFilter>(
                       value: TypeFilter.all,
                       child: Text(
                         'Tất cả giao dịch',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
@@ -420,7 +424,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                       child: Text(
                         'Thu nhập',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
@@ -431,7 +435,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                       child: Text(
                         'Chi tiêu',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
@@ -440,14 +444,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                   ],
                 ),
               ),
-        backgroundColor: HomeColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: isDark
+          ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+          : Theme.of(context).colorScheme.primary, // Light: Xanh biển
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         // Chỉ hiện leading khi ở chế độ multi-select
         automaticallyImplyLeading: false,
         leading: _isMultiSelectMode
           ? IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
+              icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary),
               onPressed: _exitMultiSelectMode,
             )
           : null, // Loại bỏ nút back vì đây là tab chính
@@ -465,10 +471,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
           // Filter and Summary Section
           Container(
             decoration: BoxDecoration(
-              color: HomeColors.primary,
+              color: isDark
+                ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(
-                  color: HomeColors.cardShadow,
+                  color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black.withValues(alpha: 0.3)
+                    : Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -478,11 +488,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: HomeColors.cardBackground,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: HomeColors.cardShadow,
+                    color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -507,9 +519,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: HomeColors.balanceBackground,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: HomeColors.balanceBorder),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -563,7 +577,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Divider(color: HomeColors.primary.withValues(alpha: 0.3)),
+                        Divider(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -571,7 +585,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                             Text(
                               'Số dư: ',
                               style: TextStyle(
-                                color: HomeColors.textSecondary,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 14,
                               ),
                             ),
@@ -603,14 +617,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(HomeColors.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
                           strokeWidth: 3,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Đang tải giao dịch...',
                           style: TextStyle(
-                            color: HomeColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 16,
                           ),
                         ),
@@ -619,8 +635,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                   )
                 : RefreshIndicator(
                     onRefresh: _loadData,
-                    color: HomeColors.primary,
-                    backgroundColor: HomeColors.cardBackground,
+                    color: Theme.of(context).colorScheme.primary,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     child: _transactions.isEmpty
                         ? ListView(
                             // Need ListView for RefreshIndicator to work on empty content
@@ -633,13 +649,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                     Icon(
                                       Icons.receipt_long,
                                       size: 64,
-                                      color: Colors.grey.shade400,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
                                       'Không có giao dịch nào',
                                       style: TextStyle(
-                                        color: Colors.grey.shade600,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         fontSize: 18,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -648,7 +664,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                     Text(
                                       'trong khoảng thời gian này',
                                       style: TextStyle(
-                                        color: Colors.grey.shade500,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                         fontSize: 14,
                                       ),
                                     ),
@@ -657,7 +673,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                       '↓ Kéo xuống để làm mới',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: HomeColors.primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -682,8 +698,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                 child: Material(
                                   borderRadius: BorderRadius.circular(12),
                                   color: isSelected
-                                    ? HomeColors.primary.withValues(alpha: 0.1)
-                                    : HomeColors.cardBackground,
+                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                                    : Theme.of(context).colorScheme.surface,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () => _onTransactionTap(transaction),
@@ -693,11 +709,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
                                         border: isSelected
-                                          ? Border.all(color: HomeColors.primary, width: 2)
+                                          ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
                                           : null,
                                         boxShadow: !isSelected ? [
                                           BoxShadow(
-                                            color: HomeColors.cardShadow,
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.black.withValues(alpha: 0.3)
+                                              : Colors.black.withValues(alpha: 0.08),
                                             blurRadius: 8,
                                             offset: const Offset(0, 2),
                                           ),
@@ -740,8 +758,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                               children: [
                                                 Text(
                                                   transaction.description,
-                                                  style: const TextStyle(
-                                                    color: HomeColors.textPrimary,
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurface,
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -750,7 +768,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                                 Text(
                                                   category?.name ?? 'Khác',
                                                   style: TextStyle(
-                                                    color: HomeColors.textSecondary,
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                     fontSize: 14,
                                                   ),
                                                 ),
@@ -758,7 +776,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                                 Text(
                                                   '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
                                                   style: TextStyle(
-                                                    color: HomeColors.textSecondary,
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                     fontSize: 12,
                                                   ),
                                                 ),
@@ -785,12 +803,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                                   child: Container(
                                                     padding: const EdgeInsets.all(8),
                                                     decoration: BoxDecoration(
-                                                      color: HomeColors.primary.withValues(alpha: 0.1),
+                                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                                       borderRadius: BorderRadius.circular(8),
                                                     ),
                                                     child: Icon(
                                                       Icons.edit,
-                                                      color: HomeColors.primary,
+                                                      color: Theme.of(context).colorScheme.primary,
                                                       size: 16,
                                                     ),
                                                   ),

@@ -204,16 +204,19 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   }
 
   Future<void> _deleteSelected() async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final count = _selectedIds.length;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Xác nhận xóa',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -221,7 +224,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         content: Text(
           'Bạn có chắc muốn xóa $count khoản vay/đi vay này không?\n\n⚠️ Lưu ý: Nếu là khoản vay MỚI, số dư của bạn sẽ được cập nhật.',
           style: TextStyle(
-            color: HomeColors.textSecondary,
+            color: colorScheme.onSurfaceVariant,
             fontSize: 16,
           ),
         ),
@@ -231,7 +234,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             child: Text(
               'Hủy',
               style: TextStyle(
-                color: HomeColors.textSecondary,
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -239,7 +242,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.expense,
+              backgroundColor: const Color(0xFFF44336), // Red for delete
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -454,15 +457,18 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     }
 
     // Show confirmation dialog
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           '💰 Xác nhận thanh toán',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -475,8 +481,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               loan.loanType == 'lend'
                   ? 'Xác nhận rằng ${loan.personName} đã trả nợ?'
                   : 'Xác nhận rằng bạn đã trả nợ cho ${loan.personName}?',
-              style: const TextStyle(
-                color: HomeColors.textSecondary,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 16,
               ),
             ),
@@ -515,7 +521,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                   : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(loan.amount)}',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -524,15 +530,15 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.income,
+              backgroundColor: const Color(0xFF4CAF50), // Green for success
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -554,16 +560,22 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(
+      builder: (ctx) => Center(
         child: Card(
+          color: colorScheme.surfaceContainerHighest,
           child: Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Đang xử lý...'),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Đang xử lý...',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
               ],
             ),
           ),
@@ -700,6 +712,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalLend = _loans
         .where((l) => l.loanType == 'lend')
         .fold<double>(0, (sum, l) => sum + l.amount);
@@ -708,13 +721,13 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         .fold<double>(0, (sum, l) => sum + l.amount);
 
     return Scaffold(
-      backgroundColor: HomeColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: _isSelectionMode
             ? Text(
                 '${_selectedIds.length} đã chọn',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -722,28 +735,30 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             : DropdownButtonHideUnderline(
                 child: DropdownButton<LoanTypeFilter>(
                   value: _loanTypeFilter,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
-                  dropdownColor: HomeColors.primary,
+                  dropdownColor: isDark
+                    ? const Color(0xFF2d3a4a)
+                    : Theme.of(context).colorScheme.primary,
                   onChanged: (LoanTypeFilter? newValue) {
                     if (newValue != null) {
                       _onLoanTypeFilterChanged(newValue);
                     }
                   },
-                  items: const [
+                  items: [
                     DropdownMenuItem<LoanTypeFilter>(
                       value: LoanTypeFilter.all,
                       child: Text(
                         'Tất cả khoản vay',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
@@ -796,7 +811,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                   ],
                 ),
               ),
-        backgroundColor: HomeColors.primary,
+        backgroundColor: isDark
+          ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+          : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -828,10 +845,14 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: HomeColors.primary,
+              color: isDark
+                ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(
-                  color: HomeColors.cardShadow,
+                  color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black.withValues(alpha: 0.3)
+                    : Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -869,17 +890,17 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: HomeColors.primary),
+                      border: Border.all(color: Theme.of(context).colorScheme.primary),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _currentFilter,
                         isExpanded: true,
-                        icon: Icon(Icons.keyboard_arrow_down, color: HomeColors.primary),
+                        icon: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).colorScheme.primary),
                         style: TextStyle(
-                          color: HomeColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1010,8 +1031,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                 child: Material(
                                   borderRadius: BorderRadius.circular(12),
                                   color: isSelected
-                                      ? HomeColors.primary.withValues(alpha: 0.1)
-                                      : HomeColors.cardBackground,
+                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                                      : Theme.of(context).colorScheme.surface,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () {
@@ -1029,12 +1050,14 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
                                         border: isSelected
-                                            ? Border.all(color: HomeColors.primary, width: 2)
+                                            ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
                                             : null,
                                         boxShadow: !isSelected
                                             ? [
                                                 BoxShadow(
-                                                  color: HomeColors.cardShadow,
+                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.black.withValues(alpha: 0.3)
+                                                    : Colors.black.withValues(alpha: 0.08),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -1083,8 +1106,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                                     Expanded(
                                                       child: Text(
                                                         loan.personName,
-                                                        style: const TextStyle(
-                                                          color: HomeColors.textPrimary,
+                                                        style: TextStyle(
+                                                          color: Theme.of(context).colorScheme.onSurface,
                                                           fontSize: 16,
                                                           fontWeight: FontWeight.bold,
                                                         ),
@@ -1291,14 +1314,18 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     required Color color,
     required IconData icon,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: HomeColors.cardShadow,
+            color: isDark
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1312,7 +1339,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -1322,7 +1349,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: HomeColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),

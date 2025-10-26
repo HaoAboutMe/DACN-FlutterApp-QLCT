@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # State management
+  provider: ^6.1.2
+
   # SQLite database
   sqflite: ^2.3.0
   path: ^1.8.3
