@@ -204,16 +204,19 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   }
 
   Future<void> _deleteSelected() async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final count = _selectedIds.length;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Xác nhận xóa',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -221,7 +224,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         content: Text(
           'Bạn có chắc muốn xóa $count khoản vay/đi vay này không?\n\n⚠️ Lưu ý: Nếu là khoản vay MỚI, số dư của bạn sẽ được cập nhật.',
           style: TextStyle(
-            color: HomeColors.textSecondary,
+            color: colorScheme.onSurfaceVariant,
             fontSize: 16,
           ),
         ),
@@ -231,7 +234,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             child: Text(
               'Hủy',
               style: TextStyle(
-                color: HomeColors.textSecondary,
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -239,7 +242,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.expense,
+              backgroundColor: const Color(0xFFF44336), // Red for delete
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -454,15 +457,18 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     }
 
     // Show confirmation dialog
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: HomeColors.cardBackground,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           '💰 Xác nhận thanh toán',
           style: TextStyle(
-            color: HomeColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -475,8 +481,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               loan.loanType == 'lend'
                   ? 'Xác nhận rằng ${loan.personName} đã trả nợ?'
                   : 'Xác nhận rằng bạn đã trả nợ cho ${loan.personName}?',
-              style: const TextStyle(
-                color: HomeColors.textSecondary,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 16,
               ),
             ),
@@ -515,7 +521,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                   : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(loan.amount)}',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -524,15 +530,15 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: HomeColors.income,
+              backgroundColor: const Color(0xFF4CAF50), // Green for success
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -554,16 +560,22 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(
+      builder: (ctx) => Center(
         child: Card(
+          color: colorScheme.surfaceContainerHighest,
           child: Padding(
-            padding: EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Đang xử lý...'),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Đang xử lý...',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
               ],
             ),
           ),
