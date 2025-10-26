@@ -3,7 +3,6 @@ import 'dart:async';
 import '../database/database_helper.dart';
 import '../models/category.dart';
 import '../models/icon_group.dart';
-import '../screens/home/home_colors.dart';
 
 class CategoryPickerSheet extends StatefulWidget {
   final String initialType; // 'income' hoặc 'expense'
@@ -288,6 +287,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       maxChildSize: 0.9,
@@ -295,9 +297,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
@@ -312,7 +314,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 8, bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -357,6 +359,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -364,16 +369,20 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           Expanded(
             child: Text(
               _dangThemDanhMuc ? 'Thêm danh mục mới' : 'Danh mục',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
             ),
           ),
           if (_dangThemDanhMuc)
             TextButton(
               onPressed: _chuyenSangCheDoChonDanhMuc,
-              child: const Text('Hủy'),
+              child: Text(
+                'Hủy',
+                style: TextStyle(color: colorScheme.primary),
+              ),
             )
           else
             FilledButton.icon(
@@ -381,8 +390,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Thêm'),
               style: FilledButton.styleFrom(
-                backgroundColor: HomeColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
               ),
             ),
         ],
@@ -391,30 +400,48 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildTimKiem() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return TextField(
       controller: _timKiemController,
       onChanged: _onTimKiemChanged,
+      style: TextStyle(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: 'Tìm danh mục...', // Only show category search, remove icon search
-        prefixIcon: const Icon(Icons.search),
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: colorScheme.surfaceContainerHighest,
       ),
     );
   }
 
   Widget _buildToggleLoaiDanhMuc() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Loại danh mục',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -425,7 +452,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                 'income',
                 'Thu nhập',
                 Icons.trending_up,
-                HomeColors.income,
+                const Color(0xFF4CAF50), // Green for income
               ),
             ),
             const SizedBox(width: 8),
@@ -434,7 +461,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                 'expense',
                 'Chi tiêu',
                 Icons.trending_down,
-                HomeColors.expense,
+                const Color(0xFFF44336), // Red for expense
               ),
             ),
           ],
@@ -445,6 +472,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildToggleButton(String value, String label, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isSelected = _loaiDanhMucDangChon == value;
 
     return GestureDetector(
@@ -456,7 +485,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
+            color: isSelected ? color : colorScheme.outline.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -465,14 +494,14 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           children: [
             Icon(
               icon,
-              color: isSelected ? color : Colors.grey[600],
+              color: isSelected ? color : colorScheme.onSurfaceVariant,
               size: 18,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.grey[600],
+                color: isSelected ? color : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -483,12 +512,16 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildNhomIconChips() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Nhóm biểu tượng',
           style: TextStyle(
+            color: colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -503,11 +536,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               label: Text(IconGroupHelper.getGroupName(group)),
               selected: isSelected,
               onSelected: (_) => _onNhomIconChanged(group),
-              backgroundColor: Colors.grey[100],
-              selectedColor: HomeColors.primary.withValues(alpha: 0.1),
-              checkmarkColor: HomeColors.primary,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              selectedColor: colorScheme.primary.withValues(alpha: 0.1),
+              checkmarkColor: colorScheme.primary,
+              side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
               labelStyle: TextStyle(
-                color: isSelected ? HomeColors.primary : Colors.grey[700],
+                color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             );
@@ -518,23 +552,28 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildFormThemDanhMuc() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Tên danh mục
-          const Text(
+          Text(
             'Tên danh mục',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _tenDanhMucController,
             maxLength: 30,
+            style: TextStyle(color: colorScheme.onSurface),
             onChanged: (_) {
               setState(() {
                 _loiValidation = null;
@@ -542,9 +581,21 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             },
             decoration: InputDecoration(
               hintText: 'Nhập tên danh mục...',
+              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colorScheme.outline),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colorScheme.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: colorScheme.surfaceContainerHighest,
               errorText: _loiValidation,
               counterText: '',
             ),
@@ -552,11 +603,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           const SizedBox(height: 16),
 
           // Grid icon
-          const Text(
+          Text(
             'Chọn biểu tượng',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -570,8 +622,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             child: FilledButton(
               onPressed: _coTheThemDanhMuc() ? _themDanhMucMoi : null,
               style: FilledButton.styleFrom(
-                backgroundColor: HomeColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -605,10 +657,13 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           .contains(_tuKhoaTimKiem.toLowerCase());
     }).toList();
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       height: 320, // Tăng chiều cao từ 200 lên 320 để hiển thị nhiều icon hơn
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -618,7 +673,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -628,7 +683,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               '${filteredIcons.length} biểu tượng có sẵn',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -655,12 +710,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? HomeColors.primary.withValues(alpha: 0.15)
+                            ? colorScheme.primary.withValues(alpha: 0.15)
                             : Colors.transparent,
                         border: Border.all(
                           color: isSelected
-                              ? HomeColors.primary
-                              : Colors.grey[300]!,
+                              ? colorScheme.primary
+                              : colorScheme.outline.withValues(alpha: 0.5),
                           width: isSelected ? 2.5 : 1,
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -668,7 +723,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                       child: Icon(
                         icon,
                         size: 28, // Tăng kích thước icon từ 24 lên 28
-                        color: isSelected ? HomeColors.primary : Colors.grey[600],
+                        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                       ),
                     )
                 );
@@ -691,6 +746,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     }
 
     if (_danhSachDanhMuc.isEmpty) {
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -699,20 +757,23 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               Icon(
                 Icons.category_outlined,
                 size: 64,
-                color: Colors.grey[400],
+                color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
                 'Không tìm thấy danh mục nào',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _chuyenSangCheDoCenDanhMuc,
-                child: const Text('Thêm danh mục mới'),
+                child: Text(
+                  'Thêm danh mục mới',
+                  style: TextStyle(color: colorScheme.primary),
+                ),
               ),
             ],
           ),
@@ -728,6 +789,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       mainAxisSpacing: 12,
       childAspectRatio: 1.0, // Changed from 0.8 to 1.0 for square boxes
       children: _danhSachDanhMuc.map((category) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
         final isSelected = widget.initiallySelected?.id == category.id;
 
         return GestureDetector(
@@ -738,12 +801,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isSelected
-                  ? HomeColors.primary.withValues(alpha: 0.1)
-                  : Colors.grey[50],
+                  ? colorScheme.primary.withValues(alpha: 0.1)
+                  : colorScheme.surfaceContainerHighest,
               border: Border.all(
                 color: isSelected
-                    ? HomeColors.primary
-                    : Colors.grey[200]!,
+                    ? colorScheme.primary
+                    : colorScheme.outline.withValues(alpha: 0.5),
                 width: isSelected ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -754,7 +817,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                 Icon(
                   _getCategoryIcon(category.icon),
                   size: 32,
-                  color: isSelected ? HomeColors.primary : Colors.grey[700],
+                  color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -762,7 +825,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? HomeColors.primary : Colors.grey[700],
+                    color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
