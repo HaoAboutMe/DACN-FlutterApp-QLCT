@@ -291,7 +291,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     final colorScheme = theme.colorScheme;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
+      initialChildSize: 0.9,
       maxChildSize: 0.9,
       minChildSize: 0.3,
       expand: false,
