@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../providers/theme_provider.dart';
+import '../category/category_management_screen.dart';
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
 class ProfileScreen extends StatefulWidget {
@@ -433,6 +433,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
 
+  /// Navigate to Category Management Screen
+  void _navigateToCategoryManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CategoryManagementScreen(),
+      ),
+    );
+  }
+
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
     final features = [
@@ -451,6 +461,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'icon': Icons.category,
         'title': 'Tùy chỉnh\ndanh mục',
         'color': const Color(0xFFFF6B6B),
+        'isCategoryManagement': true,
       },
       {
         'icon': Icons.notifications,
@@ -486,6 +497,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () {
               if (feature['isToggle'] == true) {
                 _toggleTheme(!isDark);
+              } else if (feature['isCategoryManagement'] == true) {
+                _navigateToCategoryManagement();
               } else {
                 _showFeatureSnackbar(feature['title'] as String);
               }
