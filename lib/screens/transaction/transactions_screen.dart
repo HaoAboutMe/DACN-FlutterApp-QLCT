@@ -692,6 +692,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                   ? _categoriesMap[transaction.categoryId!]
                                   : null;
                               final isSelected = _selectedTransactions.contains(transaction);
+                              final isDark = Theme.of(context).brightness == Brightness.dark;
+                              final containerColor = isDark
+                                  ? Theme.of(context).colorScheme.surface
+                                  : Colors.white;
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
@@ -699,7 +703,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                   borderRadius: BorderRadius.circular(12),
                                   color: isSelected
                                     ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                    : Theme.of(context).colorScheme.surface,
+                                    : containerColor,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () => _onTransactionTap(transaction),
@@ -707,6 +711,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                     child: Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
+                                        color: isSelected ? null : containerColor,
                                         borderRadius: BorderRadius.circular(12),
                                         border: isSelected
                                           ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
