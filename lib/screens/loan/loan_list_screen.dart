@@ -713,12 +713,14 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final totalLend = _loans
+    final totalLend = _filteredLoans
         .where((l) => l.loanType == 'lend')
         .fold<double>(0, (sum, l) => sum + l.amount);
-    final totalBorrow = _loans
+
+    final totalBorrow = _filteredLoans
         .where((l) => l.loanType == 'borrow')
         .fold<double>(0, (sum, l) => sum + l.amount);
+
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
