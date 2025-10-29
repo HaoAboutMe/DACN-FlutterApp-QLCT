@@ -17,7 +17,7 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 enum TimeFilter { week, month, year }
-enum TypeFilter { all, income, expense }
+enum TypeFilter { all, income, expense,  loan_given, loan_received, debt_paid, debt_collected }
 
 class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBindingObserver {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
@@ -92,21 +92,45 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
     List<transaction_model.Transaction> all = await _databaseHelper.getAllTransactions();
     _transactions = all.where((t) =>
-      (t.type == 'income' || t.type == 'expense' || t.type == 'loan_given' || t.type == 'loan_received') &&
-      t.date.isAfter(start.subtract(const Duration(days: 1))) &&
-      t.date.isBefore(now.add(const Duration(days: 1)))
+    (t.type == 'income' || t.type == 'expense' || t.type == 'loan_given' || t.type == 'loan_received' || t.type == "debt_paid" || t.type == "debt_collected") &&
+        t.date.isAfter(start.subtract(const Duration(days: 1))) &&
+        t.date.isBefore(now.add(const Duration(days: 1)))
     ).toList();
 
     // Apply type filter
     switch (_typeFilter) {
       case TypeFilter.income:
-        _transactions = _transactions.where((t) => t.type == 'income').toList();
+        _transactions = _transactions.where((t) =>
+        t.type == 'income' ||
+            t.type == 'loan_received' ||
+            t.type == 'debt_collected').toList();
         break;
+
       case TypeFilter.expense:
-        _transactions = _transactions.where((t) => t.type == 'expense').toList();
+        _transactions = _transactions.where((t) =>
+        t.type == 'expense' ||
+            t.type == 'loan_given' ||
+            t.type == 'debt_paid').toList();
+        break;
+      case TypeFilter.loan_given:
+        _transactions = _transactions.where((t) => t.type == 'loan_given').toList();
+        break;
+
+      case TypeFilter.loan_received:
+        _transactions =
+            _transactions.where((t) => t.type == 'loan_received').toList();
+        break;
+
+      case TypeFilter.debt_paid:
+        _transactions = _transactions.where((t) => t.type == 'debt_paid').toList();
+        break;
+
+      case TypeFilter.debt_collected:
+        _transactions =
+            _transactions.where((t) => t.type == 'debt_collected').toList();
         break;
       case TypeFilter.all:
-        // Show all transactions - no additional filtering needed
+      // Show all transactions - no additional filtering needed
         break;
     }
 
@@ -116,8 +140,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     setState(() => _isLoading = false);
   }
 
-  double get _totalIncome => _transactions.where((t) => t.type == 'income').fold(0, (sum, t) => sum + t.amount);
-  double get _totalExpense => _transactions.where((t) => t.type == 'expense').fold(0, (sum, t) => sum + t.amount);
+  double get _totalIncome => _transactions
+      .where((t) =>
+  t.type == 'income' ||
+      t.type == 'loan_received' ||
+      t.type == 'debt_collected')
+      .fold(0, (sum, t) => sum + t.amount);
+
+  double get _totalExpense => _transactions
+      .where((t) =>
+  t.type == 'expense' ||
+      t.type == 'loan_given' ||
+      t.type == 'debt_paid')
+      .fold(0, (sum, t) => sum + t.amount);
+
 
   void _onTimeFilterChanged(TimeFilter filter) {
     setState(() => _timeFilter = filter);
@@ -179,23 +215,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
         switch (transaction.type) {
           case 'income':
           case 'debt_collected':
-            // Xóa thu nhập -> trừ khỏi số dư
+          // Xóa thu nhập -> trừ khỏi số dư
             balanceChange -= transaction.amount;
             debugPrint('Deleted income ${transaction.amount} -> balance change: -${transaction.amount}');
             break;
           case 'expense':
           case 'debt_paid':
-            // Xóa chi tiêu -> cộng lại vào số dư (vì khi tạo đã bị trừ)
+          // Xóa chi tiêu -> cộng lại vào số dư (vì khi tạo đã bị trừ)
             balanceChange += transaction.amount;
             debugPrint('Deleted expense ${transaction.amount} -> balance change: +${transaction.amount}');
             break;
           case 'loan_given':
-            // Xóa giao dịch cho vay -> cộng lại vào số dư (vì khi tạo đã bị trừ)
+          // Xóa giao dịch cho vay -> cộng lại vào số dư (vì khi tạo đã bị trừ)
             balanceChange += transaction.amount;
             debugPrint('Deleted loan_given ${transaction.amount} -> balance change: +${transaction.amount}');
             break;
           case 'loan_received':
-            // Xóa giao dịch đi vay -> trừ khỏi số dư (vì khi tạo đã được cộng)
+          // Xóa giao dịch đi vay -> trừ khỏi số dư (vì khi tạo đã được cộng)
             balanceChange -= transaction.amount;
             debugPrint('Deleted loan_received ${transaction.amount} -> balance change: -${transaction.amount}');
             break;
@@ -342,14 +378,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
   Color _getTransactionColor(String type) {
     switch (type) {
+    // Thu nhập & các loại làm tăng số dư
       case 'income':
-        return HomeColors.income;
-      case 'expense':
-        return HomeColors.expense;
-      case 'loan_given':
-        return HomeColors.expense;
       case 'loan_received':
+      case 'debt_collected': // Thu nợ
         return HomeColors.income;
+
+    // Chi tiêu & các loại làm giảm số dư
+      case 'expense':
+      case 'loan_given':
+      case 'debt_paid': // Trả nợ
+        return HomeColors.expense;
+
       default:
         return Colors.grey;
     }
@@ -368,6 +408,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
         return 'Thu nhập';
       case TypeFilter.expense:
         return 'Chi tiêu';
+      case TypeFilter.loan_given:
+        return 'Cho vay';
+      case TypeFilter.loan_received:
+        return 'Đi vay';
+      case TypeFilter.debt_paid:
+        return 'Trả nợ';
+      case TypeFilter.debt_collected:
+        return 'Thu nợ';
     }
   }
 
@@ -380,83 +428,127 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
       appBar: AppBar(
         title: _isMultiSelectMode
             ? Text(
-                '${_selectedTransactions.length} đã chọn',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              )
+          '${_selectedTransactions.length} đã chọn',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        )
             : DropdownButtonHideUnderline(
-                child: DropdownButton<TypeFilter>(
-                  value: _typeFilter,
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
+          child: DropdownButton<TypeFilter>(
+            value: _typeFilter,
+            icon: Icon(
+              Icons.keyboard_arrow_down,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+            dropdownColor: isDark
+                ? const Color(0xFF2d3a4a)
+                : Theme.of(context).colorScheme.primary,
+            onChanged: (TypeFilter? newValue) {
+              if (newValue != null) {
+                _onTypeFilterChanged(newValue);
+              }
+            },
+            items: [
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.all,
+                child: Text(
+                  'Tất cả giao dịch',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 18,
                   ),
-                  dropdownColor: isDark
-                    ? const Color(0xFF2d3a4a)
-                    : Theme.of(context).colorScheme.primary,
-                  onChanged: (TypeFilter? newValue) {
-                    if (newValue != null) {
-                      _onTypeFilterChanged(newValue);
-                    }
-                  },
-                  items: [
-                    DropdownMenuItem<TypeFilter>(
-                      value: TypeFilter.all,
-                      child: Text(
-                        'Tất cả giao dịch',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    DropdownMenuItem<TypeFilter>(
-                      value: TypeFilter.income,
-                      child: Text(
-                        'Thu nhập',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    DropdownMenuItem<TypeFilter>(
-                      value: TypeFilter.expense,
-                      child: Text(
-                        'Chi tiêu',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.income,
+                child: Text(
+                  'Thu nhập',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.expense,
+                child: Text(
+                  'Chi tiêu',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.loan_given,
+                child: Text(
+                  'Cho vay',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.loan_received,
+                child: Text(
+                  'Đi vay',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.debt_paid,
+                child: Text(
+                  'Trả nợ',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              DropdownMenuItem<TypeFilter>(
+                value: TypeFilter.debt_collected,
+                child: Text(
+                  'Thu nợ',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         backgroundColor: isDark
-          ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
-          : Theme.of(context).colorScheme.primary, // Light: Xanh biển
+            ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+            : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         // Chỉ hiện leading khi ở chế độ multi-select
         automaticallyImplyLeading: false,
         leading: _isMultiSelectMode
-          ? IconButton(
-              icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary),
-              onPressed: _exitMultiSelectMode,
-            )
-          : null, // Loại bỏ nút back vì đây là tab chính
+            ? IconButton(
+          icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary),
+          onPressed: _exitMultiSelectMode,
+        )
+            : null, // Loại bỏ nút back vì đây là tab chính
         actions: [
           if (_isMultiSelectMode && _selectedTransactions.isNotEmpty)
             IconButton(
@@ -472,13 +564,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
           Container(
             decoration: BoxDecoration(
               color: isDark
-                ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
-                : Theme.of(context).colorScheme.primary, // Light: Xanh biển
+                  ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                  : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(
                   color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.black.withValues(alpha: 0.3)
-                    : Colors.black.withValues(alpha: 0.08),
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -493,8 +585,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : Colors.black.withValues(alpha: 0.08),
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -593,8 +685,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                               CurrencyFormatter.formatVND(_totalIncome - _totalExpense),
                               style: TextStyle(
                                 color: (_totalIncome - _totalExpense) >= 0
-                                  ? HomeColors.income
-                                  : HomeColors.expense,
+                                    ? HomeColors.income
+                                    : HomeColors.expense,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -613,223 +705,223 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
           Expanded(
             child: _isLoading
                 ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.primary,
+                    ),
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Đang tải giao dịch...',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : RefreshIndicator(
+              onRefresh: _loadData,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: _transactions.isEmpty
+                  ? ListView(
+                // Need ListView for RefreshIndicator to work on empty content
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.6,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
-                          ),
-                          strokeWidth: 3,
+                        Icon(
+                          Icons.receipt_long,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Đang tải giao dịch...',
+                          'Không có giao dịch nào',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 16,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'trong khoảng thời gian này',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '↓ Kéo xuống để làm mới',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadData,
-                    color: Theme.of(context).colorScheme.primary,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    child: _transactions.isEmpty
-                        ? ListView(
-                            // Need ListView for RefreshIndicator to work on empty content
+                  ),
+                ],
+              )
+                  : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                itemCount: _transactions.length,
+                itemBuilder: (ctx, i) {
+                  final transaction = _transactions[i];
+                  final category = transaction.categoryId != null
+                      ? _categoriesMap[transaction.categoryId!]
+                      : null;
+                  final isSelected = _selectedTransactions.contains(transaction);
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  final containerColor = isDark
+                      ? Theme.of(context).colorScheme.surface
+                      : Colors.white;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                          : containerColor,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _onTransactionTap(transaction),
+                        onLongPress: () => _onLongPress(transaction),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected ? null : containerColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: isSelected
+                                ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                                : null,
+                            boxShadow: !isSelected ? [
+                              BoxShadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black.withValues(alpha: 0.3)
+                                    : Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ] : null,
+                          ),
+                          child: Row(
                             children: [
-                              Container(
-                                height: MediaQuery.of(context).size.height * 0.6,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      size: 64,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              // Selection/Icon
+                              if (_isMultiSelectMode)
+                                Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  child: Icon(
+                                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                                    color: isSelected ? HomeColors.primary : Colors.grey,
+                                    size: 24,
+                                  ),
+                                )
+                              else
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: HomeColors.getTransactionIconBackground(
+                                        _getTransactionColor(transaction.type)
                                     ),
-                                    const SizedBox(height: 16),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    _getTransactionIcon(transaction),
+                                    color: _getTransactionColor(transaction.type),
+                                    size: 24,
+                                  ),
+                                ),
+
+                              // Transaction Details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      'Không có giao dịch nào',
+                                      transaction.description,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      'trong khoảng thời gian này',
+                                      _getCategoryDisplayName(transaction, category),
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         fontSize: 14,
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      '↓ Kéo xuống để làm mới',
+                                      '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
                                       style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         fontSize: 12,
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _transactions.length,
-                            itemBuilder: (ctx, i) {
-                              final transaction = _transactions[i];
-                              final category = transaction.categoryId != null
-                                  ? _categoriesMap[transaction.categoryId!]
-                                  : null;
-                              final isSelected = _selectedTransactions.contains(transaction);
-                              final isDark = Theme.of(context).brightness == Brightness.dark;
-                              final containerColor = isDark
-                                  ? Theme.of(context).colorScheme.surface
-                                  : Colors.white;
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: Material(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: isSelected
-                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                    : containerColor,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () => _onTransactionTap(transaction),
-                                    onLongPress: () => _onLongPress(transaction),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? null : containerColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: isSelected
-                                          ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                                          : null,
-                                        boxShadow: !isSelected ? [
-                                          BoxShadow(
-                                            color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.black.withValues(alpha: 0.3)
-                                              : Colors.black.withValues(alpha: 0.08),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ] : null,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          // Selection/Icon
-                                          if (_isMultiSelectMode)
-                                            Container(
-                                              margin: const EdgeInsets.only(right: 12),
-                                              child: Icon(
-                                                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                                color: isSelected ? HomeColors.primary : Colors.grey,
-                                                size: 24,
-                                              ),
-                                            )
-                                          else
-                                            Container(
-                                              width: 48,
-                                              height: 48,
-                                              margin: const EdgeInsets.only(right: 12),
-                                              decoration: BoxDecoration(
-                                                color: HomeColors.getTransactionIconBackground(
-                                                  _getTransactionColor(transaction.type)
-                                                ),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Icon(
-                                                _getTransactionIcon(transaction),
-                                                color: _getTransactionColor(transaction.type),
-                                                size: 24,
-                                              ),
-                                            ),
-
-                                          // Transaction Details
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  transaction.description,
-                                                  style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.onSurface,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  category?.name ?? 'Khác',
-                                                  style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-                                                  style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-
-                                          // Amount and Edit Button
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                _getTransactionAmountDisplay(transaction),
-                                                style: TextStyle(
-                                                  color: _getTransactionColor(transaction.type),
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              if (!_isMultiSelectMode) ...[
-                                                const SizedBox(height: 8),
-                                                GestureDetector(
-                                                  onTap: () => _editTransaction(transaction),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.edit,
-                                                      color: Theme.of(context).colorScheme.primary,
-                                                      size: 16,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ],
-                                      ),
+                              // Amount and Edit Button
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    _getTransactionAmountDisplay(transaction),
+                                    style: TextStyle(
+                                      color: _getTransactionColor(transaction.type),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
-                              );
-                            },
+                                  if (!_isMultiSelectMode) ...[
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                      onTap: () => _editTransaction(transaction),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.edit,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
                           ),
-                  ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
@@ -880,4 +972,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
       await _fetchTransactions();
     }
   }
+
+  String _getCategoryDisplayName(transaction_model.Transaction transaction, Category? category) {
+    // Nếu transaction có categoryId và category hợp lệ -> dùng tên category
+    if (category != null) {
+      return category.name;
+    }
+
+    // Nếu không có category -> dựa theo type
+    switch (transaction.type) {
+      case 'loan_given':
+        return 'Cho vay';
+      case 'loan_received':
+        return 'Đi vay';
+      case 'debt_paid':
+        return 'Trả nợ';
+      case 'debt_collected':
+        return 'Thu nợ';
+      case 'income':
+        return 'Thu nhập';
+      case 'expense':
+        return 'Chi tiêu';
+      default:
+        return 'Khác';
+    }
+  }
+
 }

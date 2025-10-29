@@ -112,6 +112,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     return '$sign${CurrencyFormatter.formatVND(widget.transaction.amount)}';
   }
 
+  String _getLoanCategoryDisplayName() {
+    switch (widget.transaction.type) {
+      case 'loan_given':
+        return 'Cho vay';
+      case 'loan_received':
+        return 'Đi vay';
+      case 'debt_paid':
+        return 'Trả nợ';
+      case 'debt_collected':
+        return 'Thu nợ';
+      default:
+        return 'Khác';
+    }
+  }
+
   Future<void> _deleteTransaction() async {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -385,7 +400,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
                         _buildDetailRow(
                           'Danh mục',
-                          _category?.name ?? 'Không có danh mục',
+                          _category?.name ?? _getLoanCategoryDisplayName(),
                           Icons.category,
                         ),
 
