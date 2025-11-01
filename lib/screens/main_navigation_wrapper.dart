@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/whale_navigation_bar.dart';
 import 'home/home_page.dart';
 import 'transaction/transactions_screen.dart';
@@ -443,27 +445,31 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Nội dung chính - chiếm toàn bộ màn hình
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          body: Stack(
+            children: [
+              // Nội dung chính - chiếm toàn bộ màn hình
+              IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
+              // Navigation bar được đặt phía trên, positioned ở dưới cùng
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: WhaleNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: _onNavItemTapped,
+                  isVisible: _isNavBarVisible,
+                ),
+              ),
+            ],
           ),
-          // Navigation bar được đặt phía trên, positioned ở dưới cùng
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: WhaleNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: _onNavItemTapped,
-              isVisible: _isNavBarVisible,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

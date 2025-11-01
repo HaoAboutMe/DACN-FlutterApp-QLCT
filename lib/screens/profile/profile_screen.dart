@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
-import '../../providers/theme_provider.dart';
 import '../category/category_management_screen.dart';
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
@@ -87,8 +86,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Chuyển đổi theme cho toàn bộ ứng dụng
   Future<void> _toggleTheme(bool isDark) async {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    await themeProvider.toggleTheme(isDark);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isDarkMode', isDark);
+
+      // Hiển thị thông báo
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã ${isDark ? 'bật' : 'tắt'} chế độ ${isDark ? 'tối' : 'sáng'}'),
+          backgroundColor: const Color(0xFF5D5FEF),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      print('Lỗi chuyển đổi theme: $e');
+    }
   }
 
   /// Lưu tên người dùng vào database
@@ -145,8 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
