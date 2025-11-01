@@ -333,7 +333,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
                 ),
               ),
         backgroundColor: isDark
-            ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ (giống Home_Page)
+            ? theme.scaffoldBackgroundColor // Dark: Màu cá voi sát thủ (giống Home_Page)
             : theme.colorScheme.primary, // Light: Xanh biển (giống Home_Page)
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
