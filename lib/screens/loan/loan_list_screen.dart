@@ -814,7 +814,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 ),
               ),
         backgroundColor: isDark
-          ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+          ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
           : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Colors.white,
         elevation: 0,
@@ -848,7 +848,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark
-                ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
                 : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(

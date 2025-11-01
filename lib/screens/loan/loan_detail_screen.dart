@@ -440,7 +440,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -480,7 +480,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Chi tiết khoản vay',
@@ -490,7 +490,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             fontSize: 20,
           ),
         ),
-        backgroundColor: colorScheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
