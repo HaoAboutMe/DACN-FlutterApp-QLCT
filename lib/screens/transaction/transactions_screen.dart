@@ -212,28 +212,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
       // Tính toán thay đổi số dư cho từng giao dịch bị xóa
       for (final transaction in deletedTransactions) {
+        // ⚠️ QUAN TRỌNG: Bỏ qua Transaction liên quan đến Loan
+        // Lý do: Số dư sẽ được xử lý khi xóa Loan, tránh cộng 2 lần
+        if (transaction.loanId != null) {
+          debugPrint('⚠️ Transaction ${transaction.description} liên quan đến Loan - BỎ QUA cập nhật số dư');
+          continue;
+        }
+
+        // CHỈ xử lý Transaction KHÔNG liên quan đến Loan
         switch (transaction.type) {
           case 'income':
-          case 'debt_collected':
-          // Xóa thu nhập -> trừ khỏi số dư
+            // Xóa thu nhập -> trừ khỏi số dư
             balanceChange -= transaction.amount;
             debugPrint('Deleted income ${transaction.amount} -> balance change: -${transaction.amount}');
             break;
           case 'expense':
-          case 'debt_paid':
-          // Xóa chi tiêu -> cộng lại vào số dư (vì khi tạo đã bị trừ)
+            // Xóa chi tiêu -> cộng lại vào số dư (vì khi tạo đã bị trừ)
             balanceChange += transaction.amount;
             debugPrint('Deleted expense ${transaction.amount} -> balance change: +${transaction.amount}');
             break;
+          case 'debt_collected':
+          case 'debt_paid':
           case 'loan_given':
-          // Xóa giao dịch cho vay -> cộng lại vào số dư (vì khi tạo đã bị trừ)
-            balanceChange += transaction.amount;
-            debugPrint('Deleted loan_given ${transaction.amount} -> balance change: +${transaction.amount}');
-            break;
           case 'loan_received':
-          // Xóa giao dịch đi vay -> trừ khỏi số dư (vì khi tạo đã được cộng)
-            balanceChange -= transaction.amount;
-            debugPrint('Deleted loan_received ${transaction.amount} -> balance change: -${transaction.amount}');
+            // ⚠️ Các loại này KHÔNG NÊN xảy ra vì đã check loanId ở trên
+            // Nhưng để an toàn, log warning và bỏ qua
+            debugPrint('⚠️ WARNING: Transaction type ${transaction.type} không nên xảy ra khi loanId = null');
             break;
           default:
             debugPrint('Unknown transaction type: ${transaction.type} - no balance change');
@@ -241,13 +245,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
         }
       }
 
-      // Cập nhật số dư mới
-      final newBalance = currentUser.balance + balanceChange;
-      final updatedUser = currentUser.copyWith(balance: newBalance);
-
-      await _databaseHelper.updateUser(updatedUser);
-
-      debugPrint('Updated user balance from ${currentUser.balance} to $newBalance (total change: $balanceChange)');
+      // Chỉ cập nhật số dư nếu có thay đổi
+      if (balanceChange != 0) {
+        final newBalance = currentUser.balance + balanceChange;
+        final updatedUser = currentUser.copyWith(balance: newBalance);
+        await _databaseHelper.updateUser(updatedUser);
+        debugPrint('✅ Updated user balance from ${currentUser.balance} to $newBalance (total change: $balanceChange)');
+      } else {
+        debugPrint('✅ No balance change needed (all transactions were loan-related)');
+      }
     } catch (e) {
       debugPrint('Error updating user balance after delete: $e');
     }
