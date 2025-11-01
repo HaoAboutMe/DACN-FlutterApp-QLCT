@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../providers/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
+import '../../utils/notification_helper.dart';
+
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
 class ProfileScreen extends StatefulWidget {
@@ -20,11 +23,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   final ScrollController _scrollController = ScrollController();
+  bool _reminderEnabled = false;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _loadReminderSettings();
   }
 
   @override
@@ -84,6 +90,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Lỗi tạo user mặc định: $e');
     }
   }
+
+  Future<void> _loadReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _reminderEnabled = prefs.getBool('reminderEnabled') ?? false;
+      final hour = prefs.getInt('reminderHour') ?? 20;
+      final minute = prefs.getInt('reminderMinute') ?? 0;
+      _reminderTime = TimeOfDay(hour: hour, minute: minute);
+    });
+  }
+
+  Future<void> _saveReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminderEnabled', _reminderEnabled);
+    await prefs.setInt('reminderHour', _reminderTime.hour);
+    await prefs.setInt('reminderMinute', _reminderTime.minute);
+  }
+
 
   /// Chuyển đổi theme cho toàn bộ ứng dụng
   Future<void> _toggleTheme(bool isDark) async {
@@ -541,6 +565,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _toggleTheme(!isDark);
               } else if (feature['isCategoryManagement'] == true) {
                 _navigateToCategoryManagement();
+              } else if (feature['title'] == 'Thông báo\nnhắc nhở') {
+                _showReminderDialog();
               } else {
                 _showFeatureSnackbar(feature['title'] as String);
               }
@@ -771,4 +797,197 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  void _showReminderDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool tempEnabled = _reminderEnabled;
+        TimeOfDay tempTime = _reminderTime;
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Text('Cài đặt nhắc nhở hằng ngày'),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Bật nhắc nhở'),
+                      Switch(
+                        value: tempEnabled,
+                        onChanged: (value) {
+                          setStateDialog(() => tempEnabled = value);
+                        },
+                        activeTrackColor: const Color(0xFF5D5FEF),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Thời gian'),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: tempTime,
+                          );
+                          if (picked != null) {
+                            setStateDialog(() => tempTime = picked);
+                          }
+                        },
+                        icon: const Icon(Icons.access_time, size: 18),
+                        label: Text(
+                          '${tempTime.hour.toString().padLeft(2, '0')}:${tempTime.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Nút Test thông báo
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await NotificationHelper.showInstantNotification(
+                        title: '🐋 Whales Spent Test',
+                        body: 'Thông báo đang hoạt động tốt! Bây giờ là ${TimeOfDay.now().hour}:${TimeOfDay.now().minute.toString().padLeft(2, '0')}',
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Đã gửi thông báo test!'),
+                          backgroundColor: Color(0xFF5D5FEF),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_active, size: 18),
+                    label: const Text('Test thông báo ngay'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF5D5FEF),
+                      side: const BorderSide(color: Color(0xFF5D5FEF)),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                setState(() {
+                  _reminderEnabled = tempEnabled;
+                  _reminderTime = tempTime;
+                });
+                _saveReminderSettings();
+
+                if (_reminderEnabled) {
+                  // Kiểm tra quyền Exact Alarm trước khi đặt lịch
+                  final hasPermission = await NotificationHelper.checkExactAlarmPermission();
+
+                  if (!hasPermission) {
+                    // Hiển thị dialog hướng dẫn cấp quyền
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      _showExactAlarmPermissionDialog();
+                    }
+                    return;
+                  }
+
+                  await NotificationHelper.scheduleDailyNotification(
+                    hour: _reminderTime.hour,
+                    minute: _reminderTime.minute,
+                  );
+                } else {
+                  await NotificationHelper.cancelDailyNotification();
+                }
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_reminderEnabled
+                        ? 'Đã bật nhắc nhở lúc ${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}'
+                        : 'Đã tắt nhắc nhở hằng ngày'),
+                    backgroundColor: const Color(0xFF5D5FEF),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5D5FEF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Lưu', style: TextStyle(color: Colors.white)),
+            ),
+
+          ],
+        );
+      },
+    );
+  }
+
+  /// Hiển thị dialog hướng dẫn cấp quyền Exact Alarm
+  void _showExactAlarmPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Text('Cần cấp quyền'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Để thông báo hằng ngày hoạt động, bạn cần cấp quyền "Alarms & reminders" cho ứng dụng.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF5D5FEF).withValues(alpha: 0.3)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hướng dẫn:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  SizedBox(height: 8),
+                  Text('1. Vào Settings → Apps', style: TextStyle(fontSize: 12)),
+                  Text('2. Chọn Whales Spent', style: TextStyle(fontSize: 12)),
+                  Text('3. Tìm "Special app access"', style: TextStyle(fontSize: 12)),
+                  Text('4. Chọn "Alarms & reminders"', style: TextStyle(fontSize: 12)),
+                  Text('5. Bật quyền cho Whales Spent', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
 }
