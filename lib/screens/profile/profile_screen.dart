@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../providers/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
+import '../budget/budget_list_screen.dart';
 import '../../utils/notification_helper.dart';
 
 
@@ -509,13 +510,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Navigate to Budget Management Screen
+  void _navigateToBudgetManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BudgetListScreen(),
+      ),
+    );
+  }
+
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
     final features = [
       {
-        'icon': Icons.fingerprint,
-        'title': 'Xác thực\nvân tay',
-        'color': const Color(0xFF5D5FEF),
+        'icon': Icons.account_balance_wallet,
+        'title': 'Hạn mức\nchi tiêu',
+        'color': const Color(0xFFFF9066),
+        'isBudgetManagement': true,
       },
       {
         'icon': isDark ? Icons.light_mode : Icons.dark_mode,
@@ -533,6 +545,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'icon': Icons.notifications,
         'title': 'Thông báo\nnhắc nhở',
         'color': const Color(0xFF4ECDC4),
+      },
+      {
+        'icon': Icons.fingerprint,
+        'title': 'Xác thực\nvân tay',
+        'color': const Color(0xFF5D5FEF),
       },
       {
         'icon': Icons.lock,
@@ -565,6 +582,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _toggleTheme(!isDark);
               } else if (feature['isCategoryManagement'] == true) {
                 _navigateToCategoryManagement();
+              } else if (feature['isBudgetManagement'] == true) {
+                _navigateToBudgetManagement();
               } else if (feature['title'] == 'Thông báo\nnhắc nhở') {
                 _showReminderDialog();
               } else {

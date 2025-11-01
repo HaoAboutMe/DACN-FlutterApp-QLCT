@@ -21,7 +21,7 @@ class DatabaseHelper {
 
   // Thông tin database
   static const String _databaseName = 'expense_tracker.db';
-  static const int _databaseVersion = 3; // Tăng version để trigger migration cho budget
+  static const int _databaseVersion = 4; // Tăng version để trigger migration cho budget với category_id nullable
 
   // Tên các bảng
   static const String _tableUsers = 'users';
@@ -221,7 +221,7 @@ class DatabaseHelper {
         CREATE TABLE $_tableBudgets (
           $_colBudgetId INTEGER PRIMARY KEY AUTOINCREMENT,
           $_colBudgetAmount REAL NOT NULL CHECK ($_colBudgetAmount >= 0),
-          $_colBudgetCategoryId INTEGER NOT NULL,
+          $_colBudgetCategoryId INTEGER,
           $_colBudgetStartDate TEXT NOT NULL,
           $_colBudgetEndDate TEXT NOT NULL,
           $_colBudgetCreatedAt TEXT NOT NULL,
@@ -299,7 +299,7 @@ class DatabaseHelper {
           CREATE TABLE $_tableBudgets (
             $_colBudgetId INTEGER PRIMARY KEY AUTOINCREMENT,
             $_colBudgetAmount REAL NOT NULL CHECK ($_colBudgetAmount >= 0),
-            $_colBudgetCategoryId INTEGER NOT NULL,
+            $_colBudgetCategoryId INTEGER,
             $_colBudgetStartDate TEXT NOT NULL,
             $_colBudgetEndDate TEXT NOT NULL,
             $_colBudgetCreatedAt TEXT NOT NULL,
@@ -315,6 +315,50 @@ class DatabaseHelper {
           ADD COLUMN $_colCategoryBudget REAL DEFAULT 0
         ''');
         log('Đã thêm cột budget vào bảng categories');
+      }
+
+      if (oldVersion < 4) {
+        // Migration: Sửa bảng budgets để cho phép category_id NULL (hỗ trợ ngân sách tổng)
+        // SQLite không hỗ trợ ALTER COLUMN, nên phải tạo bảng mới và copy data
+
+        log('Bắt đầu migration bảng budgets từ version 3 lên 4...');
+
+        // 1. Đổi tên bảng cũ
+        await db.execute('ALTER TABLE $_tableBudgets RENAME TO budgets_old');
+
+        // 2. Tạo bảng mới với schema đúng (category_id nullable)
+        await db.execute('''
+          CREATE TABLE $_tableBudgets (
+            $_colBudgetId INTEGER PRIMARY KEY AUTOINCREMENT,
+            $_colBudgetAmount REAL NOT NULL CHECK ($_colBudgetAmount >= 0),
+            $_colBudgetCategoryId INTEGER,
+            $_colBudgetStartDate TEXT NOT NULL,
+            $_colBudgetEndDate TEXT NOT NULL,
+            $_colBudgetCreatedAt TEXT NOT NULL,
+            
+            FOREIGN KEY ($_colBudgetCategoryId) REFERENCES $_tableCategories ($_colCategoryId) ON DELETE CASCADE
+          )
+        ''');
+
+        // 3. Copy data từ bảng cũ sang bảng mới
+        await db.execute('''
+          INSERT INTO $_tableBudgets 
+            ($_colBudgetId, $_colBudgetAmount, $_colBudgetCategoryId, $_colBudgetStartDate, $_colBudgetEndDate, $_colBudgetCreatedAt)
+          SELECT 
+            $_colBudgetId, $_colBudgetAmount, $_colBudgetCategoryId, $_colBudgetStartDate, $_colBudgetEndDate, $_colBudgetCreatedAt
+          FROM budgets_old
+        ''');
+
+        // 4. Xóa bảng cũ
+        await db.execute('DROP TABLE budgets_old');
+
+        // 5. Tạo lại index cho bảng budgets
+        await db.execute('''
+          CREATE INDEX idx_budgets_category_id 
+          ON $_tableBudgets ($_colBudgetCategoryId)
+        ''');
+
+        log('Đã hoàn thành migration bảng budgets - category_id giờ có thể NULL');
       }
 
       log('Nâng cấp database thành công');
@@ -1662,6 +1706,61 @@ class DatabaseHelper {
       return null;
     } catch (e) {
       log('Lỗi lấy budget đang hoạt động theo category: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy ngân sách tổng đang hoạt động (categoryId = null)
+  Future<Budget?> getActiveOverallBudget() async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+
+      final maps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetCategoryId IS NULL AND $_colBudgetStartDate <= ? AND $_colBudgetEndDate >= ?',
+        whereArgs: [now, now],
+        orderBy: '$_colBudgetStartDate DESC',
+        limit: 1,
+      );
+
+      if (maps.isNotEmpty) {
+        return Budget.fromMap(maps.first);
+      }
+      return null;
+    } catch (e) {
+      log('Lỗi lấy ngân sách tổng đang hoạt động: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tiến độ ngân sách tổng (overall budget progress)
+  Future<Map<String, dynamic>?> getOverallBudgetProgress() async {
+    try {
+      final overallBudget = await getActiveOverallBudget();
+      if (overallBudget == null) return null;
+
+      final totalSpent = await getTotalExpenseInPeriod(
+        overallBudget.startDate,
+        overallBudget.endDate,
+      );
+
+      final progressPercentage = overallBudget.amount > 0
+          ? (totalSpent / overallBudget.amount) * 100
+          : 0.0;
+
+      return {
+        'budgetId': overallBudget.id,
+        'budgetAmount': overallBudget.amount,
+        'totalSpent': totalSpent,
+        'progressPercentage': progressPercentage,
+        'remainingAmount': overallBudget.amount - totalSpent,
+        'isOverBudget': totalSpent > overallBudget.amount,
+        'startDate': overallBudget.startDate.toIso8601String(),
+        'endDate': overallBudget.endDate.toIso8601String(),
+      };
+    } catch (e) {
+      log('Lỗi lấy tiến độ ngân sách tổng: $e');
       rethrow;
     }
   }

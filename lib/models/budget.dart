@@ -41,6 +41,24 @@ class Budget {
     );
   }
 
+  /// Tạo Budget tổng (overall budget) - không gắn với danh mục cụ thể
+  /// Dùng categoryId = null để đánh dấu là ngân sách tổng
+  factory Budget.overall({
+    int? id,
+    required double amount,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    return Budget(
+      id: id,
+      amount: amount,
+      categoryId: null,
+      startDate: startDate,
+      endDate: endDate,
+      createdAt: DateTime.now(),
+    );
+  }
+
   /// Chuyển đổi đối tượng Budget thành Map (sử dụng khi lưu vào database)
   Map<String, dynamic> toMap() {
     return {
