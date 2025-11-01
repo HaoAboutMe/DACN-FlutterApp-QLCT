@@ -96,8 +96,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_currentUser == null || name.trim().isEmpty) return;
 
     try {
-      // Cập nhật user trong database
-      final updatedUser = _currentUser!.copyWith(
+      // ✅ FIX: Lấy thông tin user mới nhất từ database để có số dư chính xác
+      final latestUser = await _databaseHelper.getUserById(_currentUser!.id!);
+
+      if (latestUser == null) {
+        throw Exception('Không tìm thấy thông tin người dùng');
+      }
+
+      // Cập nhật CHỈ TÊN, giữ nguyên số dư và các thông tin khác từ database
+      final updatedUser = latestUser.copyWith(
         name: name.trim(),
         updatedAt: DateTime.now(),
       );
@@ -122,8 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Lỗi cập nhật tên user: $e');
       // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Có lỗi xảy ra khi cập nhật tên'),
+        SnackBar(
+          content: Text('Có lỗi xảy ra khi cập nhật tên: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
