@@ -257,7 +257,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     if (confirmed == true) {
       int successCount = 0;
       int failCount = 0;
-      final List<String> failedLoans = [];
+      final List<String> loansWithTransactions = [];
+      final List<String> alreadyPaidLoans = [];
+      final List<String> otherFailedLoans = [];
 
       try {
         debugPrint('🗑️ Deleting $count loans...');
@@ -284,8 +286,13 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               ),
             );
 
-            if (e.toString().contains('LOAN_IN_USE')) {
-              failedLoans.add(loan.personName);
+            // Phân loại lỗi theo exception type
+            if (e.toString().contains('LOAN_HAS_TRANSACTIONS')) {
+              loansWithTransactions.add(loan.personName);
+            } else if (e.toString().contains('LOAN_ALREADY_PAID')) {
+              alreadyPaidLoans.add(loan.personName);
+            } else {
+              otherFailedLoans.add(loan.personName);
             }
           }
         }
@@ -330,6 +337,18 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             );
           } else if (successCount > 0 && failCount > 0) {
             // Một số xóa thành công, một số thất bại
+            String errorMessage = '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa:\n';
+
+            if (loansWithTransactions.isNotEmpty) {
+              errorMessage += '📋 Có giao dịch liên quan: ${loansWithTransactions.join(", ")}\n';
+            }
+            if (alreadyPaidLoans.isNotEmpty) {
+              errorMessage += '✅ Đã thanh toán: ${alreadyPaidLoans.join(", ")}\n';
+            }
+            if (otherFailedLoans.isNotEmpty) {
+              errorMessage += '❌ Lỗi khác: ${otherFailedLoans.join(", ")}';
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
@@ -338,7 +357,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa vì đã có giao dịch thanh toán.',
+                        errorMessage.trim(),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -347,11 +366,23 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 backgroundColor: Colors.orange,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                duration: const Duration(seconds: 5),
+                duration: const Duration(seconds: 6),
               ),
             );
           } else {
             // Tất cả đều thất bại
+            String errorMessage = '❌ Không thể xóa khoản vay:\n';
+
+            if (loansWithTransactions.isNotEmpty) {
+              errorMessage += '📋 Có giao dịch liên quan (bảo vệ lịch sử): ${loansWithTransactions.join(", ")}\n';
+            }
+            if (alreadyPaidLoans.isNotEmpty) {
+              errorMessage += '✅ Đã thanh toán (không thể xóa): ${alreadyPaidLoans.join(", ")}\n';
+            }
+            if (otherFailedLoans.isNotEmpty) {
+              errorMessage += '❌ Lỗi khác: ${otherFailedLoans.join(", ")}';
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
@@ -360,7 +391,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '❌ Không thể xóa khoản vay vì đã có giao dịch thanh toán.\nKhoản vay: ${failedLoans.join(", ")}',
+                        errorMessage.trim(),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -369,7 +400,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 backgroundColor: HomeColors.expense,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                duration: const Duration(seconds: 5),
+                duration: const Duration(seconds: 6),
               ),
             );
           }

@@ -219,6 +219,14 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Future<void> _updateUserBalanceAfterDelete() async {
     try {
+      // ⚠️ QUAN TRỌNG: Không cập nhật số dư cho Transaction liên quan đến Loan
+      // Lý do: Số dư sẽ được xử lý khi xóa Loan, tránh cộng 2 lần
+      if (widget.transaction.loanId != null) {
+        debugPrint('⚠️ Transaction liên quan đến Loan - KHÔNG cập nhật số dư khi xóa Transaction');
+        debugPrint('   Số dư sẽ được xử lý khi xóa Loan để tránh cộng 2 lần');
+        return;
+      }
+
       final currentUserId = await _databaseHelper.getCurrentUserId();
       final currentUser = await _databaseHelper.getUserById(currentUserId);
 
@@ -227,31 +235,32 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       double balanceChange = 0;
 
       // Calculate balance change based on transaction type
+      // CHỈ xử lý cho Transaction KHÔNG liên quan đến Loan
       switch (widget.transaction.type) {
         case 'income':
-        case 'debt_collected':
           // Delete income -> subtract from balance
           balanceChange -= widget.transaction.amount;
           break;
         case 'expense':
-        case 'debt_paid':
           // Delete expense -> add back to balance
           balanceChange += widget.transaction.amount;
           break;
+        case 'debt_collected':
+        case 'debt_paid':
         case 'loan_given':
-          // Delete loan given -> add back to balance
-          balanceChange += widget.transaction.amount;
-          break;
         case 'loan_received':
-          // Delete loan received -> subtract from balance
-          balanceChange -= widget.transaction.amount;
-          break;
+          // ⚠️ Các loại này KHÔNG NÊN xảy ra vì đã check loanId ở trên
+          // Nhưng để an toàn, log warning
+          debugPrint('⚠️ WARNING: Transaction type ${widget.transaction.type} không nên xảy ra khi loanId = null');
+          return;
       }
 
       // Update user balance
       final newBalance = currentUser.balance + balanceChange;
       final updatedUser = currentUser.copyWith(balance: newBalance);
       await _databaseHelper.updateUser(updatedUser);
+
+      debugPrint('✅ Đã cập nhật số dư: ${currentUser.balance} → $newBalance (${balanceChange > 0 ? '+' : ''}$balanceChange)');
     } catch (e) {
       debugPrint('Error updating user balance after delete: $e');
     }
