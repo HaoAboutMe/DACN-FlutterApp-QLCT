@@ -535,9 +535,56 @@ class DatabaseHelper {
     }
   }
 
+  /// Kiểm tra xem danh mục có đang được sử dụng không
+  /// Trả về true nếu danh mục đang được tham chiếu trong transactions hoặc budgets
+  Future<bool> _isCategoryInUse(int categoryId) async {
+    try {
+      final db = await database;
+
+      // Kiểm tra trong bảng transactions
+      final transactionMaps = await db.query(
+        _tableTransactions,
+        where: '$_colTransactionCategoryId = ?',
+        whereArgs: [categoryId],
+        limit: 1,
+      );
+
+      if (transactionMaps.isNotEmpty) {
+        log('Category ID $categoryId đang được sử dụng trong ${transactionMaps.length} giao dịch');
+        return true;
+      }
+
+      // Kiểm tra trong bảng budgets
+      final budgetMaps = await db.query(
+        _tableBudgets,
+        where: '$_colBudgetCategoryId = ?',
+        whereArgs: [categoryId],
+        limit: 1,
+      );
+
+      if (budgetMaps.isNotEmpty) {
+        log('Category ID $categoryId đang được sử dụng trong ${budgetMaps.length} ngân sách');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      log('Lỗi kiểm tra category in use: $e');
+      rethrow;
+    }
+  }
+
   /// Xóa danh mục
+  /// Throws Exception nếu danh mục đang được sử dụng trong transactions hoặc budgets
   Future<int> deleteCategory(int id) async {
     try {
+      // Kiểm tra xem category có đang được sử dụng không
+      final isInUse = await _isCategoryInUse(id);
+
+      if (isInUse) {
+        throw Exception('CATEGORY_IN_USE');
+      }
+
       final db = await database;
       final count = await db.delete(
         _tableCategories,
@@ -784,7 +831,36 @@ class DatabaseHelper {
     }
   }
 
+  /// Kiểm tra xem khoản vay có đang được sử dụng không
+  /// Trả về true nếu khoản vay đang có giao dịch thanh toán (ngoài giao dịch khởi tạo)
+  Future<bool> _isLoanInUse(int loanId) async {
+    try {
+      final db = await database;
+
+      // Kiểm tra trong bảng transactions
+      // Đếm số giao dịch liên quan đến loan này
+      final transactionMaps = await db.query(
+        _tableTransactions,
+        where: '$_colTransactionLoanId = ?',
+        whereArgs: [loanId],
+      );
+
+      // Nếu có nhiều hơn 1 giao dịch, nghĩa là đã có giao dịch thanh toán
+      // (1 giao dịch đầu tiên là giao dịch khởi tạo khoản vay)
+      if (transactionMaps.length > 1) {
+        log('Loan ID $loanId đang có ${transactionMaps.length - 1} giao dịch thanh toán');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      log('Lỗi kiểm tra loan in use: $e');
+      rethrow;
+    }
+  }
+
   /// Xóa khoản vay và cập nhật số dư user nếu là khoản vay mới
+  /// Throws Exception nếu khoản vay đang có giao dịch thanh toán
   Future<int> deleteLoan(int id) async {
     try {
       final db = await database;
@@ -803,6 +879,13 @@ class DatabaseHelper {
 
       final loan = Loan.fromMap(loanMaps.first);
       log('Đang xóa loan: ${loan.personName}, type: ${loan.loanType}, isOldDebt: ${loan.isOldDebt}');
+
+      // Kiểm tra xem loan có đang được sử dụng không
+      final isInUse = await _isLoanInUse(id);
+
+      if (isInUse) {
+        throw Exception('LOAN_IN_USE');
+      }
 
       // Nếu là khoản vay mới (isOldDebt = 0), cần cập nhật số dư user
       if (loan.isOldDebt == 0) {

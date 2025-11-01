@@ -159,7 +159,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         title: const Text('Xác nhận xóa'),
         content: Text(
           'Bạn có chắc muốn xóa $count danh mục đã chọn?\n\n'
-          'Lưu ý: Các giao dịch liên quan sẽ không còn danh mục.',
+          'Lưu ý: Không thể xóa danh mục đang được sử dụng trong giao dịch hoặc ngân sách.',
         ),
         actions: [
           TextButton(
@@ -178,10 +178,34 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
     );
 
     if (confirmed == true) {
+      int successCount = 0;
+      int failCount = 0;
+      final List<String> failedCategories = [];
+
       try {
         // Delete all selected categories
         for (var categoryId in _selectedCategoryIds) {
-          await _databaseHelper.deleteCategory(categoryId);
+          try {
+            await _databaseHelper.deleteCategory(categoryId);
+            successCount++;
+          } catch (e) {
+            failCount++;
+            // Lấy tên category để hiển thị trong thông báo lỗi
+            final category = [..._incomeCategories, ..._expenseCategories]
+                .firstWhere(
+                  (cat) => cat.id == categoryId,
+                  orElse: () => Category(
+                    name: 'Unknown',
+                    icon: '',
+                    type: 'expense',
+                    createdAt: DateTime.now(),
+                  ),
+                );
+
+            if (e.toString().contains('CATEGORY_IN_USE')) {
+              failedCategories.add(category.name);
+            }
+          }
         }
 
         setState(() {
@@ -192,7 +216,18 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         _loadCategories();
 
         if (mounted) {
-          _showSuccessSnackbar('Đã xóa $count danh mục');
+          if (successCount > 0 && failCount == 0) {
+            _showSuccessSnackbar('Đã xóa $successCount danh mục');
+          } else if (successCount > 0 && failCount > 0) {
+            _showWarningSnackbar(
+              'Đã xóa $successCount danh mục. $failCount danh mục không thể xóa vì đang được sử dụng.',
+            );
+          } else {
+            _showErrorSnackbar(
+              'Không thể xóa danh mục vì đang được sử dụng trong giao dịch hoặc ngân sách.\n'
+              'Danh mục: ${failedCategories.join(", ")}',
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -249,7 +284,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa danh mục "${category.name}"?\n\nLưu ý: Các giao dịch liên quan sẽ không còn danh mục.'),
+        content: Text('Bạn có chắc muốn xóa danh mục "${category.name}"?\n\nLưu ý: Không thể xóa danh mục đang được sử dụng trong giao dịch hoặc ngân sách.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -275,7 +310,13 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         }
       } catch (e) {
         if (mounted) {
-          _showErrorSnackbar('Lỗi khi xóa danh mục: $e');
+          if (e.toString().contains('CATEGORY_IN_USE')) {
+            _showErrorSnackbar(
+              'Không thể xóa danh mục "${category.name}" vì đang được sử dụng trong giao dịch hoặc ngân sách.',
+            );
+          } else {
+            _showErrorSnackbar('Lỗi khi xóa danh mục: $e');
+          }
         }
       }
     }
@@ -287,6 +328,20 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
       SnackBar(
         content: Text(message),
         backgroundColor: const Color(0xFF5D5FEF),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+  /// Show warning message
+  void _showWarningSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.orange,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
