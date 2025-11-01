@@ -3,15 +3,14 @@ import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
-import 'home_colors.dart';
 import 'widgets/greeting_appbar.dart';
 import 'widgets/balance_overview.dart';
 import 'widgets/quick_actions.dart';
 import 'widgets/recent_transactions.dart';
+import 'widgets/all_budgets_widget.dart';
 import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
-import '../loan/loan_list_screen.dart';
-import '../transaction/transactions_screen.dart';
+import '../budget/budget_list_screen.dart';
 import '../main_navigation_wrapper.dart';
 
 class HomePage extends StatefulWidget {
@@ -35,6 +34,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   double _totalExpense = 0;
   double _totalLent = 0;
   double _totalBorrowed = 0;
+
+  // Budget progress data
+  Map<String, dynamic>? _overallBudgetProgress;
+  List<Map<String, dynamic>> _categoryBudgets = [];
+  bool _hasCheckedBudget = false;
 
   @override
   void initState() {
@@ -101,6 +105,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       // Calculate overview statistics and current balance
       await _calculateOverviewStats();
       await _updateCurrentBalance();
+      await _loadBudgetProgress();
 
       setState(() {
         _isLoading = false;
@@ -109,6 +114,74 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       debugPrint('Error loading HomePage data: $e');
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  /// Tải dữ liệu tiến độ ngân sách
+  Future<void> _loadBudgetProgress() async {
+    try {
+      // Lấy tiến độ ngân sách tổng
+      final budgetProgress = await _databaseHelper.getOverallBudgetProgress();
+
+      // Lấy danh sách ngân sách theo danh mục
+      final categoryBudgets = await _databaseHelper.getBudgetProgress();
+
+      setState(() {
+        _overallBudgetProgress = budgetProgress;
+        _categoryBudgets = categoryBudgets;
+        _hasCheckedBudget = true;
+      });
+
+      // Kiểm tra và hiển thị cảnh báo nếu vượt hạn mức
+      if (budgetProgress != null && budgetProgress['isOverBudget'] == true) {
+        _showOverBudgetWarning();
+      }
+    } catch (e) {
+      debugPrint('Error loading budget progress: $e');
+    }
+  }
+
+  /// Hiển thị cảnh báo khi vượt hạn mức chi tiêu
+  void _showOverBudgetWarning() {
+    if (!mounted) return;
+
+    // Chỉ hiển thị một lần khi load data
+    if (_hasCheckedBudget) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Cảnh báo: Đã vượt hạn mức chi tiêu!',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Xem',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BudgetListScreen(),
+                  ),
+                ).then((_) => _loadBudgetProgress());
+              },
+            ),
+          ),
+        );
       });
     }
   }
@@ -220,31 +293,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  /// ✅ REALTIME: Handle navigation from quick actions with return value checking
-  Future<void> _handleQuickActionNavigation(String actionType) async {
-    debugPrint('🚀 HomePage: Quick action triggered - $actionType');
-
-    // Navigate based on action type and wait for result
-    bool? result;
-
-    switch (actionType) {
-      case 'view_transactions':
-        // Switch to Transaction tab instead of pushing new route
-        mainNavigationKey.currentState?.switchToTab(1);
-        return; // No need to refresh since tab switching already handles reload
-
-      case 'view_loans':
-        // Switch to Loan tab instead of pushing new route
-        mainNavigationKey.currentState?.switchToTab(2);
-        return; // No need to refresh since tab switching already handles reload
-
-      default:
-        // For add operations, use existing _navigateToAddTransaction
-        await _navigateToAddTransaction(actionType);
-        return;
-    }
-  }
-
   void _handleNotificationPressed() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Tính năng thông báo sẽ được phát triển sau')),
@@ -287,6 +335,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         totalBorrowed: _totalBorrowed,
                       ),
                       const SizedBox(height: 24),
+
+                      // Hiển thị tất cả ngân sách đang hoạt động
+                      if (_overallBudgetProgress != null || _categoryBudgets.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: AllBudgetsWidget(
+                            overallBudget: _overallBudgetProgress,
+                            categoryBudgets: _categoryBudgets,
+                            onRefresh: _loadBudgetProgress,
+                          ),
+                        ),
+
+                      if (_overallBudgetProgress != null || _categoryBudgets.isNotEmpty)
+                        const SizedBox(height: 24),
+
                       QuickActions(
                         onIncomePressed: () => _navigateToAddTransaction('income'),
                         onExpensePressed: () => _navigateToAddTransaction('expense'),
@@ -294,6 +366,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
                       ),
                       const SizedBox(height: 24),
+
                       RecentTransactions(
                         transactions: _recentTransactions,
                         categoriesMap: _categoriesMap,
