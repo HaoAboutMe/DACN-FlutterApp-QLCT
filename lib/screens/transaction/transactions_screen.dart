@@ -537,7 +537,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
           ),
         ),
         backgroundColor: isDark
-            ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+            ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
             : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
@@ -564,7 +564,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
           Container(
             decoration: BoxDecoration(
               color: isDark
-                  ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                  ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
                   : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(
@@ -675,7 +675,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Số dư: ',
+                              'Chênh lệch: ',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 14,

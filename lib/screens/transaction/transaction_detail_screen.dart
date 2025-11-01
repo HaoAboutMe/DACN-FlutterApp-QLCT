@@ -263,7 +263,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Chi tiết giao dịch',
@@ -272,7 +272,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: colorScheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
@@ -305,7 +305,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -369,7 +369,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(

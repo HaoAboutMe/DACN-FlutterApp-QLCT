@@ -255,15 +255,42 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     );
 
     if (confirmed == true) {
+      int successCount = 0;
+      int failCount = 0;
+      final List<String> failedLoans = [];
+
       try {
         debugPrint('🗑️ Deleting $count loans...');
 
         // Delete each selected loan
         for (int id in _selectedIds) {
-          await _databaseHelper.deleteLoan(id);
+          try {
+            await _databaseHelper.deleteLoan(id);
+            successCount++;
+          } catch (e) {
+            failCount++;
+            // Lấy tên người vay/cho vay để hiển thị trong thông báo lỗi
+            final loan = _loans.firstWhere(
+              (l) => l.id == id,
+              orElse: () => Loan(
+                personName: 'Unknown',
+                amount: 0,
+                loanType: 'lend',
+                loanDate: DateTime.now(),
+                status: 'active',
+                reminderEnabled: false,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+
+            if (e.toString().contains('LOAN_IN_USE')) {
+              failedLoans.add(loan.personName);
+            }
+          }
         }
 
-        debugPrint('✅ Successfully deleted $count loans');
+        debugPrint('✅ Successfully deleted $successCount loans, $failCount failed');
 
         // ✅ REALTIME: Reload loan list immediately after deletion
         await _loadLoans();
@@ -279,26 +306,73 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         mainNavigationKey.currentState?.refreshHomePage();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '✅ Đã xóa $count khoản vay thành công!\n💰 Số dư HomePage đã cập nhật realtime.',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          if (successCount > 0 && failCount == 0) {
+            // Tất cả đều xóa thành công
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '✅ Đã xóa $successCount khoản vay thành công!\n💰 Số dư HomePage đã cập nhật realtime.',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                backgroundColor: HomeColors.income,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                duration: const Duration(seconds: 4),
               ),
-              backgroundColor: HomeColors.income,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              duration: const Duration(seconds: 4),
-            ),
-          );
+            );
+          } else if (successCount > 0 && failCount > 0) {
+            // Một số xóa thành công, một số thất bại
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.warning, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa vì đã có giao dịch thanh toán.',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            // Tất cả đều thất bại
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '❌ Không thể xóa khoản vay vì đã có giao dịch thanh toán.\nKhoản vay: ${failedLoans.join(", ")}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: HomeColors.expense,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
         }
 
         // ✅ REALTIME: Set flag to indicate data has changed
@@ -814,7 +888,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 ),
               ),
         backgroundColor: isDark
-          ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+          ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
           : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Colors.white,
         elevation: 0,
@@ -848,7 +922,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark
-                ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
+                ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
                 : Theme.of(context).colorScheme.primary, // Light: Xanh biển
               boxShadow: [
                 BoxShadow(

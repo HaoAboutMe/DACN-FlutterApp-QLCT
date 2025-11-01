@@ -16,7 +16,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   User? _currentUser;
   String _userName = 'Người dùng Whales Spent';
-  String _userId = 'WS001234';
   bool _isEditingName = false;
   final TextEditingController _nameController = TextEditingController();
   final DatabaseHelper _databaseHelper = DatabaseHelper();
@@ -47,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _currentUser = user;
           _userName = user.name;
-          _userId = 'WS${user.id?.toString().padLeft(6, '0') ?? '000000'}';
           _nameController.text = user.name;
         });
       } else {
@@ -59,7 +57,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Fallback to default values
       setState(() {
         _userName = 'Người dùng Whales Spent';
-        _userId = 'WS000000';
         _nameController.text = _userName;
       });
     }
@@ -81,7 +78,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _currentUser = createdUser;
         _userName = createdUser.name;
-        _userId = 'WS${userId.toString().padLeft(6, '0')}';
         _nameController.text = createdUser.name;
       });
     } catch (e) {
@@ -100,8 +96,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_currentUser == null || name.trim().isEmpty) return;
 
     try {
-      // Cập nhật user trong database
-      final updatedUser = _currentUser!.copyWith(
+      // ✅ FIX: Lấy thông tin user mới nhất từ database để có số dư chính xác
+      final latestUser = await _databaseHelper.getUserById(_currentUser!.id!);
+
+      if (latestUser == null) {
+        throw Exception('Không tìm thấy thông tin người dùng');
+      }
+
+      // Cập nhật CHỈ TÊN, giữ nguyên số dư và các thông tin khác từ database
+      final updatedUser = latestUser.copyWith(
         name: name.trim(),
         updatedAt: DateTime.now(),
       );
@@ -126,8 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Lỗi cập nhật tên user: $e');
       // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Có lỗi xảy ra khi cập nhật tên'),
+        SnackBar(
+          content: Text('Có lỗi xảy ra khi cập nhật tên: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -189,21 +192,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final double currentHeight = constraints.maxHeight;
           final double expandRatio = ((currentHeight - minHeight) / (maxHeight - minHeight)).clamp(0.0, 1.0);
 
-          return FlexibleSpaceBar(
-            centerTitle: false,
-            titlePadding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: 18, // Padding dưới rõ ràng, không dính mép
-              top: 0,
-            ),
-            background: _buildExpandedHeader(isDark, expandRatio),
-            title: AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              opacity: expandRatio < 0.2 ? 1.0 : 0.0,
-              child: _buildCollapsedHeader(isDark),
-            ),
+          return Stack(
+            children: [
+              FlexibleSpaceBar(
+                centerTitle: false,
+                titlePadding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: 18, // Padding dưới rõ ràng, không dính mép
+                  top: 0,
+                ),
+                background: _buildExpandedHeader(isDark, expandRatio),
+                title: IgnorePointer(
+                  ignoring: expandRatio > 0.2, // Không nhận tap events khi expanded
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    opacity: expandRatio < 0.2 ? 1.0 : 0.0,
+                    child: _buildCollapsedHeader(isDark),
+                  ),
+                ),
+              ),
+              // Nút "Chỉnh sửa thông tin" nằm ngoài FlexibleSpaceBar
+              if (expandRatio > 0.99 && !_isEditingName) // Thay đổi từ 0.5 thành 0.3 (biến mất khi kéo 2/3)
+                Positioned(
+                  bottom: 50,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: expandRatio > 0.99 ? 1.0 : ((expandRatio - 0.3) / 0.35).clamp(0.0, 1.0), // Fade từ 0.3 đến 0.65
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isEditingName = true;
+                          });
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF5D5FEF).withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.edit_outlined,
+                                size: 15,
+                                color: isDark ? Colors.white : const Color(0xFF5D5FEF),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Chỉnh sửa thông tin',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF5D5FEF),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -213,14 +275,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// Header khi AppBar mở rộng (expanded)
   Widget _buildExpandedHeader(bool isDark, double expandRatio) {
     // Tính toán kích thước động dựa trên expandRatio
-    final double avatarSize = 80 + (expandRatio * 35); // 80-115
-    final double nameFontSize = 16 + (expandRatio * 6); // 16-22
-    final double idFontSize = 12 + (expandRatio * 2); // 12-14
+    final double avatarSize = 70 + (expandRatio * 30); // 70-100 (giảm từ 80-115)
+    final double nameFontSize = 15 + (expandRatio * 4); // 15-19 (giảm từ 16-22)
 
     return Container(
       padding: EdgeInsets.only(
-        top: 70 + MediaQuery.of(context).padding.top,
-        bottom: 40,
+        top: 50 + MediaQuery.of(context).padding.top, // giảm từ 60
+        bottom: 20, // giảm từ 30
         left: 20,
         right: 20,
       ),
@@ -229,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Avatar với logo - kích thước động
+            // Avatar với logo - kích thước động (nhỏ hơn)
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -266,103 +327,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            SizedBox(height: 14 + (expandRatio * 6)),
+            SizedBox(height: 12 + (expandRatio * 4)), // giảm từ 16 + 8
 
-            // Tên người dùng (có thể chỉnh sửa)
-            if (_isEditingName)
-              Container(
-                width: 250,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  controller: _nameController,
-                  textAlign: TextAlign.center,
-                  autofocus: true,
-                  style: TextStyle(
-                    fontSize: nameFontSize,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                  decoration: InputDecoration(
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.check, color: Colors.green, size: 22),
-                          onPressed: () => _saveUserName(_nameController.text),
+            // Tên người dùng hoặc TextField chỉnh sửa (cùng vị trí)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _isEditingName
+                  ? SizedBox(
+                      width: 260, // giảm từ 280
+                      child: TextField(
+                        controller: _nameController,
+                        textAlign: TextAlign.center,
+                        autofocus: true,
+                        style: TextStyle(
+                          fontSize: 14, // cố định nhỏ hơn
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red, size: 22),
-                          onPressed: () {
-                            setState(() {
-                              _isEditingName = false;
-                              _nameController.text = _userName;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-              )
-            else
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isEditingName = true;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          style: TextStyle(
-                            fontSize: nameFontSize,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                            letterSpacing: 0.3,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: isDark ? Colors.grey[800] : Colors.white,
+                          isDense: true, // thêm để giảm kích thước
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.check, color: Colors.green, size: 18), // giảm từ 20
+                                onPressed: () => _saveUserName(_nameController.text),
+                                padding: const EdgeInsets.all(4), // giảm từ 6
+                                constraints: const BoxConstraints(),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red, size: 18), // giảm từ 20
+                                onPressed: () {
+                                  setState(() {
+                                    _isEditingName = false;
+                                    _nameController.text = _userName;
+                                  });
+                                },
+                                padding: const EdgeInsets.all(4), // giảm từ 6
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
-                          child: Text(
-                            _userName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10), // giảm từ 12
+                            borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFF5D5FEF), width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // giảm từ 16, 12
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.edit,
-                        size: 16,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    )
+                  : AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      style: TextStyle(
+                        fontSize: nameFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                        letterSpacing: 0.3,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-            SizedBox(height: 6 + (expandRatio * 4)),
-
-            // ID người dùng
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              style: TextStyle(
-                fontSize: idFontSize,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                letterSpacing: 0.5,
-              ),
-              child: Text('ID: $_userId'),
+                      textAlign: TextAlign.center,
+                      child: Text(
+                        _userName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
             ),
+
+            SizedBox(height: 30 + (expandRatio * 15)), // Tăng padding giữa tên và nút
           ],
         ),
       ),

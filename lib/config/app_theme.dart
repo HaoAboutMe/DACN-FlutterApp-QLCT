@@ -16,7 +16,7 @@ class AppTheme {
   static const Color lightBorder = Color(0xFFE0E0E0);
 
   // Dark Theme Colors - Màu cá voi sát thủ
-  static const Color darkBackground = Color(0xFF000000); // Đen tuyền
+  static const Color darkBackground = Color(0xFF212b3c); // Đen tuyền
   static const Color darkSurface = Color(0xFF2d3a4a); // Màu cá voi sát thủ
   static const Color darkSurfaceVariant = Color(0xFF3a4b5e); // Sáng hơn một chút
   static const Color darkTextPrimary = Color(0xFFE0E0E0);
