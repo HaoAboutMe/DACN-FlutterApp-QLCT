@@ -859,13 +859,41 @@ class DatabaseHelper {
     }
   }
 
-  /// Xóa khoản vay và cập nhật số dư user nếu là khoản vay mới
-  /// Throws Exception nếu khoản vay đang có giao dịch thanh toán
+  /// Kiểm tra xem khoản vay có giao dịch liên quan không
+  /// Trả về true nếu có ít nhất 1 transaction liên quan đến loan này (kể cả Transaction khởi tạo)
+  /// Hàm này dùng để bảo vệ dữ liệu Transaction khỏi bị xóa khi xóa Loan
+  Future<bool> _hasTransactionsForLoan(int loanId) async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM $_tableTransactions WHERE $_colTransactionLoanId = ?',
+        [loanId],
+      );
+      final count = Sqflite.firstIntValue(result) ?? 0;
+      log('Loan ID $loanId có $count giao dịch liên quan');
+      return count > 0;
+    } catch (e) {
+      log('Lỗi kiểm tra transactions cho loan: $e');
+      rethrow;
+    }
+  }
+
+  /// Xóa khoản vay
+  /// ⚠️ QUAN TRỌNG: Chỉ cho phép xóa nếu KHÔNG có Transaction liên quan
+  /// ⚠️ KHÔNG xóa Transaction tự động - bảo vệ dữ liệu lịch sử
+  ///
+  /// Throws Exception nếu:
+  /// - Loan đã có Transaction liên quan (kể cả Transaction khởi tạo) → Exception('LOAN_HAS_TRANSACTIONS')
+  /// - Loan đã thanh toán (status = 'paid') → Exception('LOAN_ALREADY_PAID')
+  ///
+  /// Chỉ cho phép xóa Loan khi:
+  /// - Không có Transaction nào liên quan
+  /// - Status = 'active' hoặc 'overdue' (chưa thanh toán)
   Future<int> deleteLoan(int id) async {
     try {
       final db = await database;
 
-      // Lấy thông tin khoản vay trước khi xóa
+      // 1. Lấy thông tin khoản vay trước khi xóa
       final loanMaps = await db.query(
         _tableLoans,
         where: '$_colLoanId = ?',
@@ -878,38 +906,38 @@ class DatabaseHelper {
       }
 
       final loan = Loan.fromMap(loanMaps.first);
-      log('Đang xóa loan: ${loan.personName}, type: ${loan.loanType}, isOldDebt: ${loan.isOldDebt}');
+      log('Đang kiểm tra điều kiện xóa loan: ${loan.personName}, type: ${loan.loanType}, status: ${loan.status}');
 
-      // Kiểm tra xem loan có đang được sử dụng không
-      final isInUse = await _isLoanInUse(id);
-
-      if (isInUse) {
-        throw Exception('LOAN_IN_USE');
+      // 2. KIỂM TRA: Không cho phép xóa nếu loan đã thanh toán
+      if (loan.status == 'paid' || loan.status == 'completed') {
+        log('❌ Không thể xóa loan đã thanh toán: ${loan.personName}');
+        throw Exception('LOAN_ALREADY_PAID');
       }
 
-      // Nếu là khoản vay mới (isOldDebt = 0), cần cập nhật số dư user
+      // 3. KIỂM TRA: Không cho phép xóa nếu có Transaction liên quan (kể cả Transaction khởi tạo)
+      final hasTransactions = await _hasTransactionsForLoan(id);
+      if (hasTransactions) {
+        log('❌ Không thể xóa loan vì đã có giao dịch liên quan: ${loan.personName}');
+        throw Exception('LOAN_HAS_TRANSACTIONS');
+      }
+
+      // 4. ✅ Cho phép xóa - Cập nhật số dư nếu là khoản vay mới
       if (loan.isOldDebt == 0) {
+        log('Cập nhật số dư trước khi xóa loan mới...');
         await _updateUserBalanceAfterLoanDeletion(loan);
       }
 
-      // Xóa các transaction liên quan đến loan này
-      await db.delete(
-        _tableTransactions,
-        where: '$_colTransactionLoanId = ?',
-        whereArgs: [id],
-      );
-
-      // Xóa loan
+      // 5. ✅ Xóa loan (KHÔNG xóa Transaction - đã kiểm tra không có Transaction)
       final count = await db.delete(
         _tableLoans,
         where: '$_colLoanId = ?',
         whereArgs: [id],
       );
 
-      log('Xóa loan thành công, đã xóa $count bản ghi');
+      log('✅ Xóa loan thành công: ${loan.personName}, đã xóa $count bản ghi');
       return count;
     } catch (e) {
-      log('Lỗi xóa loan: $e');
+      log('❌ Lỗi xóa loan: $e');
       rethrow;
     }
   }
