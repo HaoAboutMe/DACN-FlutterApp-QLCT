@@ -1,3 +1,4 @@
+import 'package:app_qlct/utils/notification_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
@@ -7,6 +8,7 @@ import 'screens/main_navigation_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationHelper.initialize();
 
   // Check if InitialScreen should be shown
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();
