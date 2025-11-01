@@ -83,7 +83,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: Row(
           children: [
             Builder(

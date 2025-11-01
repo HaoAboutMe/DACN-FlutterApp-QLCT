@@ -235,7 +235,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                             children: [
                               Icon(
                                 Icons.category,
-                                color: Theme.of(context).primaryColor,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 16),
                               Expanded(
