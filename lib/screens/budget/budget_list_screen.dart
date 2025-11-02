@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/budget.dart';
+import '../../utils/icon_helper.dart';
 import 'add_budget_screen.dart';
 import 'budget_category_transaction_screen.dart';
 
@@ -394,27 +395,17 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               Row(
                 children: [
                   // Icon danh mục
-                  Builder(
-                    builder: (context) {
-                      final iconCode = int.tryParse(categoryIcon);
-                      return Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: progressColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: iconCode != null
-                            ? Icon(
-                                IconData(iconCode, fontFamily: 'MaterialIcons'),
-                                color: progressColor,
-                                size: 24,
-                              )
-                            : Text(
-                                categoryIcon,
-                                style: const TextStyle(fontSize: 24),
-                              ),
-                      );
-                    },
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: progressColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      IconHelper.getCategoryIcon(categoryIcon),
+                      color: progressColor,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
 

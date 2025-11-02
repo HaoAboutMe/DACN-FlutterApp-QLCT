@@ -1,6 +1,7 @@
 import 'package:app_qlct/config/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/icon_helper.dart';
 import '../../budget/budget_list_screen.dart';
 import '../../budget/budget_category_transaction_screen.dart';
 
@@ -265,27 +266,17 @@ class AllBudgetsWidget extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Builder(
-                    builder: (context) {
-                      final iconCode = int.tryParse(categoryIcon);
-                      return iconCode != null
-                          ? Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: progressColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                IconData(iconCode, fontFamily: 'MaterialIcons'),
-                                color: progressColor,
-                                size: 24,
-                              ),
-                            )
-                          : Text(
-                              categoryIcon,
-                              style: const TextStyle(fontSize: 28),
-                            );
-                    },
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: progressColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      IconHelper.getCategoryIcon(categoryIcon),
+                      color: progressColor,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
