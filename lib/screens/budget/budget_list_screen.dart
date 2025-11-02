@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
+import '../../models/budget.dart';
 import 'add_budget_screen.dart';
 import 'budget_category_transaction_screen.dart';
 
@@ -65,6 +66,31 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     }
   }
 
+  Future<void> _editBudget(Map<String, dynamic> item) async {
+    // Tạo đối tượng Budget từ dữ liệu item
+    final budget = Budget(
+      id: item['budgetId'] as int,
+      amount: (item['budgetAmount'] as num).toDouble(),
+      categoryId: item['categoryId'] as int?,
+      startDate: DateTime.parse(item['startDate'] as String),
+      endDate: DateTime.parse(item['endDate'] as String),
+      createdAt: DateTime.now(), // Sẽ được giữ nguyên khi update
+    );
+
+    // Điều hướng đến màn hình sửa
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddBudgetScreen(budget: budget),
+      ),
+    );
+
+    // Reload dữ liệu nếu có thay đổi
+    if (result == true) {
+      _loadBudgetData();
+    }
+  }
+
   Color _getProgressColor(double percentage) {
     if (percentage >= 100) return Colors.red;
     if (percentage >= 80) return Colors.orange;
@@ -79,8 +105,12 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: const Text('Quản lý ngân sách'),
+        backgroundColor: isDark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Quản lý ngân sách', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -243,6 +273,38 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                     ),
                   ),
+                // Menu sửa/xóa cho ngân sách tổng
+                PopupMenuButton(
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('Sửa'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Xóa'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editBudget(data);
+                    } else if (value == 'delete') {
+                      _confirmDelete(data['budgetId'] as int, 'Tổng ngân sách');
+                    }
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -415,9 +477,19 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     ),
                   ),
 
-                  // Menu xóa
+                  // Menu sửa/xóa
                   PopupMenuButton(
                     itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('Sửa'),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -430,7 +502,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                       ),
                     ],
                     onSelected: (value) {
-                      if (value == 'delete') {
+                      if (value == 'edit') {
+                        _editBudget(item);
+                      } else if (value == 'delete') {
                         _confirmDelete(budgetId, categoryName);
                       }
                     },
