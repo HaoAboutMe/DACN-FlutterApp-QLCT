@@ -583,8 +583,8 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
               if (value == null || value.isEmpty) {
                 return 'Vui lòng nhập số tiền';
               }
-              final amount = double.tryParse(value.replaceAll(',', ''));
-              if (amount == null || amount <= 0) {
+              final amount = CurrencyFormatter.parseAmount(value);
+              if (amount <= 0) {
                 return 'Số tiền phải lớn hơn 0';
               }
               return null;
