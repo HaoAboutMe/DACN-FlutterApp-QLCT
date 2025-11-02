@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
+import '../../utils/icon_helper.dart';
 import '../transaction/transaction_detail_screen.dart';
 
 /// Màn hình hiển thị chi tiết giao dịch theo danh mục trong khoảng thời gian ngân sách
@@ -91,19 +92,9 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
         iconTheme: const IconThemeData(color: Colors.white),
         title: Row(
           children: [
-            Builder(
-              builder: (context) {
-                final iconCode = int.tryParse(widget.categoryIcon);
-                return iconCode != null
-                    ? Icon(
-                        IconData(iconCode, fontFamily: 'MaterialIcons'),
-                        size: 24,
-                      )
-                    : Text(
-                        widget.categoryIcon,
-                        style: const TextStyle(fontSize: 24),
-                      );
-              },
+            Icon(
+              IconHelper.getCategoryIcon(widget.categoryIcon),
+              size: 24,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -245,19 +236,6 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
-    // Parse category icon from widget.categoryIcon (string codePoint)
-    IconData categoryIconData;
-    try {
-      final iconCode = int.tryParse(widget.categoryIcon);
-      if (iconCode != null) {
-        categoryIconData = IconData(iconCode, fontFamily: 'MaterialIcons');
-      } else {
-        categoryIconData = Icons.category;
-      }
-    } catch (e) {
-      categoryIconData = Icons.category;
-    }
-
     // Use primary color for icon (red for expense category)
     final iconColor = Colors.red;
     final iconBackgroundColor = iconColor.withValues(alpha: 0.1);
@@ -274,7 +252,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
-            categoryIconData,
+            IconHelper.getCategoryIcon(widget.categoryIcon),
             color: iconColor,
             size: 24,
           ),
