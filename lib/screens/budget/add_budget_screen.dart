@@ -41,12 +41,35 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     }
   }
 
-  void _initializeEditMode() {
+  Future<void> _initializeEditMode() async {
     final budget = widget.budget!;
-    _amountController.text = budget.amount.toString();
+    // Format số tiền đẹp khi hiển thị (300.000 thay vì 300000.0)
+    final amount = budget.amount.toInt();
+    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '');
+    _amountController.text = currencyFormat.format(amount).replaceAll(RegExp(r'[\u00A0\s]+$'), '');
+
     _startDate = budget.startDate;
     _endDate = budget.endDate;
     _isOverallBudget = budget.categoryId == null;
+
+    // Nếu là ngân sách theo danh mục, tìm và gán category đã chọn
+    if (!_isOverallBudget && budget.categoryId != null) {
+      // Đợi categories load xong
+      await _loadCategories();
+
+      // Tìm category tương ứng
+      try {
+        final category = _expenseCategories.firstWhere(
+          (cat) => cat.id == budget.categoryId,
+        );
+
+        setState(() {
+          _selectedCategory = category;
+        });
+      } catch (e) {
+        debugPrint('Category not found: ${budget.categoryId}');
+      }
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -163,15 +186,20 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '');
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: isDark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          widget.budget == null ? 'Thêm ngân sách' : 'Sửa ngân sách',
+          widget.budget == null ? 'Thêm ngân sách' : 'Sửa ngân sách', style: const TextStyle(color: Colors.white),
         ),
       ),
       body: _isLoading
@@ -312,21 +340,51 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                             },
                             onChanged: (value) {
                               // Format number as user types
-                              if (value.isNotEmpty) {
-                                // Remove all non-digit characters
-                                final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                                final number = int.tryParse(cleanValue);
-                                if (number != null && number > 0) {
-                                  final formatted = currencyFormat.format(number);
-                                  // Only update if the formatted value is different
-                                  if (formatted != value) {
-                                    _amountController.value = TextEditingValue(
-                                      text: formatted,
-                                      selection: TextSelection.collapsed(
-                                        offset: formatted.length,
-                                      ),
-                                    );
+                              if (value.isEmpty) return;
+
+                              // Remove all non-digit characters
+                              final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+
+                              // If user deleted everything, allow it
+                              if (cleanValue.isEmpty) {
+                                return;
+                              }
+
+                              final number = int.tryParse(cleanValue);
+                              if (number != null) {
+                                // Format and trim any trailing spaces
+                                final formatted = currencyFormat.format(number).replaceAll(RegExp(r'\s'), '');
+
+                                // Calculate cursor position
+                                final cursorPosition = _amountController.selection.baseOffset;
+                                final digitsBeforeCursor = value.substring(0, cursorPosition).replaceAll(RegExp(r'[^\d]'), '').length;
+
+                                // Count how many digits are before cursor in formatted string
+                                int newCursorPos = 0;
+                                int digitCount = 0;
+                                for (int i = 0; i < formatted.length; i++) {
+                                  if (formatted[i].contains(RegExp(r'\d'))) {
+                                    digitCount++;
+                                    if (digitCount == digitsBeforeCursor) {
+                                      newCursorPos = i + 1;
+                                      break;
+                                    }
                                   }
+                                }
+
+                                // If we haven't found the position, put cursor at end
+                                if (newCursorPos == 0) {
+                                  newCursorPos = formatted.length;
+                                }
+
+                                // Only update if the formatted value is different
+                                if (formatted != value) {
+                                  _amountController.value = TextEditingValue(
+                                    text: formatted,
+                                    selection: TextSelection.collapsed(
+                                      offset: newCursorPos,
+                                    ),
+                                  );
                                 }
                               }
                             },
@@ -503,8 +561,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       final int? code = int.tryParse(category.icon);
       if (code != null) {
         return Icon(
-          color: Colors.red,
           IconData(code, fontFamily: 'MaterialIcons'),
+          color: Colors.red,
           size: 24,
         );
       }
@@ -522,14 +580,13 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
       if (fallbackIcons.containsKey(category.icon)) {
         return Icon(
-          color: Colors.red,
           fallbackIcons[category.icon]!,
+          color: Colors.red,
           size: 24,
         );
       }
 
       return const Icon(Icons.category, color: Colors.red, size: 24);
-      return Icon(Icons.category, size: 24);
     } catch (e) {
       // Nếu parse thất bại hoàn toàn
       return const Icon(Icons.category, color: Colors.grey, size: 24);

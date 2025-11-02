@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
+import '../transaction/transaction_detail_screen.dart';
 
 /// Màn hình hiển thị chi tiết giao dịch theo danh mục trong khoảng thời gian ngân sách
 class BudgetCategoryTransactionScreen extends StatefulWidget {
@@ -83,7 +84,11 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: isDark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Row(
           children: [
             Builder(
@@ -105,6 +110,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
               child: Text(
                 widget.categoryName,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -239,6 +245,23 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
+    // Parse category icon from widget.categoryIcon (string codePoint)
+    IconData categoryIconData;
+    try {
+      final iconCode = int.tryParse(widget.categoryIcon);
+      if (iconCode != null) {
+        categoryIconData = IconData(iconCode, fontFamily: 'MaterialIcons');
+      } else {
+        categoryIconData = Icons.category;
+      }
+    } catch (e) {
+      categoryIconData = Icons.category;
+    }
+
+    // Use primary color for icon (red for expense category)
+    final iconColor = Colors.red;
+    final iconBackgroundColor = iconColor.withValues(alpha: 0.1);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: Theme.of(context).colorScheme.surface,
@@ -247,12 +270,12 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.1),
+            color: iconBackgroundColor,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(
-            Icons.arrow_upward,
-            color: Colors.red,
+          child: Icon(
+            categoryIconData,
+            color: iconColor,
             size: 24,
           ),
         ),
@@ -275,6 +298,21 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
             fontSize: 16,
           ),
         ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TransactionDetailScreen(
+                transaction: transaction,
+              ),
+            ),
+          ).then((result) {
+            // Reload transactions if any changes were made
+            if (result == true) {
+              _loadTransactions();
+            }
+          });
+        },
       ),
     );
   }
