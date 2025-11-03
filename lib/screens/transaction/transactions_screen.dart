@@ -899,7 +899,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  if (!_isMultiSelectMode) ...[
+                                  if (!_isMultiSelectMode && transaction.loanId == null) ...[
                                     const SizedBox(height: 8),
                                     GestureDetector(
                                       onTap: () => _editTransaction(transaction),
@@ -912,6 +912,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                         child: Icon(
                                           Icons.edit,
                                           color: Theme.of(context).colorScheme.primary,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (!_isMultiSelectMode && transaction.loanId != null) ...[
+                                    const SizedBox(height: 8),
+                                    Tooltip(
+                                      message: 'Không thể chỉnh sửa giao dịch liên kết với khoản vay',
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.4),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.lock,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                                           size: 16,
                                         ),
                                       ),
@@ -966,9 +984,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
       MaterialPageRoute(
         builder: (_) => TransactionDetailScreen(
           transaction: transaction,
-          onEdit: () {
-            Navigator.pop(context); // Close detail screen first
-            _editTransaction(transaction); // Then open edit screen
+          onEdit: () async {
+            final result = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EditTransactionScreen(transaction: transaction),
+              ),
+            );
+
+            if (result == true && context.mounted) {
+              setState(() {});
+            }
           },
         ),
       ),

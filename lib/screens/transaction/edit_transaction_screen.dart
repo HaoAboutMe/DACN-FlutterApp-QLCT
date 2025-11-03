@@ -398,6 +398,9 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
         backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(
+            color: Colors.white
+        ),
       ),
       body: SafeArea(
         child: FadeTransition(

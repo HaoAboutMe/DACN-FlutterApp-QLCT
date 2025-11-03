@@ -279,6 +279,9 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         backgroundColor: _getTypeColor(_selectedType),
         foregroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: SafeArea(
         child: FadeTransition(
