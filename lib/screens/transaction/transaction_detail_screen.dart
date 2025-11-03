@@ -4,6 +4,7 @@ import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
 import '../home/home_icons.dart';
 import '../../database/database_helper.dart';
+import 'edit_transaction_screen.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
   final transaction_model.Transaction transaction;
@@ -286,11 +287,29 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
-          if (widget.onEdit != null)
+          // Ẩn nút edit nếu là transaction liên kết loan
+          if (widget.onEdit != null && widget.transaction.loanId == null)
             IconButton(
               icon: Icon(Icons.edit, color: colorScheme.onSurface),
-              onPressed: widget.onEdit,
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EditTransactionScreen(transaction: widget.transaction),
+                  ),
+                );
+
+                if (result == true && mounted) {
+                  // Pop TransactionDetailScreen và báo hiệu thành công để TransactionScreen reload
+                  Navigator.pop(context, true);
+                }
+              },
               tooltip: 'Chỉnh sửa',
+            ),
+          if (widget.transaction.loanId != null)
+            Tooltip(
+              message: 'Không thể chỉnh sửa giao dịch liên kết với khoản vay',
+              child: Icon(Icons.lock, color: colorScheme.onSurfaceVariant),
             ),
           IconButton(
             icon: Icon(Icons.delete, color: colorScheme.onSurface),
@@ -452,11 +471,23 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   // Edit and Delete Buttons
                   Row(
                     children: [
-                      // Edit Button
-                      if (widget.onEdit != null)
+                      // Nút "Chỉnh sửa" — chỉ hiển thị nếu không liên kết loan
+                      if (widget.transaction.loanId == null)
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: widget.onEdit,
+                            onPressed: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EditTransactionScreen(transaction: widget.transaction),
+                                ),
+                              );
+
+                              if (result == true && mounted) {
+                                // Sau khi lưu thành công, quay về TransactionScreen
+                                Navigator.pop(context, true);
+                              }
+                            },
                             icon: const Icon(Icons.edit, color: Colors.white),
                             label: const Text(
                               'Chỉnh sửa',
@@ -477,9 +508,38 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           ),
                         ),
 
-                      if (widget.onEdit != null) const SizedBox(width: 12),
+                      // Nếu transaction thuộc loan -> hiển thị nút khoá
+                      if (widget.transaction.loanId != null)
+                        Expanded(
+                          child: Tooltip(
+                            message: 'Không thể chỉnh sửa giao dịch liên kết với khoản vay',
+                            child: ElevatedButton.icon(
+                              onPressed: null, // disable
+                              icon: const Icon(Icons.lock, color: Colors.white),
+                              label: const Text(
+                                'Đã khóa',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.surfaceVariant,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
 
-                      // Delete Button
+                      if (widget.onEdit != null || widget.transaction.loanId != null)
+                        const SizedBox(width: 12),
+
+                      // Nút xóa vẫn giữ nguyên
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _deleteTransaction,
@@ -493,7 +553,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF44336), // Red for delete
+                            backgroundColor: const Color(0xFFF44336),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
