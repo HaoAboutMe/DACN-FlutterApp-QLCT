@@ -33,6 +33,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   final GlobalKey _homeKey = GlobalKey();
   final GlobalKey _transactionsKey = GlobalKey();
   final GlobalKey _loanKey = GlobalKey();
+  final GlobalKey _statisticsKey = GlobalKey();
 
   // Danh sách các màn hình
   late final List<Widget> _screens;
@@ -47,7 +48,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       _buildScreenWithScrollDetection(HomePage(key: _homeKey), 0),
       _buildScreenWithScrollDetection(TransactionsScreen(key: _transactionsKey), 1),
       _buildScreenWithScrollDetection(LoanListScreen(key: _loanKey), 2),
-      _buildScreenWithScrollDetection(const StatisticsScreen(), 3),
+      _buildScreenWithScrollDetection(StatisticsScreen(key: _statisticsKey), 3),
       _buildScreenWithScrollDetection(const ProfileScreen(), 4),
     ];
   }
@@ -189,6 +190,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           }
           break;
 
+        case 3: // StatisticsScreen
+          debugPrint('📊 StatisticsScreen: Calling refreshData()...');
+          final statisticsState = _statisticsKey.currentState;
+          if (statisticsState != null && statisticsState is State && statisticsState.mounted) {
+            try {
+              // Gọi public method refreshData()
+              (statisticsState as dynamic).refreshData?.call();
+              debugPrint('✅ StatisticsScreen: refreshData() called successfully');
+            } catch (e) {
+              debugPrint('⚠️ StatisticsScreen: Fallback to setState - $e');
+              statisticsState.setState(() {});
+            }
+          }
+          break;
+
         default:
           debugPrint('📊 Other tabs: No realtime reload needed');
           break;
@@ -259,7 +275,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
 
         // Statistics and Profile tabs - minimal reload for better performance
         case 3: // StatisticsScreen
-          debugPrint('📊 StatisticsScreen: No automatic reload needed');
+          final statisticsState = _statisticsKey.currentState;
+          if (statisticsState != null && statisticsState is State) {
+            debugPrint('📊 StatisticsScreen: Triggering reload...');
+            try {
+              (statisticsState as dynamic).refreshData?.call();
+              debugPrint('✅ StatisticsScreen: Reload method called successfully');
+            } catch (e) {
+              debugPrint('⚠️ StatisticsScreen: Reload method not found, using setState fallback');
+              if (statisticsState.mounted) {
+                statisticsState.setState(() {});
+              }
+            }
+          } else {
+            debugPrint('❌ StatisticsScreen: State not found or invalid');
+          }
           break;
         case 4: // ProfileScreen
           debugPrint('👤 ProfileScreen: No automatic reload needed');
@@ -437,6 +467,21 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       } catch (e) {
         debugPrint('⚠️ LoanListScreen: External refresh fallback - $e');
         loanState.setState(() {});
+      }
+    }
+  }
+
+  /// Method to trigger StatisticsScreen reload from external sources
+  void refreshStatisticsScreen() {
+    debugPrint('🔄 External refresh request for StatisticsScreen');
+    final statisticsState = _statisticsKey.currentState;
+    if (statisticsState != null && statisticsState is State && statisticsState.mounted) {
+      try {
+        (statisticsState as dynamic).refreshData?.call();
+        debugPrint('✅ StatisticsScreen: External refresh completed');
+      } catch (e) {
+        debugPrint('⚠️ StatisticsScreen: External refresh fallback - $e');
+        statisticsState.setState(() {});
       }
     }
   }

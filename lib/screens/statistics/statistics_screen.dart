@@ -402,13 +402,39 @@ class ExpenseDataProvider extends ChangeNotifier {
 }
 
 // Main screen widget
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
 
   @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  late ExpenseDataProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = ExpenseDataProvider();
+  }
+
+  @override
+  void dispose() {
+    _provider.dispose();
+    super.dispose();
+  }
+
+  /// Public method to reload data - called from navigation wrapper
+  Future<void> refreshData() async {
+    if (mounted) {
+      await _provider.reloadData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ExpenseDataProvider(),
+    return ChangeNotifierProvider.value(
+      value: _provider,
       child: const _StatisticsContent(),
     );
   }
