@@ -9,24 +9,30 @@ import '../home_icons.dart';
 class TransactionItem extends StatelessWidget {
   final transaction_model.Transaction transaction;
   final Category? category;
+  final VoidCallback? onTap;
 
   const TransactionItem({
     super.key,
     required this.transaction,
     this.category,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          _buildTransactionIcon(),
-          const SizedBox(width: 16),
-          _buildTransactionInfo(context),
-          _buildTransactionAmount(),
-        ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            _buildTransactionIcon(),
+            const SizedBox(width: 16),
+            _buildTransactionInfo(context),
+            _buildTransactionAmount(),
+          ],
+        ),
       ),
     );
   }

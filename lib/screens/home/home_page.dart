@@ -11,6 +11,7 @@ import 'widgets/all_budgets_widget.dart';
 import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
 import '../budget/budget_list_screen.dart';
+import '../transaction/transaction_detail_screen.dart';
 import '../main_navigation_wrapper.dart';
 
 class HomePage extends StatefulWidget {
@@ -299,6 +300,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Navigate to transaction detail screen and refresh data when returning
+  Future<void> _navigateToTransactionDetail(transaction_model.Transaction transaction) async {
+    debugPrint('🔍 HomePage: Navigating to TransactionDetailScreen for transaction: ${transaction.id}');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TransactionDetailScreen(transaction: transaction),
+      ),
+    );
+
+    // ✅ REALTIME: Refresh data if transaction was modified or deleted
+    if (result == true && mounted) {
+      debugPrint('🔄 HomePage: Transaction was modified, refreshing data...');
+      await _refreshHomeData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -374,6 +393,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           // Chuyển sang tab Giao dịch (index 1) thay vì push route mới
                           mainNavigationKey.currentState?.switchToTab(1);
                         },
+                        onTransactionTap: _navigateToTransactionDetail,
                       ),
                     ],
                   ),

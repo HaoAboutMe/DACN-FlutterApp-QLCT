@@ -8,12 +8,14 @@ class RecentTransactions extends StatelessWidget {
   final List<transaction_model.Transaction> transactions;
   final Map<int, Category> categoriesMap;
   final VoidCallback? onViewAllPressed;
+  final Function(transaction_model.Transaction)? onTransactionTap;
 
   const RecentTransactions({
     super.key,
     required this.transactions,
     required this.categoriesMap,
     this.onViewAllPressed,
+    this.onTransactionTap,
   });
 
   @override
@@ -100,6 +102,9 @@ class RecentTransactions extends StatelessWidget {
         return TransactionItem(
           transaction: transaction,
           category: category,
+          onTap: onTransactionTap != null
+            ? () => onTransactionTap!(transaction)
+            : null,
         );
       },
     );

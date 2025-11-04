@@ -26,19 +26,44 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   Category? _category;
   bool _isLoading = true;
+  late transaction_model.Transaction _currentTransaction;
+  bool _dataWasModified = false; // Track if data was edited/deleted
 
   @override
   void initState() {
     super.initState();
-    _loadCategory();
+    _currentTransaction = widget.transaction;
+    _loadTransactionData();
+  }
+
+  Future<void> _loadTransactionData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Reload transaction from database to get latest data
+    try {
+      final transaction = await _databaseHelper.getTransactionById(_currentTransaction.id!);
+      if (transaction != null) {
+        _currentTransaction = transaction;
+      }
+    } catch (e) {
+      debugPrint('Error loading transaction: $e');
+    }
+
+    await _loadCategory();
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadCategory() async {
-    if (widget.transaction.categoryId != null) {
+    if (_currentTransaction.categoryId != null) {
       try {
         final categories = await _databaseHelper.getAllCategories();
         final category = categories.firstWhere(
-          (cat) => cat.id == widget.transaction.categoryId,
+          (cat) => cat.id == _currentTransaction.categoryId,
           orElse: () => Category(
             id: -1,
             name: '',
@@ -57,14 +82,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         debugPrint('Error loading category: $e');
       }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   Color _getTransactionColor() {
-    switch (widget.transaction.type) {
+    switch (_currentTransaction.type) {
       case 'income':
       case 'debt_collected':
       case 'loan_received':
@@ -82,12 +103,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     if (_category != null) {
       return HomeIcons.getIconFromString(_category!.icon);
     } else {
-      return HomeIcons.getTransactionTypeIcon(widget.transaction.type);
+      return HomeIcons.getTransactionTypeIcon(_currentTransaction.type);
     }
   }
 
   String _getTransactionTypeText() {
-    switch (widget.transaction.type) {
+    switch (_currentTransaction.type) {
       case 'income':
         return 'Thu nhập';
       case 'expense':
@@ -106,15 +127,15 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   String _getAmountDisplay() {
-    final isPositive = widget.transaction.type == 'income' ||
-                      widget.transaction.type == 'debt_collected' ||
-                      widget.transaction.type == 'loan_received';
+    final isPositive = _currentTransaction.type == 'income' ||
+                      _currentTransaction.type == 'debt_collected' ||
+                      _currentTransaction.type == 'loan_received';
     final sign = isPositive ? '+' : '-';
-    return '$sign${CurrencyFormatter.formatVND(widget.transaction.amount)}';
+    return '$sign${CurrencyFormatter.formatVND(_currentTransaction.amount)}';
   }
 
   String _getLoanCategoryDisplayName() {
-    switch (widget.transaction.type) {
+    switch (_currentTransaction.type) {
       case 'loan_given':
         return 'Cho vay';
       case 'loan_received':
@@ -146,7 +167,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           ),
         ),
         content: Text(
-          'Bạn có chắc chắn muốn xóa giao dịch "${widget.transaction.description}"?',
+          'Bạn có chắc chắn muốn xóa giao dịch "${_currentTransaction.description}"?',
           style: TextStyle(
             color: colorScheme.onSurfaceVariant,
             fontSize: 16,
@@ -180,7 +201,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await _databaseHelper.deleteTransaction(widget.transaction.id!);
+        await _databaseHelper.deleteTransaction(_currentTransaction.id!);
 
         // Update user balance after deletion
         await _updateUserBalanceAfterDelete();
@@ -222,7 +243,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     try {
       // ⚠️ QUAN TRỌNG: Không cập nhật số dư cho Transaction liên quan đến Loan
       // Lý do: Số dư sẽ được xử lý khi xóa Loan, tránh cộng 2 lần
-      if (widget.transaction.loanId != null) {
+      if (_currentTransaction.loanId != null) {
         debugPrint('⚠️ Transaction liên quan đến Loan - KHÔNG cập nhật số dư khi xóa Transaction');
         debugPrint('   Số dư sẽ được xử lý khi xóa Loan để tránh cộng 2 lần');
         return;
@@ -237,14 +258,14 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
       // Calculate balance change based on transaction type
       // CHỈ xử lý cho Transaction KHÔNG liên quan đến Loan
-      switch (widget.transaction.type) {
+      switch (_currentTransaction.type) {
         case 'income':
           // Delete income -> subtract from balance
-          balanceChange -= widget.transaction.amount;
+          balanceChange -= _currentTransaction.amount;
           break;
         case 'expense':
           // Delete expense -> add back to balance
-          balanceChange += widget.transaction.amount;
+          balanceChange += _currentTransaction.amount;
           break;
         case 'debt_collected':
         case 'debt_paid':
@@ -252,7 +273,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         case 'loan_received':
           // ⚠️ Các loại này KHÔNG NÊN xảy ra vì đã check loanId ở trên
           // Nhưng để an toàn, log warning
-          debugPrint('⚠️ WARNING: Transaction type ${widget.transaction.type} không nên xảy ra khi loanId = null');
+          debugPrint('⚠️ WARNING: Transaction type ${_currentTransaction.type} không nên xảy ra khi loanId = null');
           return;
       }
 
@@ -272,9 +293,23 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (!didPop) {
+          // Return the modified flag when popping
+          Navigator.of(context).pop(_dataWasModified);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+            onPressed: () {
+              Navigator.of(context).pop(_dataWasModified);
+            },
+          ),
         title: Text(
           'Chi tiết giao dịch',
           style: TextStyle(
@@ -287,26 +322,47 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
-          // Ẩn nút edit nếu là transaction liên kết loan
-          if (widget.onEdit != null && widget.transaction.loanId == null)
+          // Hiển thị nút edit nếu transaction KHÔNG liên kết với loan
+          if (_currentTransaction.loanId == null)
             IconButton(
               icon: Icon(Icons.edit, color: colorScheme.onSurface),
               onPressed: () async {
                 final result = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => EditTransactionScreen(transaction: widget.transaction),
+                    builder: (_) => EditTransactionScreen(transaction: _currentTransaction),
                   ),
                 );
 
                 if (result == true && mounted) {
-                  // Pop TransactionDetailScreen và báo hiệu thành công để TransactionScreen reload
-                  Navigator.pop(context, true);
+                  // ✅ REALTIME: Reload transaction data to show latest changes
+                  await _loadTransactionData();
+                  _dataWasModified = true; // Mark that data was modified
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            '✅ Giao dịch đã được cập nhật!',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF4CAF50),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                 }
               },
               tooltip: 'Chỉnh sửa',
             ),
-          if (widget.transaction.loanId != null)
+          if (_currentTransaction.loanId != null)
             Tooltip(
               message: 'Không thể chỉnh sửa giao dịch liên kết với khoản vay',
               child: Icon(Icons.lock, color: colorScheme.onSurfaceVariant),
@@ -422,7 +478,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
                         _buildDetailRow(
                           'Mô tả',
-                          widget.transaction.description,
+                          _currentTransaction.description,
                           Icons.description,
                         ),
 
@@ -434,32 +490,32 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
                         _buildDetailRow(
                           'Ngày giao dịch',
-                          '${widget.transaction.date.day}/${widget.transaction.date.month}/${widget.transaction.date.year}',
+                          '${_currentTransaction.date.day}/${_currentTransaction.date.month}/${_currentTransaction.date.year}',
                           Icons.calendar_today,
                         ),
 
                         _buildDetailRow(
                           'Thời gian',
-                          '${widget.transaction.date.hour.toString().padLeft(2, '0')}:${widget.transaction.date.minute.toString().padLeft(2, '0')}',
+                          '${_currentTransaction.date.hour.toString().padLeft(2, '0')}:${_currentTransaction.date.minute.toString().padLeft(2, '0')}',
                           Icons.access_time,
                         ),
 
-                        if (widget.transaction.id != null)
+                        if (_currentTransaction.id != null)
                           _buildDetailRow(
                             'ID giao dịch',
-                            '#${widget.transaction.id.toString().padLeft(6, '0')}',
+                            '#${_currentTransaction.id.toString().padLeft(6, '0')}',
                             Icons.tag,
                           ),
 
                         _buildDetailRow(
                           'Ngày tạo',
-                          '${widget.transaction.createdAt.day}/${widget.transaction.createdAt.month}/${widget.transaction.createdAt.year} ${widget.transaction.createdAt.hour.toString().padLeft(2, '0')}:${widget.transaction.createdAt.minute.toString().padLeft(2, '0')}',
+                          '${_currentTransaction.createdAt.day}/${_currentTransaction.createdAt.month}/${_currentTransaction.createdAt.year} ${_currentTransaction.createdAt.hour.toString().padLeft(2, '0')}:${_currentTransaction.createdAt.minute.toString().padLeft(2, '0')}',
                           Icons.add_circle_outline,
                         ),
 
                         _buildDetailRow(
                           'Cập nhật lần cuối',
-                          '${widget.transaction.updatedAt.day}/${widget.transaction.updatedAt.month}/${widget.transaction.updatedAt.year} ${widget.transaction.updatedAt.hour.toString().padLeft(2, '0')}:${widget.transaction.updatedAt.minute.toString().padLeft(2, '0')}',
+                          '${_currentTransaction.updatedAt.day}/${_currentTransaction.updatedAt.month}/${_currentTransaction.updatedAt.year} ${_currentTransaction.updatedAt.hour.toString().padLeft(2, '0')}:${_currentTransaction.updatedAt.minute.toString().padLeft(2, '0')}',
                           Icons.update,
                         ),
                       ],
@@ -472,20 +528,41 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   Row(
                     children: [
                       // Nút "Chỉnh sửa" — chỉ hiển thị nếu không liên kết loan
-                      if (widget.transaction.loanId == null)
+                      if (_currentTransaction.loanId == null)
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               final result = await Navigator.push<bool>(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => EditTransactionScreen(transaction: widget.transaction),
+                                  builder: (_) => EditTransactionScreen(transaction: _currentTransaction),
                                 ),
                               );
 
                               if (result == true && mounted) {
-                                // Sau khi lưu thành công, quay về TransactionScreen
-                                Navigator.pop(context, true);
+                                // ✅ REALTIME: Reload transaction data to show latest changes
+                                await _loadTransactionData();
+                                _dataWasModified = true; // Mark that data was modified
+
+                                // Show success message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Row(
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '✅ Giao dịch đã được cập nhật!',
+                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: const Color(0xFF4CAF50),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
                               }
                             },
                             icon: const Icon(Icons.edit, color: Colors.white),
@@ -509,7 +586,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                         ),
 
                       // Nếu transaction thuộc loan -> hiển thị nút khoá
-                      if (widget.transaction.loanId != null)
+                      if (_currentTransaction.loanId != null)
                         Expanded(
                           child: Tooltip(
                             message: 'Không thể chỉnh sửa giao dịch liên kết với khoản vay',
@@ -525,7 +602,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.surfaceVariant,
+                                backgroundColor: colorScheme.surfaceContainerHighest,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -536,10 +613,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           ),
                         ),
 
-                      if (widget.onEdit != null || widget.transaction.loanId != null)
-                        const SizedBox(width: 12),
+                      // Hiển thị khoảng cách giữa 2 nút
+                      const SizedBox(width: 12),
 
-                      // Nút xóa vẫn giữ nguyên
+                      // Nút xóa
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _deleteTransaction,
@@ -567,6 +644,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 ],
               ),
             ),
+      ), // Close PopScope
     );
   }
 
