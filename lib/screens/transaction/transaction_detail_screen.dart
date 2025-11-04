@@ -322,8 +322,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
-          // Ẩn nút edit nếu là transaction liên kết loan
-          if (widget.onEdit != null && _currentTransaction.loanId == null)
+          // Hiển thị nút edit nếu transaction KHÔNG liên kết với loan
+          if (_currentTransaction.loanId == null)
             IconButton(
               icon: Icon(Icons.edit, color: colorScheme.onSurface),
               onPressed: () async {
@@ -613,10 +613,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                           ),
                         ),
 
-                      if (widget.onEdit != null || _currentTransaction.loanId != null)
-                        const SizedBox(width: 12),
+                      // Hiển thị khoảng cách giữa 2 nút
+                      const SizedBox(width: 12),
 
-                      // Nút xóa vẫn giữ nguyên
+                      // Nút xóa
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _deleteTransaction,
