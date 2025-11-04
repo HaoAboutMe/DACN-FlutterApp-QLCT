@@ -8,17 +8,17 @@
 - `lib/screens/loan_detail_screen.dart` - Loan detail screen with edit dialog placeholder
 - `lib/widgets/loan_item_card.dart` - Reusable loan item card widget
 
-### Modified Files:
+### Modified Files:![img_2.png](img_2.png)
 - `pubspec.yaml` - Added mock/ folder to assets for loading seed data
 - `lib/models/loan.dart` - Already had proper fromJson method and currency formatting
 
 ### Features Implemented:
 ✅ Loan List Screen:
-- Displays all loans (lend/borrow) with proper Vietnamese currency formatting
+- Displays all loans (lend/borrow) with proper Vi![img.png](img.png)etnamese currency formatting
 - Filter controls: Tất cả, Tuần, Tháng, Năm, Sắp hết hạn
 - Shows total lend and borrow amounts at top
 - Badge system: "MỚI" for new loans, "CŨ" for old loans
-- Multi-select mode with long-press activation
+- Multi-select mode with long-press activati![img_1.png](img_1.png)on
 - Confirmation dialog for bulk delete operations
 - Green color theme matching home_page.dart
 

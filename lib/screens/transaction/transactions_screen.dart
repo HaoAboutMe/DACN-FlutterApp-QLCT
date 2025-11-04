@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
+import '../../widgets/month_year_picker_dialog.dart';
 import '../home/home_colors.dart';
 import '../home/home_icons.dart';
+import '../add_transaction/add_transaction_page.dart';
 import 'edit_transaction_screen.dart';
 import 'transaction_detail_screen.dart';
 import '../main_navigation_wrapper.dart';
@@ -16,7 +19,6 @@ class TransactionsScreen extends StatefulWidget {
   State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-enum TimeFilter { week, month, year }
 enum TypeFilter { all, income, expense,  loan_given, loan_received, debt_paid, debt_collected }
 
 class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBindingObserver {
@@ -25,7 +27,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   List<transaction_model.Transaction> _transactions = [];
   List<transaction_model.Transaction> _selectedTransactions = [];
   Map<int, Category> _categoriesMap = {};
-  TimeFilter _timeFilter = TimeFilter.week;
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   TypeFilter _typeFilter = TypeFilter.all;
   bool _isLoading = true;
   bool _isMultiSelectMode = false;
@@ -75,26 +77,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
   Future<void> _fetchTransactions() async {
     setState(() => _isLoading = true);
-    DateTime now = DateTime.now();
-    DateTime start;
 
-    switch (_timeFilter) {
-      case TimeFilter.week:
-        start = now.subtract(Duration(days: now.weekday - 1));
-        break;
-      case TimeFilter.month:
-        start = DateTime(now.year, now.month, 1);
-        break;
-      case TimeFilter.year:
-        start = DateTime(now.year, 1, 1);
-        break;
-    }
+    // Calculate start and end of selected month
+    final start = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+    final end = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1).subtract(const Duration(days: 1));
 
     List<transaction_model.Transaction> all = await _databaseHelper.getAllTransactions();
     _transactions = all.where((t) =>
     (t.type == 'income' || t.type == 'expense' || t.type == 'loan_given' || t.type == 'loan_received' || t.type == "debt_paid" || t.type == "debt_collected") &&
         t.date.isAfter(start.subtract(const Duration(days: 1))) &&
-        t.date.isBefore(now.add(const Duration(days: 1)))
+        t.date.isBefore(end.add(const Duration(days: 1)))
     ).toList();
 
     // Apply type filter
@@ -154,15 +146,37 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
       t.type == 'debt_paid')
       .fold(0, (sum, t) => sum + t.amount);
 
-
-  void _onTimeFilterChanged(TimeFilter filter) {
-    setState(() => _timeFilter = filter);
-    _fetchTransactions();
-  }
-
   void _onTypeFilterChanged(TypeFilter filter) {
     setState(() => _typeFilter = filter);
     _fetchTransactions();
+  }
+
+  void _onPreviousMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+    });
+    _fetchTransactions();
+  }
+
+  void _onNextMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    });
+    _fetchTransactions();
+  }
+
+  Future<void> _onSelectMonthYear() async {
+    final pickedDate = await showMonthYearPicker(
+      context: context,
+      initialDate: _selectedMonth,
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedMonth = pickedDate;
+      });
+      _fetchTransactions();
+    }
   }
 
   void _onLongPress(transaction_model.Transaction transaction) {
@@ -368,6 +382,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
     if (result == true) {
       await _fetchTransactions();
+      // Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+    }
+  }
+
+  Future<void> _navigateToAddTransaction() async {
+    debugPrint('🚀 Navigating to AddTransactionPage...');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddTransactionPage(),
+      ),
+    );
+
+    debugPrint('🔄 Returned from AddTransactionPage with result: $result');
+
+    // Always reload transactions when returning
+    await _fetchTransactions();
+
+    // Trigger HomePage reload to update balance
+    mainNavigationKey.currentState?.refreshHomePage();
+
+    // Show success message if transaction was added
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text(
+                '✅ Giao dịch đã được thêm!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: HomeColors.income,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -404,25 +461,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   String _getTransactionAmountDisplay(transaction_model.Transaction transaction) {
     String sign = transaction.type == 'income' || transaction.type == 'loan_received' ? '+' : '-';
     return '$sign${CurrencyFormatter.formatVND(transaction.amount.abs())}';
-  }
-
-  String _getTypeFilterDisplayText() {
-    switch (_typeFilter) {
-      case TypeFilter.all:
-        return 'Tất cả giao dịch';
-      case TypeFilter.income:
-        return 'Thu nhập';
-      case TypeFilter.expense:
-        return 'Chi tiêu';
-      case TypeFilter.loan_given:
-        return 'Cho vay';
-      case TypeFilter.loan_received:
-        return 'Đi vay';
-      case TypeFilter.debt_paid:
-        return 'Trả nợ';
-      case TypeFilter.debt_collected:
-        return 'Thu nợ';
-    }
   }
 
   @override
@@ -561,6 +599,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               icon: const Icon(Icons.delete, color: Colors.white),
               onPressed: _deleteSelectedTransactions,
               tooltip: 'Xóa giao dịch đã chọn',
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              onPressed: _navigateToAddTransaction,
+              tooltip: 'Thêm giao dịch mới',
             ),
         ],
       ),
@@ -600,16 +644,78 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               ),
               child: Column(
                 children: [
-                  // Time Filter
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildFilterButton('Tuần', TimeFilter.week),
-                      const SizedBox(width: 8),
-                      _buildFilterButton('Tháng', TimeFilter.month),
-                      const SizedBox(width: 8),
-                      _buildFilterButton('Năm', TimeFilter.year),
-                    ],
+                  // Monthly Navigation
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Previous Month Button
+                        InkWell(
+                          onTap: _onPreviousMonth,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.chevron_left,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+
+                        // Month Year Display - Tappable
+                        Expanded(
+                          child: InkWell(
+                            onTap: _onSelectMonthYear,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              child: Text(
+                                DateFormat('MMMM, yyyy', 'vi_VN').format(_selectedMonth)
+                                    .replaceFirst(RegExp(r'tháng '), 'Tháng '),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Next Month Button
+                        InkWell(
+                          onTap: _onNextMonth,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Income/Expense Summary
@@ -924,7 +1030,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.4),
+                                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Icon(
@@ -952,31 +1058,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     );
   }
 
-  Widget _buildFilterButton(String text, TimeFilter filter) {
-    final isSelected = _timeFilter == filter;
-    return GestureDetector(
-      onTap: () => _onTimeFilterChanged(filter),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? HomeColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: HomeColors.primary,
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.white : HomeColors.primary,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<void> _navigateToTransactionDetail(transaction_model.Transaction transaction) async {
     final result = await Navigator.push<bool>(

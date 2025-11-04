@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
+import '../../models/loan_filters.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
+import '../../widgets/loan_filter_sheet.dart';
+import '../../widgets/loan_time_filter_sheet.dart';
+import '../../widgets/filter_chips_widget.dart';
 import '../home/home_colors.dart';
 import '../add_loan/add_loan_page.dart';
 import 'loan_detail_screen.dart';
@@ -25,7 +29,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   List<Loan> _filteredLoans = [];
   List<int> _selectedIds = [];
   bool _isLoading = true;
-  String _currentFilter = 'Tất cả'; // Tất cả, Tuần, Tháng, Năm, Sắp hết hạn
+  LoanFilters _filters = LoanFilters(); // New filter system
   LoanTypeFilter _loanTypeFilter = LoanTypeFilter.all;
   bool _isSelectionMode = false;
 
@@ -114,38 +118,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   void _applyFilter() {
     final now = DateTime.now();
     setState(() {
-      // First, filter by time
-      switch (_currentFilter) {
-        case 'Tuần':
-          final weekStart = now.subtract(Duration(days: now.weekday - 1));
-          final weekEnd = weekStart.add(const Duration(days: 6));
-          _filteredLoans = _loans.where((loan) =>
-            loan.loanDate.isAfter(weekStart.subtract(const Duration(days: 1))) &&
-            loan.loanDate.isBefore(weekEnd.add(const Duration(days: 1)))
-          ).toList();
-          break;
-        case 'Tháng':
-          _filteredLoans = _loans.where((loan) =>
-            loan.loanDate.month == now.month && loan.loanDate.year == now.year
-          ).toList();
-          break;
-        case 'Năm':
-          _filteredLoans = _loans.where((loan) =>
-            loan.loanDate.year == now.year
-          ).toList();
-          break;
-        case 'Sắp hết hạn':
-          _filteredLoans = _loans.where((loan) =>
-            loan.dueDate != null &&
-            loan.dueDate!.isAfter(now) &&
-            loan.dueDate!.difference(now).inDays <= 7
-          ).toList();
-          break;
-        default: // Tất cả
-          _filteredLoans = List.from(_loans);
-      }
+      _filteredLoans = List.from(_loans);
 
-      // Then, filter by loan type (lend/borrow) and new/old
+      // 1. Filter by loan type (lend/borrow) and new/old
       switch (_loanTypeFilter) {
         case LoanTypeFilter.lendNew:
           _filteredLoans = _filteredLoans.where((loan) =>
@@ -168,8 +143,85 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ).toList();
           break;
         case LoanTypeFilter.all:
-          // No additional filtering
+          // No filtering
           break;
+      }
+
+      // 2. Filter by status (active/completed)
+      if (_filters.hasLoanFilters) {
+        final statusFiltered = <Loan>[];
+
+        for (final loan in _filteredLoans) {
+          bool matchesStatus = false;
+
+          // Check status filter
+          if (_filters.filterActive && (loan.status == 'active' || loan.status == 'pending')) {
+            matchesStatus = true;
+          }
+          if (_filters.filterCompleted && (loan.status == 'completed' || loan.status == 'paid')) {
+            matchesStatus = true;
+          }
+
+          // Check due date filter
+          bool matchesDue = false;
+
+          // Sắp đến hạn: có due_date, chưa thanh toán, trong vòng 7 ngày
+          if (_filters.filterDueSoon &&
+              loan.dueDate != null &&
+              (loan.status == 'active' || loan.status == 'pending') &&
+              loan.dueDate!.isAfter(now) &&
+              loan.dueDate!.difference(now).inDays <= 7) {
+            matchesDue = true;
+          }
+
+          // Đã quá hạn: có due_date, chưa thanh toán, đã qua ngày
+          if (_filters.filterOverdue &&
+              loan.dueDate != null &&
+              (loan.status == 'active' || loan.status == 'pending') &&
+              loan.dueDate!.isBefore(now)) {
+            matchesDue = true;
+          }
+
+          // Không có hạn: không có due_date
+          if (_filters.filterNoDueDate && loan.dueDate == null) {
+            matchesDue = true;
+          }
+
+          // Add loan if it matches either status or due date filter
+          // If only status filters are set, match by status
+          // If only due filters are set, match by due
+          // If both are set, match either
+          final hasStatusFilter = _filters.filterActive || _filters.filterCompleted;
+          final hasDueFilter = _filters.filterDueSoon || _filters.filterOverdue || _filters.filterNoDueDate;
+
+          if (hasStatusFilter && hasDueFilter) {
+            if (matchesStatus || matchesDue) {
+              statusFiltered.add(loan);
+            }
+          } else if (hasStatusFilter) {
+            if (matchesStatus) {
+              statusFiltered.add(loan);
+            }
+          } else if (hasDueFilter) {
+            if (matchesDue) {
+              statusFiltered.add(loan);
+            }
+          }
+        }
+
+        _filteredLoans = statusFiltered;
+      }
+
+      // 3. Filter by time (loan creation date)
+      if (_filters.hasTimeFilter && _filters.selectedMonth != null) {
+        final start = DateTime(_filters.selectedMonth!.year, _filters.selectedMonth!.month, 1);
+        final end = DateTime(_filters.selectedMonth!.year, _filters.selectedMonth!.month + 1, 1)
+            .subtract(const Duration(days: 1));
+
+        _filteredLoans = _filteredLoans.where((loan) =>
+          loan.loanDate.isAfter(start.subtract(const Duration(days: 1))) &&
+          loan.loanDate.isBefore(end.add(const Duration(days: 1)))
+        ).toList();
       }
 
       // Sort by date, newest first
@@ -180,6 +232,64 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   void _onLoanTypeFilterChanged(LoanTypeFilter filter) {
     setState(() {
       _loanTypeFilter = filter;
+      _applyFilter();
+    });
+  }
+
+  Future<void> _showLoanFilterSheet() async {
+    final result = await showModalBottomSheet<LoanFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => LoanFilterSheet(initialFilters: _filters),
+    );
+
+    if (result != null) {
+      setState(() {
+        _filters = result;
+        _applyFilter();
+      });
+    }
+  }
+
+  Future<void> _showTimeFilterSheet() async {
+    final result = await showModalBottomSheet<LoanFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => LoanTimeFilterSheet(initialFilters: _filters),
+    );
+
+    if (result != null) {
+      setState(() {
+        _filters = result;
+        _applyFilter();
+      });
+    }
+  }
+
+  void _removeFilter(String filterType) {
+    setState(() {
+      switch (filterType) {
+        case 'active':
+          _filters.filterActive = false;
+          break;
+        case 'completed':
+          _filters.filterCompleted = false;
+          break;
+        case 'due_soon':
+          _filters.filterDueSoon = false;
+          break;
+        case 'overdue':
+          _filters.filterOverdue = false;
+          break;
+        case 'no_due':
+          _filters.filterNoDueDate = false;
+          break;
+        case 'time':
+          _filters.resetTimeFilter();
+          break;
+      }
       _applyFilter();
     });
   }
@@ -988,69 +1098,123 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             ),
           ),
 
-          // Filter Section
+          // Filter Section - New Design with Two Separate Buttons
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Theme.of(context).colorScheme.primary),
+                // Loan Filter Button (Status & Due Date)
+                Container(
+                  width: MediaQuery.of(context).size.width / 2 - 24,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: OutlinedButton.icon(
+                    onPressed: _showLoanFilterSheet,
+                    icon: Icon(
+                      Icons.filter_list,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _currentFilter,
-                        isExpanded: true,
-                        icon: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).colorScheme.primary),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _currentFilter = newValue;
-                              _applyFilter();
-                            });
-                          }
-                        },
-                        items: <String>['Tất cả', 'Tuần', 'Tháng', 'Năm', 'Sắp hết hạn']
-                            .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
+                    label: Text(
+                      'Lọc khoản vay',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      side: BorderSide(
+                        color: _filters.hasLoanFilters
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outline,
+                        width: _filters.hasLoanFilters ? 2 : 1,
+                      ),
+                      backgroundColor: _filters.hasLoanFilters
+                          ? Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.2)
+                          : Theme.of(context).colorScheme.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _toggleSelectionMode,
-                  icon: Icon(
-                    _isSelectionMode ? Icons.close : Icons.checklist,
-                    size: 18,
+
+                // Time Filter Button
+                Container(
+                  width: MediaQuery.of(context).size.width / 2 - 24,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  label: Text(_isSelectionMode ? 'Hủy' : 'Chọn'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isSelectionMode
-                        ? HomeColors.expense
-                        : HomeColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  child: OutlinedButton.icon(
+                    onPressed: _showTimeFilterSheet,
+                    icon: Icon(
+                      Icons.access_time,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    label: Text(
+                      'Thời gian',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      side: BorderSide(
+                        color: _filters.hasTimeFilter
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outline,
+                        width: _filters.hasTimeFilter ? 2 : 1,
+                      ),
+                      backgroundColor: _filters.hasTimeFilter
+                          ? Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.2)
+                          : Theme.of(context).colorScheme.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
+          ),
+
+          // Filter Chips - Show active filters
+          FilterChipsWidget(
+            filters: _filters,
+            onRemoveFilter: _removeFilter,
           ),
 
           // Loans List
@@ -1082,6 +1246,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                     child: _filteredLoans.isEmpty
                         ? ListView(
                             // Need ListView for RefreshIndicator to work on empty content
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
                             children: [
                               Container(
                                 height: MediaQuery.of(context).size.height * 0.6,
@@ -1125,8 +1292,15 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                             ],
                           )
                         : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.all(16),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                              bottom: 200, // Extra bottom padding to ensure scrollability
+                            ),
                             itemCount: _filteredLoans.length,
                             itemBuilder: (context, index) {
                               final loan = _filteredLoans[index];
@@ -1410,13 +1584,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ),
         ],
       ),
-      floatingActionButton: _isSelectionMode
-          ? null
-          : FloatingActionButton(
-              onPressed: _navigateToAddLoan,
-              backgroundColor: HomeColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
     );
   }
 
