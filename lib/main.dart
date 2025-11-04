@@ -1,6 +1,7 @@
 import 'package:app_qlct/utils/notification_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'config/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'screens/initial_setup/initial_screen.dart';
@@ -8,6 +9,10 @@ import 'screens/main_navigation_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Vietnamese locale for date formatting
+  await initializeDateFormatting('vi_VN', null);
+
   await NotificationHelper.initialize();
 
   // Check if InitialScreen should be shown
