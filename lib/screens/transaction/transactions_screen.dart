@@ -7,6 +7,7 @@ import '../../utils/currency_formatter.dart';
 import '../../widgets/month_year_picker_dialog.dart';
 import '../home/home_colors.dart';
 import '../home/home_icons.dart';
+import '../add_transaction/add_transaction_page.dart';
 import 'edit_transaction_screen.dart';
 import 'transaction_detail_screen.dart';
 import '../main_navigation_wrapper.dart';
@@ -381,6 +382,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
     if (result == true) {
       await _fetchTransactions();
+      // Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+    }
+  }
+
+  Future<void> _navigateToAddTransaction() async {
+    debugPrint('🚀 Navigating to AddTransactionPage...');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddTransactionPage(),
+      ),
+    );
+
+    debugPrint('🔄 Returned from AddTransactionPage with result: $result');
+
+    // Always reload transactions when returning
+    await _fetchTransactions();
+
+    // Trigger HomePage reload to update balance
+    mainNavigationKey.currentState?.refreshHomePage();
+
+    // Show success message if transaction was added
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text(
+                '✅ Giao dịch đã được thêm!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: HomeColors.income,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -555,6 +599,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               icon: const Icon(Icons.delete, color: Colors.white),
               onPressed: _deleteSelectedTransactions,
               tooltip: 'Xóa giao dịch đã chọn',
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              onPressed: _navigateToAddTransaction,
+              tooltip: 'Thêm giao dịch mới',
             ),
         ],
       ),
