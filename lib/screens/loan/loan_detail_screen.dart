@@ -26,6 +26,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   Loan? _loan;
   bool _isLoading = true;
+  bool _dataWasModified = false; // Track if loan was edited/deleted
 
   @override
   void initState() {
@@ -119,6 +120,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     // ✅ REALTIME: Reload loan data if changes were made
     if (result == true) {
       await _loadLoanData();
+      _dataWasModified = true; // Mark that data was modified
 
       // ✅ REALTIME: Trigger HomePage reload to update balance
       mainNavigationKey.currentState?.refreshHomePage();
@@ -139,15 +141,13 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             backgroundColor: const Color(0xFF4CAF50), // Green for success
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
 
-      // Return true to notify parent screens (e.g., LoanListScreen)
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      // DON'T pop here - stay on detail screen to show updated data
+      // The data will be returned when user manually goes back
     }
   }
 
@@ -315,6 +315,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
       // Reload loan data to show updated status
       await _loadLoanData();
+      _dataWasModified = true; // Mark that data was modified
 
       // Trigger HomePage reload
       mainNavigationKey.currentState?.refreshHomePage();
@@ -479,21 +480,35 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Chi tiết khoản vay',
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (!didPop) {
+          // Return the modified flag when popping
+          Navigator.of(context).pop(_dataWasModified);
+        }
+      },
+      child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        foregroundColor: colorScheme.onSurface,
-        elevation: 0,
-        iconTheme: IconThemeData(color: colorScheme.onSurface),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+            onPressed: () {
+              Navigator.of(context).pop(_dataWasModified);
+            },
+          ),
+          title: Text(
+            'Chi tiết khoản vay',
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+          backgroundColor: theme.scaffoldBackgroundColor,
+          foregroundColor: colorScheme.onSurface,
+          elevation: 0,
+          iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
           IconButton(
             icon: Icon(Icons.edit, color: colorScheme.onSurface),
@@ -793,6 +808,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               ],
             )
           : null,
+      ), // Close PopScope
     );
   }
 }
