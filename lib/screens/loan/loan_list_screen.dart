@@ -1107,8 +1107,20 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               alignment: WrapAlignment.spaceBetween,
               children: [
                 // Loan Filter Button (Status & Due Date)
-                SizedBox(
+                Container(
                   width: MediaQuery.of(context).size.width / 2 - 24,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: OutlinedButton.icon(
                     onPressed: _showLoanFilterSheet,
                     icon: Icon(
@@ -1133,8 +1145,11 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                         width: _filters.hasLoanFilters ? 2 : 1,
                       ),
                       backgroundColor: _filters.hasLoanFilters
-                          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2)
-                          : Colors.transparent,
+                          ? Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.2)
+                          : Theme.of(context).colorScheme.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1143,8 +1158,20 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 ),
 
                 // Time Filter Button
-                SizedBox(
+                Container(
                   width: MediaQuery.of(context).size.width / 2 - 24,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: OutlinedButton.icon(
                     onPressed: _showTimeFilterSheet,
                     icon: Icon(
@@ -1169,8 +1196,11 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                         width: _filters.hasTimeFilter ? 2 : 1,
                       ),
                       backgroundColor: _filters.hasTimeFilter
-                          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2)
-                          : Colors.transparent,
+                          ? Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.2)
+                          : Theme.of(context).colorScheme.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1180,7 +1210,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
               ],
             ),
           ),
-
 
           // Filter Chips - Show active filters
           FilterChipsWidget(
@@ -1555,13 +1584,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ),
         ],
       ),
-      floatingActionButton: _isSelectionMode
-          ? null
-          : FloatingActionButton(
-              onPressed: _navigateToAddLoan,
-              backgroundColor: HomeColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
     );
   }
 
