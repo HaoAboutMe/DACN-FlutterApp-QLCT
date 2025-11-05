@@ -125,26 +125,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       // ✅ REALTIME: Trigger HomePage reload to update balance
       mainNavigationKey.currentState?.refreshHomePage();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                const Text(
-                  '✅ Khoản vay đã được cập nhật!',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            backgroundColor: const Color(0xFF4CAF50), // Green for success
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
 
       // DON'T pop here - stay on detail screen to show updated data
       // The data will be returned when user manually goes back
@@ -320,31 +300,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       // Trigger HomePage reload
       mainNavigationKey.currentState?.refreshHomePage();
 
-      if (!mounted) return;
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _loan!.loanType == 'lend'
-                      ? '✅ Đã thu hồi nợ thành công! Trạng thái đã được cập nhật.'
-                      : '✅ Đã trả nợ thành công! Trạng thái đã được cập nhật.',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF4CAF50), // Green for success
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 4),
-        ),
-      );
 
       // ✅ STAY on detail screen to show updated status
       // User can see the "Đã thanh toán" badge and paid date
@@ -360,13 +315,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Text('❌ Lỗi: ${e.toString()}'),
-            ],
-          ),
+          content: Text('❌ Lỗi: ${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

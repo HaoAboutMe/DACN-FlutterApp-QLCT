@@ -149,16 +149,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.budget == null
-                ? 'Đã thêm ngân sách thành công'
-                : 'Đã cập nhật ngân sách',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
 
       Navigator.pop(context, true);
     } catch (e) {
