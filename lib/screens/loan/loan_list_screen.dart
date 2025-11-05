@@ -423,8 +423,22 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         mainNavigationKey.currentState?.refreshHomePage();
 
         if (mounted) {
-          if (successCount > 0 && failCount > 0) {
-            // Một số xóa thành công, một số thất bại
+          if (successCount > 0 && failCount == 0) {
+            // ✅ TẤT CẢ THÀNH CÔNG NHƯNG KHÔNG HIỆN SNACKBAR
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text(
+            //       '✅ Đã xóa $successCount khoản vay thành công!',
+            //       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            //     ),
+            //     backgroundColor: HomeColors.income,
+            //     behavior: SnackBarBehavior.floating,
+            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            //     duration: const Duration(seconds: 4),
+            //   ),
+            // );
+          } else if (successCount > 0 && failCount > 0) {
+            // ⚠️ MỘT SỐ THÀNH CÔNG, MỘT SỐ THẤT BẠI
             String errorMessage = '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa:\n';
 
             if (loansWithTransactions.isNotEmpty) {
@@ -449,8 +463,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 duration: const Duration(seconds: 6),
               ),
             );
-          } else {
-            // Tất cả đều thất bại
+          } else if (failCount > 0) {
+            // ❌ TẤT CẢ ĐỀU THẤT BẠI
             String errorMessage = '❌ Không thể xóa khoản vay:\n';
 
             if (loansWithTransactions.isNotEmpty) {
