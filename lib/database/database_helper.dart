@@ -883,8 +883,109 @@ class DatabaseHelper {
         whereArgs: [loan.id],
       );
 
-      // Update related initial transaction if amount or type changed
-      if (oldLoan.amount != loan.amount || oldLoan.loanType != loan.loanType) {
+      // Get current user ID
+      final currentUserId = await getCurrentUserId();
+
+      // ========== XỬ LÝ THAY ĐỔI isOldDebt ==========
+      // Nếu isOldDebt thay đổi, cần xử lý transaction liên kết
+      if (oldLoan.isOldDebt != loan.isOldDebt) {
+        log('isOldDebt đã thay đổi: ${oldLoan.isOldDebt} -> ${loan.isOldDebt}');
+
+        if (oldLoan.isOldDebt == 0 && loan.isOldDebt == 1) {
+          // Từ khoản vay MỚI (0) → CŨ (1): Xóa transaction liên kết VÀ hoàn trả số dư
+          log('Chuyển từ khoản vay mới sang cũ: Xóa transaction liên kết và hoàn trả số dư');
+
+          final transactionMaps = await db.query(
+            _tableTransactions,
+            where: '$_colTransactionLoanId = ?',
+            whereArgs: [loan.id],
+            orderBy: '$_colTransactionCreatedAt ASC',
+            limit: 1, // Lấy transaction khởi tạo đầu tiên
+          );
+
+          if (transactionMaps.isNotEmpty) {
+            final transactionId = transactionMaps.first[_colTransactionId] as int;
+            final transactionType = transactionMaps.first[_colTransactionType] as String;
+            final transactionAmount = transactionMaps.first[_colTransactionAmount] as double;
+
+            // Xóa transaction
+            await db.delete(
+              _tableTransactions,
+              where: '$_colTransactionId = ?',
+              whereArgs: [transactionId],
+            );
+
+            log('Đã xóa transaction ID $transactionId (type: $transactionType)');
+
+            // Hoàn trả số dư về như ban đầu (đảo ngược hiệu ứng của transaction)
+            double balanceChange = 0;
+            if (transactionType == 'loan_received') {
+              // Transaction cũ đã CỘNG tiền → cần TRỪ lại để hoàn trả
+              balanceChange = -transactionAmount;
+              log('Hoàn trả số dư: Trừ $transactionAmount (đã nhận khi vay)');
+            } else if (transactionType == 'loan_given') {
+              // Transaction cũ đã TRỪ tiền → cần CỘNG lại để hoàn trả
+              balanceChange = transactionAmount;
+              log('Hoàn trả số dư: Cộng $transactionAmount (đã cho vay)');
+            }
+
+            if (balanceChange != 0) {
+              await db.rawUpdate(
+                'UPDATE $_tableUsers SET $_colUserBalance = $_colUserBalance + ? WHERE $_colUserId = ?',
+                [balanceChange, currentUserId],
+              );
+              log('Đã hoàn trả số dư người dùng: ${balanceChange > 0 ? "+$balanceChange" : balanceChange}');
+            }
+          }
+        } else if (oldLoan.isOldDebt == 1 && loan.isOldDebt == 0) {
+          // Từ khoản vay CŨ (1) → MỚI (0): Tạo transaction mới
+          log('Chuyển từ khoản vay cũ sang mới: Tạo transaction mới');
+
+          // Xác định loại transaction dựa trên loan type
+          String transactionType;
+          if (loan.loanType == 'borrow') {
+            transactionType = 'loan_received'; // Vay tiền = nhận tiền vay
+          } else {
+            transactionType = 'loan_given'; // Cho vay = cho tiền vay
+          }
+
+          // Tạo transaction mới
+          final newTransaction = transaction_model.Transaction(
+            amount: loan.amount,
+            description: 'Khoản ${loan.loanType == 'borrow' ? 'vay' : 'cho vay'}: ${loan.personName}',
+            date: loan.loanDate,
+            categoryId: null,
+            loanId: loan.id,
+            type: transactionType,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+
+          await db.insert(_tableTransactions, newTransaction.toMap());
+          log('Đã tạo transaction mới với type: $transactionType');
+
+          // Cập nhật số dư người dùng
+          double balanceChange = 0;
+          if (transactionType == 'loan_received') {
+            balanceChange = loan.amount; // Cộng tiền vào số dư
+          } else if (transactionType == 'loan_given') {
+            balanceChange = -loan.amount; // Trừ tiền khỏi số dư
+          }
+
+          if (balanceChange != 0) {
+            await db.rawUpdate(
+              'UPDATE $_tableUsers SET $_colUserBalance = $_colUserBalance + ? WHERE $_colUserId = ?',
+              [balanceChange, currentUserId],
+            );
+            log('Cập nhật số dư người dùng: ${balanceChange > 0 ? "+$balanceChange" : balanceChange}');
+          }
+        }
+      }
+
+      // ========== XỬ LÝ CÁC THAY ĐỔI KHÁC (amount, loanType) ==========
+      // Chỉ cập nhật transaction nếu loan hiện tại là khoản vay MỚI (isOldDebt = 0)
+      // và có thay đổi về amount hoặc loanType
+      if (loan.isOldDebt == 0 && (oldLoan.amount != loan.amount || oldLoan.loanType != loan.loanType)) {
         // Find the initial transaction for this loan
         final transactionMaps = await db.query(
           _tableTransactions,
@@ -907,8 +1008,6 @@ class DatabaseHelper {
             newTransactionType = 'loan_given'; // Cho vay = cho tiền vay
           }
 
-          // Get current user ID
-          final currentUserId = await getCurrentUserId();
 
           // Calculate balance changes
           double balanceChange = 0;

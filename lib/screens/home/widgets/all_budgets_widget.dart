@@ -125,6 +125,9 @@ class AllBudgetsWidget extends StatelessWidget {
     final isOverBudget = data['isOverBudget'] as bool;
     final progressColor = _getProgressColor(progressPercentage);
 
+    final startDate = DateFormat('dd/MM').format(DateTime.parse(data['startDate'] as String));
+    final endDate = DateFormat('dd/MM').format(DateTime.parse(data['endDate'] as String));
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -158,7 +161,7 @@ class AllBudgetsWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tổng ngân sách tháng này',
+                      'Tổng ngân sách $startDate - $endDate',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
