@@ -423,7 +423,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   }
 
   String _getTransactionAmountDisplay(transaction_model.Transaction transaction) {
-    String sign = transaction.type == 'income' || transaction.type == 'loan_received' ? '+' : '-';
+    String sign = transaction.type == 'income' || transaction.type == 'loan_received' || transaction.type == "debt_collected" ? '+' : '-';
     return '$sign${CurrencyFormatter.formatVND(transaction.amount.abs())}';
   }
 
