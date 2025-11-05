@@ -340,20 +340,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
         // Trigger HomePage reload after deleting transactions that affect balance
         mainNavigationKey.currentState?.refreshHomePage();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Đã xóa giao dịch thành công!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              backgroundColor: HomeColors.income,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          );
-        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -404,28 +390,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
     // Trigger HomePage reload to update balance
     mainNavigationKey.currentState?.refreshHomePage();
-
-    // Show success message if transaction was added
-    if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              const Text(
-                '✅ Giao dịch đã được thêm!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          backgroundColor: HomeColors.income,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
   }
 
   IconData _getTransactionIcon(transaction_model.Transaction transaction) {

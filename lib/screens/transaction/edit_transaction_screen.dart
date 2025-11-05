@@ -204,10 +204,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
       // Check if widget is still mounted before using context
       if (!mounted) return;
 
-      _showSuccessAnimation();
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      if (!mounted) return;
       Navigator.of(context).pop(true); // Return true to indicate success
     } catch (e) {
       debugPrint('Error saving transaction: $e');
@@ -265,33 +261,10 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
     }
   }
 
-  void _showSuccessAnimation() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Text('Đã lưu ${_getTransactionTypeText()} thành công!'),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(message),
-          ],
-        ),
+        content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

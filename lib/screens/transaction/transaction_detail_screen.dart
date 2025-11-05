@@ -208,18 +208,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
         if (mounted) {
           Navigator.pop(context, true); // Return to previous screen with success flag
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Đã xóa giao dịch thành công!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              backgroundColor: const Color(0xFF4CAF50), // Green for success
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          );
         }
       } catch (e) {
         if (mounted) {
@@ -338,26 +326,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   // ✅ REALTIME: Reload transaction data to show latest changes
                   await _loadTransactionData();
                   _dataWasModified = true; // Mark that data was modified
-
-                  // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            '✅ Giao dịch đã được cập nhật!',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: const Color(0xFF4CAF50),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
                 }
               },
               tooltip: 'Chỉnh sửa',
@@ -543,26 +511,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                                 // ✅ REALTIME: Reload transaction data to show latest changes
                                 await _loadTransactionData();
                                 _dataWasModified = true; // Mark that data was modified
-
-                                // Show success message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.white),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          '✅ Giao dịch đã được cập nhật!',
-                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                                        ),
-                                      ],
-                                    ),
-                                    backgroundColor: const Color(0xFF4CAF50),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
                               }
                             },
                             icon: const Icon(Icons.edit, color: Colors.white),

@@ -141,15 +141,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _userName = name.trim();
         _isEditingName = false;
       });
-
-      // Hiển thị thông báo thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã cập nhật tên người dùng'),
-          backgroundColor: Color(0xFF5D5FEF),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     } catch (e) {
       print('Lỗi cập nhật tên user: $e');
       // Hiển thị thông báo lỗi

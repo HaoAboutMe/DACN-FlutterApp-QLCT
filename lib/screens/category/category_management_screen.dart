@@ -216,16 +216,16 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         _loadCategories();
 
         if (mounted) {
-          if (successCount > 0 && failCount == 0) {
-            _showSuccessSnackbar('Đã xóa $successCount danh mục');
-          } else if (successCount > 0 && failCount > 0) {
-            _showWarningSnackbar(
-              'Đã xóa $successCount danh mục. $failCount danh mục không thể xóa vì đang được sử dụng.',
-            );
-          } else {
+          if (successCount == 0 && failCount > 0) {
+            // All deletions failed
             _showErrorSnackbar(
               'Không thể xóa danh mục vì đang được sử dụng trong giao dịch hoặc ngân sách.\n'
               'Danh mục: ${failedCategories.join(", ")}',
+            );
+          } else if (successCount > 0 && failCount > 0) {
+            // Some succeeded, some failed
+            _showWarningSnackbar(
+              'Đã xóa $successCount danh mục. $failCount danh mục không thể xóa vì đang được sử dụng.',
             );
           }
         }
@@ -252,9 +252,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
 
     if (result != null) {
       _loadCategories();
-      if (mounted) {
-        _showSuccessSnackbar('Đã thêm danh mục "${result.name}"');
-      }
     }
   }
 
@@ -272,9 +269,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
 
     if (result != null) {
       _loadCategories();
-      if (mounted) {
-        _showSuccessSnackbar('Đã cập nhật danh mục "${result.name}"');
-      }
     }
   }
 
@@ -305,9 +299,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
       try {
         await _databaseHelper.deleteCategory(category.id!);
         _loadCategories();
-        if (mounted) {
-          _showSuccessSnackbar('Đã xóa danh mục "${category.name}"');
-        }
       } catch (e) {
         if (mounted) {
           if (e.toString().contains('CATEGORY_IN_USE')) {
@@ -322,19 +313,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
     }
   }
 
-  /// Show success message
-  void _showSuccessSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF5D5FEF),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-  }
 
   /// Show warning message
   void _showWarningSnackbar(String message) {

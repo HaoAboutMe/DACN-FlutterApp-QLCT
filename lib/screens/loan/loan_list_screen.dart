@@ -212,7 +212,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         _filteredLoans = statusFiltered;
       }
 
-      // 3. Filter by time (loan creation date)
+      // 3. Filter by time (loan date - ngày cho vay/đi vay thực tế)
       if (_filters.hasTimeFilter && _filters.selectedMonth != null) {
         final start = DateTime(_filters.selectedMonth!.year, _filters.selectedMonth!.month, 1);
         final end = DateTime(_filters.selectedMonth!.year, _filters.selectedMonth!.month + 1, 1)
@@ -423,29 +423,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         mainNavigationKey.currentState?.refreshHomePage();
 
         if (mounted) {
-          if (successCount > 0 && failCount == 0) {
-            // Tất cả đều xóa thành công
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '✅ Đã xóa $successCount khoản vay thành công!\n💰 Số dư HomePage đã cập nhật realtime.',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                backgroundColor: HomeColors.income,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          } else if (successCount > 0 && failCount > 0) {
+          if (successCount > 0 && failCount > 0) {
             // Một số xóa thành công, một số thất bại
             String errorMessage = '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa:\n';
 
@@ -461,17 +439,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        errorMessage.trim(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
+                content: Text(
+                  errorMessage.trim(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 backgroundColor: Colors.orange,
                 behavior: SnackBarBehavior.floating,
@@ -495,17 +465,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        errorMessage.trim(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
+                content: Text(
+                  errorMessage.trim(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 backgroundColor: HomeColors.expense,
                 behavior: SnackBarBehavior.floating,
@@ -524,17 +486,9 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '❌ Lỗi khi xóa: $e',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+              content: Text(
+                '❌ Lỗi khi xóa: $e',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               backgroundColor: HomeColors.expense,
               behavior: SnackBarBehavior.floating,
@@ -565,27 +519,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     // ✅ REALTIME: Trigger HomePage reload để cập nhật số dư
     mainNavigationKey.currentState?.refreshHomePage();
 
-    // Show success message if loan was added
-    if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              const Text(
-                '✅ Loan đã được thêm! Số dư đã cập nhật.',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          backgroundColor: HomeColors.income,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
 
     // ✅ REALTIME: Return true để trigger HomePage refresh khi quay về từ navigation
     // Điều này đảm bảo HomePage cập nhật số dư ngay khi user chuyển tab
@@ -626,27 +559,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
       // ✅ REALTIME: Trigger HomePage reload to update balance
       mainNavigationKey.currentState?.refreshHomePage();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                const Text(
-                  '✅ Khoản vay đã được cập nhật!',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            backgroundColor: HomeColors.income,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
     }
   }
 
@@ -834,30 +746,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
       // Close loading dialog
       Navigator.of(context).pop();
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  loan.loanType == 'lend'
-                      ? '✅ Đã thu hồi nợ từ ${loan.personName}!'
-                      : '✅ Đã trả nợ cho ${loan.personName}!',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: HomeColors.income,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
     } catch (e) {
       debugPrint('❌ Error marking loan as paid: $e');
 
@@ -869,13 +757,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(child: Text('❌ Lỗi: ${e.toString()}')),
-            ],
-          ),
+          content: Text('❌ Lỗi: ${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

@@ -4,7 +4,7 @@ import '../models/loan_filters.dart';
 import 'month_year_picker_dialog.dart';
 
 /// Bottom Sheet for Loan Time Filter
-/// Bộ lọc thời gian (theo thời điểm tạo khoản vay)
+/// Bộ lọc thời gian (theo ngày cho vay/đi vay thực tế - loan_date)
 class LoanTimeFilterSheet extends StatefulWidget {
   final LoanFilters initialFilters;
 
@@ -80,7 +80,7 @@ class _LoanTimeFilterSheetState extends State<LoanTimeFilterSheet> {
 
           // Time Filter Options
           Text(
-            'Lọc theo thời gian tạo',
+            'Lọc theo ngày cho vay/đi vay',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
