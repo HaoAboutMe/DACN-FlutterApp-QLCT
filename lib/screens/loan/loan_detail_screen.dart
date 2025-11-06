@@ -131,6 +131,162 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     }
   }
 
+  Future<void> _deleteLoan() async {
+    if (_loan == null) return;
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Xác nhận xóa',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bạn có chắc chắn muốn xóa khoản vay "${_loan!.personName}"?',
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Không thể xóa nếu khoản vay đã thanh toán hoặc có giao dịch liên quan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Hủy',
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF44336),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Đang xóa...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      await _databaseHelper.deleteLoan(_loan!.id!);
+
+      debugPrint('✅ Loan deleted successfully');
+
+      // Close loading dialog
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      // Trigger HomePage reload
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      // Pop back to previous screen with success flag
+      Navigator.of(context).pop(true);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('✅ Đã xóa khoản vay thành công'),
+          backgroundColor: const Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Error deleting loan: $e');
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show appropriate error message
+      String errorMessage = '❌ Không thể xóa khoản vay';
+      if (e.toString().contains('LOAN_ALREADY_PAID')) {
+        errorMessage = '⚠️ Không thể xóa khoản vay đã thanh toán';
+      } else if (e.toString().contains('LOAN_HAS_TRANSACTIONS')) {
+        errorMessage = '⚠️ Không thể xóa khoản vay vì đang được sử dụng trong giao dịch';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
   Future<void> _markLoanAsPaid() async {
     if (_loan == null || _loan!.status == 'completed' || _loan!.status == 'paid') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -464,6 +620,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             onPressed: _navigateToEditLoan,
             tooltip: 'Chỉnh sửa',
           ),
+          IconButton(
+            icon: Icon(Icons.delete, color: colorScheme.onSurface),
+            onPressed: _deleteLoan,
+            tooltip: 'Xóa',
+          ),
         ],
       ),
       body: _isLoading
@@ -718,43 +879,19 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ],
                   ),
                 ),
-      floatingActionButton: _loan != null
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Mark as Paid button (only show if loan is not paid)
-                if (_loan!.status != 'completed' && _loan!.status != 'paid')
-                  FloatingActionButton.extended(
-                    onPressed: _markLoanAsPaid,
-                    backgroundColor: const Color(0xFF4CAF50), // Green for success
-                    heroTag: 'markPaid',
-                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                    label: Text(
-                      _loan!.loanType == 'lend' ? 'Đã thu nợ' : 'Đã trả nợ',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                if (_loan!.status != 'completed' && _loan!.status != 'paid')
-                  const SizedBox(height: 12),
-                // Edit button
-                FloatingActionButton.extended(
-                  onPressed: _navigateToEditLoan,
-                  backgroundColor: colorScheme.primary,
-                  heroTag: 'edit',
-                  icon: const Icon(Icons.edit, color: Colors.white),
-                  label: const Text(
-                    'Chỉnh sửa',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+      floatingActionButton: _loan != null && _loan!.status != 'completed' && _loan!.status != 'paid'
+          ? FloatingActionButton.extended(
+              onPressed: _markLoanAsPaid,
+              backgroundColor: const Color(0xFF4CAF50), // Green for success
+              heroTag: 'markPaid',
+              icon: const Icon(Icons.check_circle, color: Colors.white),
+              label: Text(
+                _loan!.loanType == 'lend' ? 'Đã thu nợ' : 'Đã trả nợ',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
             )
           : null,
       ), // Close PopScope
