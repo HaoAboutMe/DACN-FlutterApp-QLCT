@@ -41,9 +41,25 @@ class AllBudgetsWidget extends StatelessWidget {
       elevation: 2,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.08),
+              blurRadius: isDark ? 8 : 10,
+              offset: Offset(0, isDark ? 3 : 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.all(16),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header với nút "Xem tất cả"
@@ -112,6 +128,8 @@ class AllBudgetsWidget extends StatelessWidget {
             ],
           ],
         ),
+          ),
+        ),
       ),
     );
   }
@@ -147,7 +165,12 @@ class AllBudgetsWidget extends StatelessWidget {
               budgetId: budgetId,
             ),
           ),
-        );
+        ).then((result) {
+          // Refresh budget data if changes were made
+          if (result == true) {
+            onRefresh();
+          }
+        });
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -278,13 +301,18 @@ class AllBudgetsWidget extends StatelessWidget {
                 categoryId: data['categoryId'] as int,
                 categoryName: categoryName,
                 categoryIcon: categoryIcon,
-                budgetId: budgetId,
                 startDate: DateTime.parse(data['startDate'] as String),
                 endDate: DateTime.parse(data['endDate'] as String),
                 budgetAmount: budgetAmount,
+                budgetId: budgetId,
               ),
             ),
-          );
+          ).then((result) {
+            // Refresh budget data if changes were made
+            if (result == true) {
+              onRefresh();
+            }
+          });
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -395,51 +423,56 @@ class AllBudgetsWidget extends StatelessWidget {
           });
         },
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
             children: [
+              // Icon bên trái
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.account_balance_wallet_outlined,
-                  size: 40,
+                  size: 28,
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Chưa có ngân sách',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+              const SizedBox(width: 16),
+
+              // Text ở giữa
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Chưa có ngân sách',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tạo ngân sách để theo dõi chi tiêu',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tạo ngân sách để theo dõi chi tiêu',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
                     ),
-                textAlign: TextAlign.center,
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(width: 12),
+
+              // Nút thêm bên phải
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -449,9 +482,9 @@ class AllBudgetsWidget extends StatelessWidget {
                       color: Colors.white,
                       size: 18,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
-                      'Thêm ngân sách mới',
+                      'Thêm',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

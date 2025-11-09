@@ -38,9 +38,18 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
   List<transaction_model.Transaction> _transactions = [];
   double _totalSpent = 0;
 
+  // Track current budget amount (can be updated after edit)
+  late double _currentBudgetAmount;
+  late DateTime _currentStartDate;
+  late DateTime _currentEndDate;
+
   @override
   void initState() {
     super.initState();
+    // Initialize with widget values
+    _currentBudgetAmount = widget.budgetAmount;
+    _currentStartDate = widget.startDate;
+    _currentEndDate = widget.endDate;
     _loadTransactions();
   }
 
@@ -50,10 +59,10 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     // Tạo đối tượng Budget để chỉnh sửa
     final budget = Budget(
       id: widget.budgetId,
-      amount: widget.budgetAmount,
+      amount: _currentBudgetAmount,
       categoryId: widget.categoryId,
-      startDate: widget.startDate,
-      endDate: widget.endDate,
+      startDate: _currentStartDate,
+      endDate: _currentEndDate,
       createdAt: DateTime.now(),
     );
 
@@ -65,8 +74,48 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     );
 
     if (result == true) {
-      // Reload data or go back to BudgetListScreen
-      Navigator.pop(context, true);
+      // Reload budget info from database
+      if (widget.budgetId != null) {
+        final updatedBudget = await _databaseHelper.getBudgetById(widget.budgetId!);
+        if (updatedBudget != null) {
+          // Check if category changed
+          if (updatedBudget.categoryId != widget.categoryId) {
+            // Category changed - go back to BudgetListScreen
+            if (mounted) {
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   const SnackBar(
+              //     content: Text('Đã cập nhật ngân sách'),
+              //     backgroundColor: Colors.green,
+              //     duration: Duration(seconds: 2),
+              //   ),
+              // );
+              Navigator.pop(context, true); // Return to BudgetListScreen
+            }
+            return;
+          }
+
+          // Category not changed - update and reload
+          setState(() {
+            _currentBudgetAmount = updatedBudget.amount;
+            _currentStartDate = updatedBudget.startDate;
+            _currentEndDate = updatedBudget.endDate;
+          });
+        }
+      }
+
+      // Reload data to show updated budget info
+      await _loadTransactions();
+
+      // Show success message only once
+      if (mounted) {
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(
+        //     content: Text('Đã cập nhật ngân sách'),
+        //     backgroundColor: Colors.green,
+        //     duration: Duration(seconds: 2),
+        //   ),
+        // );
+      }
     }
   }
 
@@ -98,12 +147,12 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
       try {
         await _databaseHelper.deleteBudget(widget.budgetId!);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã xóa ngân sách'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   const SnackBar(
+          //     content: Text('Đã xóa ngân sách'),
+          //     backgroundColor: Colors.green,
+          //   ),
+          // );
           // Go back to BudgetListScreen
           Navigator.pop(context, true);
         }
@@ -124,10 +173,10 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     setState(() => _isLoading = true);
 
     try {
-      // Lấy tất cả giao dịch trong khoảng thời gian
+      // Lấy tất cả giao dịch trong khoảng thời gian (use current dates)
       final allTransactions = await _databaseHelper.getTransactionsByDateRange(
-        widget.startDate,
-        widget.endDate,
+        _currentStartDate,
+        _currentEndDate,
       );
 
       // Lọc chỉ lấy giao dịch chi tiêu của danh mục này
@@ -158,34 +207,46 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
     final dateFormat = DateFormat('dd/MM/yyyy');
-    final progressPercentage = widget.budgetAmount > 0
-        ? (_totalSpent / widget.budgetAmount) * 100
+    final progressPercentage = _currentBudgetAmount > 0
+        ? (_totalSpent / _currentBudgetAmount) * 100
         : 0.0;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: isDark
-            ? Theme.of(context).scaffoldBackgroundColor
-            : Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
-          children: [
-            Icon(
-              IconHelper.getCategoryIcon(widget.categoryIcon),
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                widget.categoryName,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (!didPop) {
+          // Return true when user presses back button to trigger refresh on previous screen
+          Navigator.pop(context, true);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: isDark
+              ? Theme.of(context).scaffoldBackgroundColor
+              : Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                IconHelper.getCategoryIcon(widget.categoryIcon),
+                size: 24,
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.categoryName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
         actions: widget.budgetId != null ? [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -228,7 +289,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${dateFormat.format(widget.startDate)} - ${dateFormat.format(widget.endDate)}',
+                        '${dateFormat.format(_currentStartDate)} - ${dateFormat.format(_currentEndDate)}',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -251,7 +312,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
                                 currencyFormat.format(_totalSpent),
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: _totalSpent > widget.budgetAmount
+                                      color: _totalSpent > _currentBudgetAmount
                                           ? Colors.red
                                           : Colors.orange,
                                     ),
@@ -269,7 +330,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                currencyFormat.format(widget.budgetAmount),
+                                currencyFormat.format(_currentBudgetAmount),
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -320,6 +381,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
                 ),
               ],
             ),
+      )
     );
   }
 
