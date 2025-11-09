@@ -366,28 +366,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 24),
 
-                      // Hiển thị tất cả ngân sách đang hoạt động
-                      if (_overallBudgetProgress != null || _categoryBudgets.isNotEmpty)
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: AllBudgetsWidget(
-                            overallBudget: _overallBudgetProgress,
-                            categoryBudgets: _categoryBudgets,
-                            onRefresh: _loadBudgetProgress,
-                          ),
+                      // Hiển thị tất cả ngân sách đang hoạt động (luôn hiển thị)
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
+                        child: AllBudgetsWidget(
+                          overallBudget: _overallBudgetProgress,
+                          categoryBudgets: _categoryBudgets,
+                          onRefresh: _loadBudgetProgress,
+                        ),
+                      ),
 
-                      if (_overallBudgetProgress != null || _categoryBudgets.isNotEmpty)
-                        const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
                       QuickActions(
                         onIncomePressed: () => _navigateToAddTransaction('income'),

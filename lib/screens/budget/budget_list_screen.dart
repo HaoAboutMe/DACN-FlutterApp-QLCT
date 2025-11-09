@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/budget.dart';
+import '../../models/category.dart';
 import '../../utils/icon_helper.dart';
 import 'add_budget_screen.dart';
 import 'budget_category_transaction_screen.dart';
+import 'overall_budget_transaction_screen.dart';
 
 /// Màn hình quản lý ngân sách chi tiết
 class BudgetListScreen extends StatefulWidget {
@@ -23,7 +25,86 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadBudgetData();
+    _initializeDefaultCategories();
+  }
+
+  /// Initialize default categories if database is empty
+  Future<void> _initializeDefaultCategories() async {
+    try {
+      // Check if categories exist, if not, create default ones
+      final existingCategories = await _databaseHelper.getAllCategories();
+
+      if (existingCategories.isEmpty) {
+        // Create default categories (same as in AddTransactionPage)
+        final defaultCategories = [
+          Category(
+            name: 'Ăn uống',
+            icon: 'restaurant',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Mua sắm',
+            icon: 'shopping_bag',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Đi lại',
+            icon: 'directions_car',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Giải trí',
+            icon: 'movie',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Y tế',
+            icon: 'medical_services',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Lương',
+            icon: 'attach_money',
+            type: 'income',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Thưởng',
+            icon: 'card_giftcard',
+            type: 'income',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Đầu tư',
+            icon: 'trending_up',
+            type: 'income',
+            createdAt: DateTime.now(),
+          ),
+          Category(
+            name: 'Khác',
+            icon: 'more_horiz',
+            type: 'expense',
+            createdAt: DateTime.now(),
+          ),
+        ];
+
+        // Insert default categories
+        for (final category in defaultCategories) {
+          await _databaseHelper.insertCategory(category);
+        }
+      }
+
+      // Load budget data after initialization
+      await _loadBudgetData();
+    } catch (e) {
+      debugPrint('Error initializing default categories: $e');
+      await _loadBudgetData();
+    }
   }
 
   Future<void> _loadBudgetData() async {
@@ -199,12 +280,35 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final isOverBudget = data['isOverBudget'] as bool;
     final remainingAmount = budgetAmount - totalSpent;
     final progressColor = _getProgressColor(progressPercentage);
+    final budgetId = data['budgetId'] as int;
+    final startDate = DateTime.parse(data['startDate'] as String);
+    final endDate = DateTime.parse(data['endDate'] as String);
 
     return Card(
       elevation: isDark ? 4 : 2,
       color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
+      child: InkWell(
+        onTap: () {
+          // Điều hướng đến màn hình hiển thị toàn bộ giao dịch của ngân sách tổng
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OverallBudgetTransactionScreen(
+                startDate: startDate,
+                endDate: endDate,
+                budgetAmount: budgetAmount,
+                budgetId: budgetId,
+              ),
+            ),
+          ).then((result) {
+            if (result == true) {
+              _loadBudgetData();
+            }
+          });
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
@@ -359,7 +463,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildBudgetCategoryCard(
@@ -607,9 +711,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           startDate: DateTime.parse(item['startDate'] as String),
           endDate: DateTime.parse(item['endDate'] as String),
           budgetAmount: (item['budgetAmount'] as num).toDouble(),
+          budgetId: item['budgetId'] as int,
         ),
       ),
-    );
+    ).then((result) {
+      if (result == true) {
+        _loadBudgetData();
+      }
+    });
   }
 }
 

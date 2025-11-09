@@ -7,21 +7,15 @@ import '../../utils/icon_helper.dart';
 import '../transaction/transaction_detail_screen.dart';
 import 'add_budget_screen.dart';
 
-/// Màn hình hiển thị chi tiết giao dịch theo danh mục trong khoảng thời gian ngân sách
-class BudgetCategoryTransactionScreen extends StatefulWidget {
-  final int categoryId;
-  final String categoryName;
-  final String categoryIcon;
+/// Màn hình hiển thị toàn bộ giao dịch trong khoảng thời gian ngân sách tổng
+class OverallBudgetTransactionScreen extends StatefulWidget {
   final DateTime startDate;
   final DateTime endDate;
   final double budgetAmount;
   final int? budgetId; // ID của ngân sách để có thể edit/delete
 
-  const BudgetCategoryTransactionScreen({
+  const OverallBudgetTransactionScreen({
     super.key,
-    required this.categoryId,
-    required this.categoryName,
-    required this.categoryIcon,
     required this.startDate,
     required this.endDate,
     required this.budgetAmount,
@@ -29,19 +23,21 @@ class BudgetCategoryTransactionScreen extends StatefulWidget {
   });
 
   @override
-  State<BudgetCategoryTransactionScreen> createState() => _BudgetCategoryTransactionScreenState();
+  State<OverallBudgetTransactionScreen> createState() => _OverallBudgetTransactionScreenState();
 }
 
-class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransactionScreen> {
+class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactionScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   bool _isLoading = true;
   List<transaction_model.Transaction> _transactions = [];
   double _totalSpent = 0;
+  Map<int, String> _categoryNames = {};
+  Map<int, String> _categoryIcons = {};
 
   @override
   void initState() {
     super.initState();
-    _loadTransactions();
+    _loadData();
   }
 
   Future<void> _editBudget() async {
@@ -51,7 +47,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     final budget = Budget(
       id: widget.budgetId,
       amount: widget.budgetAmount,
-      categoryId: widget.categoryId,
+      categoryId: null, // Overall budget không có categoryId
       startDate: widget.startDate,
       endDate: widget.endDate,
       createdAt: DateTime.now(),
@@ -77,7 +73,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa ngân sách cho "${widget.categoryName}"?'),
+        content: const Text('Bạn có chắc muốn xóa ngân sách tổng này?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -120,31 +116,49 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     }
   }
 
-  Future<void> _loadTransactions() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
+      // Load all categories for name/icon mapping
+      final categories = await _databaseHelper.getAllCategories();
+      final categoryNameMap = <int, String>{};
+      final categoryIconMap = <int, String>{};
+
+      for (var category in categories) {
+        if (category.id != null) {
+          categoryNameMap[category.id!] = category.name;
+          categoryIconMap[category.id!] = category.icon;
+        }
+      }
+
       // Lấy tất cả giao dịch trong khoảng thời gian
       final allTransactions = await _databaseHelper.getTransactionsByDateRange(
         widget.startDate,
         widget.endDate,
       );
 
-      // Lọc chỉ lấy giao dịch chi tiêu của danh mục này
-      final categoryTransactions = allTransactions.where((transaction) {
-        return transaction.categoryId == widget.categoryId &&
-               transaction.type == 'expense';
+      // Lọc chỉ lấy giao dịch chi tiêu và các giao dịch từ Loan (cho vay, trả nợ)
+      final expenseTransactions = allTransactions.where((transaction) {
+        return transaction.type == 'expense' ||
+               transaction.type == 'loan_given' ||
+               transaction.type == 'debt_paid';
       }).toList();
+
+      // Sắp xếp theo ngày giảm dần (mới nhất trên cùng)
+      expenseTransactions.sort((a, b) => b.date.compareTo(a.date));
 
       // Tính tổng chi tiêu
       double total = 0;
-      for (var transaction in categoryTransactions) {
+      for (var transaction in expenseTransactions) {
         total += transaction.amount;
       }
 
       setState(() {
-        _transactions = categoryTransactions;
+        _transactions = expenseTransactions;
         _totalSpent = total;
+        _categoryNames = categoryNameMap;
+        _categoryIcons = categoryIconMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -170,18 +184,18 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
             : Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
+        title: const Row(
           children: [
             Icon(
-              IconHelper.getCategoryIcon(widget.categoryIcon),
+              Icons.account_balance_wallet,
               size: 24,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
-                widget.categoryName,
+                'Tổng ngân sách',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -328,6 +342,10 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
+    // Get category name and icon
+    final categoryName = _categoryNames[transaction.categoryId] ?? 'Khác';
+    final categoryIcon = _categoryIcons[transaction.categoryId] ?? 'more_horiz';
+
     // Use primary color for icon (red for expense category)
     final iconColor = Colors.red;
     final iconBackgroundColor = iconColor.withValues(alpha: 0.1);
@@ -344,7 +362,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
-            IconHelper.getCategoryIcon(widget.categoryIcon),
+            IconHelper.getCategoryIcon(categoryIcon),
             color: iconColor,
             size: 24,
           ),
@@ -353,12 +371,24 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
           transaction.description,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          dateFormat.format(transaction.date),
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 13,
-          ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              categoryName,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              dateFormat.format(transaction.date),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
         trailing: Text(
           '-${currencyFormat.format(transaction.amount)}',
@@ -379,7 +409,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
           ).then((result) {
             // Reload transactions if any changes were made
             if (result == true) {
-              _loadTransactions();
+              _loadData();
             }
           });
         },
