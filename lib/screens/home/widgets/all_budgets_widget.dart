@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../utils/icon_helper.dart';
 import '../../budget/budget_list_screen.dart';
 import '../../budget/budget_category_transaction_screen.dart';
+import '../../budget/overall_budget_transaction_screen.dart';
+import '../../budget/add_budget_screen.dart';
 
 /// Widget hiển thị tất cả ngân sách đang hoạt động trên HomePage
 class AllBudgetsWidget extends StatelessWidget {
@@ -29,18 +31,35 @@ class AllBudgetsWidget extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
-    // Nếu không có ngân sách nào, không hiển thị gì
+    // Luôn hiển thị container ngân sách
+    // Nếu không có ngân sách nào, hiển thị empty state
     if (overallBudget == null && categoryBudgets.isEmpty) {
-      return const SizedBox.shrink();
+      return _buildEmptyBudgetCard(context, isDark);
     }
 
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.08),
+              blurRadius: isDark ? 8 : 10,
+              offset: Offset(0, isDark ? 3 : 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.all(16),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header với nút "Xem tất cả"
@@ -109,6 +128,8 @@ class AllBudgetsWidget extends StatelessWidget {
             ],
           ],
         ),
+          ),
+        ),
       ),
     );
   }
@@ -127,18 +148,42 @@ class AllBudgetsWidget extends StatelessWidget {
 
     final startDate = DateFormat('dd/MM').format(DateTime.parse(data['startDate'] as String));
     final endDate = DateFormat('dd/MM').format(DateTime.parse(data['endDate'] as String));
+    final startDateTime = DateTime.parse(data['startDate'] as String);
+    final endDateTime = DateTime.parse(data['endDate'] as String);
+    final budgetId = data['budgetId'] as int;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: progressColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: progressColor.withValues(alpha: 0.2),
-          width: 1,
+    return InkWell(
+      onTap: () {
+        // Điều hướng đến màn hình hiển thị toàn bộ giao dịch của ngân sách tổng
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OverallBudgetTransactionScreen(
+              startDate: startDateTime,
+              endDate: endDateTime,
+              budgetAmount: budgetAmount,
+              budgetId: budgetId,
+            ),
+          ),
+        ).then((result) {
+          // Refresh budget data if changes were made
+          if (result == true) {
+            onRefresh();
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: progressColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: progressColor.withValues(alpha: 0.2),
+            width: 1,
+          ),
         ),
-      ),
-      child: Column(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -213,6 +258,7 @@ class AllBudgetsWidget extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -227,6 +273,7 @@ class AllBudgetsWidget extends StatelessWidget {
     final budgetAmount = (data['budgetAmount'] as num).toDouble();
     final totalSpent = (data['totalSpent'] as num).toDouble();
     final progressPercentage = (data['progressPercentage'] as num).toDouble();
+    final budgetId = data['budgetId'] as int;
     final isOverBudget = data['isOverBudget'] as bool;
     final progressColor = _getProgressColor(progressPercentage);
 
@@ -257,9 +304,15 @@ class AllBudgetsWidget extends StatelessWidget {
                 startDate: DateTime.parse(data['startDate'] as String),
                 endDate: DateTime.parse(data['endDate'] as String),
                 budgetAmount: budgetAmount,
+                budgetId: budgetId,
               ),
             ),
-          );
+          ).then((result) {
+            // Refresh budget data if changes were made
+            if (result == true) {
+              onRefresh();
+            }
+          });
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -343,6 +396,104 @@ class AllBudgetsWidget extends StatelessWidget {
                   ],
                 ),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyBudgetCard(BuildContext context, bool isDark) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddBudgetScreen(),
+            ),
+          ).then((result) {
+            if (result == true) {
+              onRefresh();
+            }
+          });
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              // Icon bên trái
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 28,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Text ở giữa
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Chưa có ngân sách',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tạo ngân sách để theo dõi chi tiêu',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Nút thêm bên phải
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Thêm',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
