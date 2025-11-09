@@ -304,16 +304,21 @@ class NotificationService {
     return await dbHelper.getUnreadNotificationCount();
   }
 
-  /// Đếm số khoản vay sắp đến hạn (trong vòng 7 ngày)
+  /// Đếm số khoản vay sắp đến hạn (dựa vào reminderDays của từng loan)
   Future<int> getUpcomingLoansCount() async {
     final dbHelper = DatabaseHelper();
     final now = DateTime.now();
     final loans = await dbHelper.getActiveLoansWithReminders();
 
     return loans.where((loan) {
-      if (loan.dueDate == null) return false;
+      if (loan.dueDate == null || loan.reminderDays == null) return false;
       final daysUntilDue = loan.dueDate!.difference(now).inDays;
-      return daysUntilDue >= 0 && daysUntilDue <= 7;
+      // Đếm loan nếu:
+      // - Còn thời gian đến hạn (>= 0)
+      // - Đã vào khoảng thời gian nhắc nhở (<= reminderDays)
+      // VD: dueDate = 11/11, reminderDays = 3, today = 9/11
+      //     → daysUntilDue = 2, reminderDays = 3 → hiển thị badge
+      return daysUntilDue >= 0 && daysUntilDue <= loan.reminderDays!;
     }).length;
   }
 
