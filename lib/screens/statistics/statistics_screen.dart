@@ -153,11 +153,12 @@ class ExpenseDataProvider extends ChangeNotifier {
     // Khởi tạo danh mục với số tiền = 0
     for (final categoryData in categoriesResult) {
       final categoryId = categoryData['id'] as int;
+      final categoryName = categoryData['name'] as String;
       categoryMap[categoryId] = ExpenseCategory(
-        name: categoryData['name'] as String,
+        name: categoryName,
         amount: 0,
         icon: _getIconFromString(categoryData['icon'] as String),
-        color: _getColorForCategory(categoryData['name'] as String),
+        color: _getColorForCategory(categoryName, categoryId),
         percentage: 0,
       );
     }
@@ -201,11 +202,12 @@ class ExpenseDataProvider extends ChangeNotifier {
     // Khởi tạo danh mục với số tiền = 0
     for (final categoryData in categoriesResult) {
       final categoryId = categoryData['id'] as int;
+      final categoryName = categoryData['name'] as String;
       categoryMap[categoryId] = ExpenseCategory(
-        name: categoryData['name'] as String,
+        name: categoryName,
         amount: 0,
         icon: _getIconFromString(categoryData['icon'] as String),
-        color: _getColorForIncomeCategory(categoryData['name'] as String),
+        color: _getColorForIncomeCategory(categoryName, categoryId),
         percentage: 0,
       );
     }
@@ -335,7 +337,8 @@ class ExpenseDataProvider extends ChangeNotifier {
   }
 
   // Lấy màu cho danh mục chi tiêu
-  Color _getColorForCategory(String categoryName) {
+  Color _getColorForCategory(String categoryName, int categoryId) {
+    // Màu cho các danh mục mặc định
     final colorMap = {
       'Ăn uống': const Color(0xFFFF8A65),
       'Di chuyển': AppTheme.secondaryBlue,
@@ -350,11 +353,19 @@ class ExpenseDataProvider extends ChangeNotifier {
       'Điện': const Color(0xFFFFEB3B),
       'Nước': const Color(0xFF2196F3),
     };
-    return colorMap[categoryName] ?? AppTheme.primaryBlue;
+
+    // Nếu là danh mục mặc định, dùng màu đã định nghĩa
+    if (colorMap.containsKey(categoryName)) {
+      return colorMap[categoryName]!;
+    }
+
+    // Với danh mục do người dùng tạo, sinh màu dựa trên ID để đảm bảo tính ổn định
+    return _generateColorFromId(categoryId);
   }
 
   // Lấy màu cho danh mục thu nhập
-  Color _getColorForIncomeCategory(String categoryName) {
+  Color _getColorForIncomeCategory(String categoryName, int categoryId) {
+    // Màu cho các danh mục mặc định
     final colorMap = {
       'Lương': const Color(0xFF4CAF50),
       'Thưởng': const Color(0xFF8BC34A),
@@ -362,7 +373,55 @@ class ExpenseDataProvider extends ChangeNotifier {
       'Kinh doanh': const Color(0xFF03A9F4),
       'Khác': const Color(0xFFFF9800),
     };
-    return colorMap[categoryName] ?? const Color(0xFF4CAF50);
+
+    // Nếu là danh mục mặc định, dùng màu đã định nghĩa
+    if (colorMap.containsKey(categoryName)) {
+      return colorMap[categoryName]!;
+    }
+
+    // Với danh mục do người dùng tạo, sinh màu dựa trên ID để đảm bảo tính ổn định
+    return _generateColorFromId(categoryId);
+  }
+
+  // Sinh màu ngẫu nhiên nhưng ổn định dựa trên ID
+  // Đảm bảo màu có độ tương phản tốt và dễ phân biệt
+  Color _generateColorFromId(int id) {
+    // Danh sách màu đẹp và dễ phân biệt (Material Design palette)
+    final colorPalette = [
+      const Color(0xFF64B5F6), // Blue 300
+      const Color(0xFF4FC3F7), // Light Blue 300
+      const Color(0xFF4DD0E1), // Cyan 300
+      const Color(0xFF4DB6AC), // Teal 300
+      const Color(0xFF81C784), // Green 300
+      const Color(0xFFAED581), // Light Green 300
+      const Color(0xFFFFD54F), // Amber 300
+      const Color(0xFFFFB74D), // Orange 300
+      const Color(0xFFE57373), // Red 300
+      const Color(0xFFBA68C8), // Purple 300
+      const Color(0xFF9575CD), // Deep Purple 300
+      const Color(0xFF7986CB), // Indigo 300
+      const Color(0xFF90A4AE), // Blue Grey 300
+      const Color(0xFFEF5350), // Red 400
+      const Color(0xFFAB47BC), // Purple 400
+      const Color(0xFF7E57C2), // Deep Purple 400
+      const Color(0xFF5C6BC0), // Indigo 400
+      const Color(0xFF42A5F5), // Blue 400
+      const Color(0xFF29B6F6), // Light Blue 400
+      const Color(0xFF26C6DA), // Cyan 400
+      const Color(0xFF26A69A), // Teal 400
+      const Color(0xFF66BB6A), // Green 400
+      const Color(0xFF9CCC65), // Light Green 400
+      const Color(0xFFFFCA28), // Amber 400
+      const Color(0xFFFFA726), // Orange 400
+      const Color(0xFF8D6E63), // Brown 400
+      const Color(0xFF78909C), // Blue Grey 400
+      const Color(0xFFEC407A), // Pink 400
+      const Color(0xFFF06292), // Pink 300
+      const Color(0xFFA1887F), // Brown 300
+    ];
+
+    // Sử dụng ID để chọn màu từ palette, đảm bảo tính ổn định
+    return colorPalette[id % colorPalette.length];
   }
 
   void changeMonth(bool isNext) {

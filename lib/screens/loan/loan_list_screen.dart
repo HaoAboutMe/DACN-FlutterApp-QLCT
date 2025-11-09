@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../models/loan_filters.dart';
 import '../../models/transaction.dart' as transaction_model;
+import '../../providers/notification_provider.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/loan_filter_sheet.dart';
 import '../../widgets/loan_time_filter_sheet.dart';
@@ -533,6 +535,10 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     // ✅ REALTIME: Trigger HomePage reload để cập nhật số dư
     mainNavigationKey.currentState?.refreshHomePage();
 
+    // ✅ Cập nhật badge ngay sau khi thêm loan
+    if (mounted) {
+      context.read<NotificationProvider>().updateBadgeCounts();
+    }
 
     // ✅ REALTIME: Return true để trigger HomePage refresh khi quay về từ navigation
     // Điều này đảm bảo HomePage cập nhật số dư ngay khi user chuyển tab
@@ -552,6 +558,11 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       await _loadLoans();
       // Also trigger HomePage reload in case balance changed
       mainNavigationKey.currentState?.refreshHomePage();
+
+      // ✅ Cập nhật badge sau khi edit loan (có thể thay đổi reminderDays hoặc dueDate)
+      if (mounted) {
+        context.read<NotificationProvider>().updateBadgeCounts();
+      }
     }
   }
 
@@ -1195,7 +1206,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                               left: 16,
                               right: 16,
                               top: 16,
-                              bottom: 200, // Extra bottom padding to ensure scrollability
+                              bottom: 100, // Bottom padding để tránh navigation bar
                             ),
                             itemCount: _filteredLoans.length,
                             itemBuilder: (context, index) {

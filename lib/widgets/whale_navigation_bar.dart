@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/notification_provider.dart';
 
 /// Custom Navigation Bar với theme "cá voi" - bo tròn, tone xanh biển
 /// Hỗ trợ animation ẩn/hiện khi scroll
@@ -54,40 +56,51 @@ class WhaleNavigationBar extends StatelessWidget {
             top: 8,
             bottom: bottomPadding > 0 ? bottomPadding : 8,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                context: context,
-                index: 0,
-                icon: Icons.home_rounded,
-                label: 'Trang chủ',
-              ),
-              _buildNavItem(
-                context: context,
-                index: 1,
-                icon: Icons.swap_horiz_rounded,
-                label: 'Giao dịch',
-              ),
-              _buildNavItem(
-                context: context,
-                index: 2,
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Cho vay',
-              ),
-              _buildNavItem(
-                context: context,
-                index: 3,
-                icon: Icons.bar_chart_rounded,
-                label: 'Thống kê',
-              ),
-              _buildNavItem(
-                context: context,
-                index: 4,
-                icon: Icons.person_rounded,
-                label: 'Cá nhân',
-              ),
-            ],
+          child: Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              final upcomingLoansCount = notificationProvider.upcomingLoansCount;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    context: context,
+                    index: 0,
+                    icon: Icons.home_rounded,
+                    label: 'Trang chủ',
+                    badgeCount: 0,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    index: 1,
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'Giao dịch',
+                    badgeCount: 0,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    index: 2,
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'Cho vay',
+                    badgeCount: upcomingLoansCount,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    index: 3,
+                    icon: Icons.bar_chart_rounded,
+                    label: 'Thống kê',
+                    badgeCount: 0,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    index: 4,
+                    icon: Icons.person_rounded,
+                    label: 'Cá nhân',
+                    badgeCount: 0,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -99,6 +112,7 @@ class WhaleNavigationBar extends StatelessWidget {
     required int index,
     required IconData icon,
     required String label,
+    int badgeCount = 0,
   }) {
     final isSelected = currentIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -118,27 +132,62 @@ class WhaleNavigationBar extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon với hiệu ứng sóng khi được chọn
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                padding: EdgeInsets.all(isSelected ? 8 : 4),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF00A8CC).withValues(alpha: 0.15)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: AnimatedScale(
-                  scale: isSelected ? 1.2 : 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
+              // Icon với hiệu ứng sóng khi được chọn và badge
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    padding: EdgeInsets.all(isSelected ? 8 : 4),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF00A8CC).withValues(alpha: 0.15)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: AnimatedScale(
+                      scale: isSelected ? 1.2 : 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: Icon(
+                        icon,
+                        color: color,
+                        size: 24,
+                      ),
+                    ),
                   ),
-                ),
+                  // Badge
+                  if (badgeCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF2d3a4a) : Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          badgeCount > 9 ? '9+' : badgeCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               // Label với animation fade

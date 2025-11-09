@@ -852,7 +852,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               )
                   : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // Thêm bottom padding để tránh navigation bar
                 itemCount: _transactions.length,
                 itemBuilder: (ctx, i) {
                   final transaction = _transactions[i];

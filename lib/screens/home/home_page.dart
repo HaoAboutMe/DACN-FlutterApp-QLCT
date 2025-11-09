@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
+import '../../providers/notification_provider.dart';
 import 'widgets/greeting_appbar.dart';
 import 'widgets/balance_overview.dart';
 import 'widgets/quick_actions.dart';
@@ -12,6 +14,7 @@ import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
 import '../budget/budget_list_screen.dart';
 import '../transaction/transaction_detail_screen.dart';
+import '../notification/notification_list_screen.dart';
 import '../main_navigation_wrapper.dart';
 
 class HomePage extends StatefulWidget {
@@ -295,9 +298,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   void _handleNotificationPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tính năng thông báo sẽ được phát triển sau')),
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationListScreen(),
+      ),
+    ).then((_) {
+      // Cập nhật badge count khi quay lại
+      if (mounted) {
+        context.read<NotificationProvider>().updateBadgeCounts();
+      }
+    });
   }
 
   /// Navigate to transaction detail screen and refresh data when returning
@@ -341,7 +352,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Thêm bottom padding để tránh navigation bar
                   child: Column(
                     children: [
                       BalanceOverview(

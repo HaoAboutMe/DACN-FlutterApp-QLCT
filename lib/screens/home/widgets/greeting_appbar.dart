@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../models/user.dart';
+import '../../../providers/notification_provider.dart';
+import '../../../widgets/notification_badge.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
 
@@ -99,49 +102,33 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildNotificationButton(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        icon: Stack(
-          children: [
-            const Icon(
-              HomeIcons.notification,
-              color: Colors.white,
-              size: 22,
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: HomeColors.notificationBadge,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 14,
-                  minHeight: 14,
-                ),
-                child: const Text(
-                  '0',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, child) {
+        final unreadCount = notificationProvider.unreadCount;
+
+        return Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            icon: NotificationBadge(
+              count: unreadCount,
+              showCount: true,
+              badgeColor: HomeColors.notificationBadge,
+              child: const Icon(
+                HomeIcons.notification,
+                color: Colors.white,
+                size: 22,
               ),
             ),
-          ],
-        ),
-        onPressed: onNotificationPressed,
-      ),
+            onPressed: onNotificationPressed,
+          ),
+        );
+      },
     );
   }
 }
