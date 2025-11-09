@@ -37,6 +37,12 @@ class IconHelper {
     'electrical_services': Icons.electrical_services,
     'category': Icons.category,
     'other': Icons.category,
+
+    // ✅ Bổ sung icon cho các loại giao dịch khoản vay / nợ
+    'call_made': Icons.call_made, // Cho vay
+    'call_received': Icons.call_received, // Đi vay
+    'payment': Icons.payment, // Trả nợ
+    'account_balance_wallet': Icons.account_balance_wallet, // Thu nợ
   };
 
   /// Build icon từ categoryIcon string

@@ -411,11 +411,11 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
     switch (transaction.type) {
       case 'loan_given':
         categoryName = 'Cho vay';
-        categoryIcon = 'arrow_upward';
+        categoryIcon = 'call_made';
         break;
       case 'loan_received':
         categoryName = 'Đi vay';
-        categoryIcon = 'arrow_downward';
+        categoryIcon = 'call_received';
         break;
       case 'debt_paid':
         categoryName = 'Trả nợ';
@@ -423,7 +423,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
         break;
       case 'debt_collected':
         categoryName = 'Thu nợ';
-        categoryIcon = 'attach_money';
+        categoryIcon = 'account_balance_wallet';
         break;
       default:
         // For regular income/expense transactions, get from category mapping
