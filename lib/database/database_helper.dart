@@ -2165,4 +2165,161 @@ class DatabaseHelper {
       rethrow;
     }
   }
+
+  // ==================== Phương thức hỗ trợ Notification System ====================
+
+  /// Lấy tất cả khoản vay đang active và có bật nhắc nhở
+  Future<List<Loan>> getActiveLoansWithReminders() async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableLoans,
+        where: '$_colLoanStatus IN (?, ?) AND $_colLoanReminderEnabled = ?',
+        whereArgs: ['active', 'overdue', 1],
+        orderBy: '$_colLoanDueDate ASC',
+      );
+      return List.generate(maps.length, (i) => Loan.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy active loans với reminders: $e');
+      rethrow;
+    }
+  }
+
+  /// Cập nhật thời gian gửi nhắc nhở cuối cùng cho loan
+  Future<int> updateLoanLastReminderSent(int loanId, DateTime sentAt) async {
+    try {
+      final db = await database;
+      final count = await db.update(
+        _tableLoans,
+        {
+          _colLoanLastReminderSent: sentAt.toIso8601String(),
+          _colLoanUpdatedAt: DateTime.now().toIso8601String(),
+        },
+        where: '$_colLoanId = ?',
+        whereArgs: [loanId],
+      );
+      log('Cập nhật last reminder sent cho loan $loanId');
+      return count;
+    } catch (e) {
+      log('Lỗi cập nhật last reminder sent: $e');
+      rethrow;
+    }
+  }
+
+  /// Cập nhật trạng thái của loan
+  Future<int> updateLoanStatus(int loanId, String status) async {
+    try {
+      final db = await database;
+      final count = await db.update(
+        _tableLoans,
+        {
+          _colLoanStatus: status,
+          _colLoanUpdatedAt: DateTime.now().toIso8601String(),
+        },
+        where: '$_colLoanId = ?',
+        whereArgs: [loanId],
+      );
+      log('Cập nhật trạng thái loan $loanId thành $status');
+      return count;
+    } catch (e) {
+      log('Lỗi cập nhật trạng thái loan: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy danh sách notification theo loanId
+  Future<List<NotificationData>> getNotificationsByLoanId(int loanId) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableNotifications,
+        where: '$_colNotificationLoanId = ?',
+        whereArgs: [loanId],
+        orderBy: '$_colNotificationSentAt DESC',
+      );
+      return List.generate(maps.length, (i) => NotificationData.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy notifications theo loanId: $e');
+      rethrow;
+    }
+  }
+
+  /// Đếm số notification chưa đọc
+  Future<int> getUnreadNotificationCount() async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM $_tableNotifications WHERE $_colNotificationIsRead = 0'
+      );
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (e) {
+      log('Lỗi đếm notifications chưa đọc: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tất cả notifications (có phân trang nếu cần)
+  Future<List<NotificationData>> getAllNotificationsPaginated({int limit = 50, int offset = 0}) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        _tableNotifications,
+        orderBy: '$_colNotificationSentAt DESC',
+        limit: limit,
+        offset: offset,
+      );
+      return List.generate(maps.length, (i) => NotificationData.fromMap(maps[i]));
+    } catch (e) {
+      log('Lỗi lấy danh sách notifications: $e');
+      rethrow;
+    }
+  }
+
+  /// Xóa tất cả notifications
+  Future<int> deleteAllNotifications() async {
+    try {
+      final db = await database;
+      final count = await db.delete(_tableNotifications);
+      log('Đã xóa tất cả $count notifications');
+      return count;
+    } catch (e) {
+      log('Lỗi xóa tất cả notifications: $e');
+      rethrow;
+    }
+  }
+
+  /// Xóa notification theo ID
+  Future<int> deleteNotificationById(int id) async {
+    try {
+      final db = await database;
+      final count = await db.delete(
+        _tableNotifications,
+        where: '$_colNotificationId = ?',
+        whereArgs: [id],
+      );
+      log('Đã xóa notification ID $id');
+      return count;
+    } catch (e) {
+      log('Lỗi xóa notification: $e');
+      rethrow;
+    }
+  }
+
+  /// Đánh dấu notification là đã đọc
+  Future<int> markNotificationAsRead(int id) async {
+    try {
+      final db = await database;
+      final count = await db.update(
+        _tableNotifications,
+        {_colNotificationIsRead: 1},
+        where: '$_colNotificationId = ?',
+        whereArgs: [id],
+      );
+      log('Đánh dấu notification $id là đã đọc');
+      return count;
+    } catch (e) {
+      log('Lỗi đánh dấu notification đã đọc: $e');
+      rethrow;
+    }
+  }
 }
