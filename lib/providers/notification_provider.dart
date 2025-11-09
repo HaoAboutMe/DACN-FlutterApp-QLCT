@@ -128,5 +128,82 @@ class NotificationProvider extends ChangeNotifier {
   List<NotificationData> getNotificationsByType(String type) {
     return _notifications.where((n) => n.type == type).toList();
   }
+
+  /// Xử lý khi loan được tạo hoặc cập nhật
+  /// Lên lịch thông báo và cập nhật badge count ngay lập tức
+  Future<void> onLoanCreatedOrUpdated(int loanId) async {
+    try {
+      debugPrint('🔔 NotificationProvider: Processing loan $loanId');
+
+      // Lấy thông tin loan từ database
+      final loan = await _dbHelper.getLoanById(loanId);
+      if (loan == null) {
+        debugPrint('⚠️ Loan $loanId not found');
+        return;
+      }
+
+      // Nếu loan có bật reminder và có dueDate, lên lịch thông báo
+      if (loan.reminderEnabled && loan.dueDate != null && loan.reminderDays != null) {
+        debugPrint('📅 Scheduling reminder for loan ${loan.personName}');
+        await _notificationService.scheduleLoanReminder(loan);
+      } else {
+        // Nếu tắt reminder hoặc không có dueDate, hủy các thông báo cũ
+        debugPrint('🗑️ Cancelling reminders for loan ${loan.personName}');
+        await _notificationService.cancelLoanReminders(loanId);
+      }
+
+      // Cập nhật badge count ngay lập tức
+      await updateBadgeCounts();
+
+      debugPrint('✅ NotificationProvider: Processed loan $loanId successfully');
+    } catch (e) {
+      debugPrint('❌ Error processing loan $loanId: $e');
+    }
+  }
+
+  /// Xử lý khi loan bị xóa
+  /// Hủy thông báo và cập nhật badge count ngay lập tức
+  Future<void> onLoanDeleted(int loanId) async {
+    try {
+      debugPrint('🗑️ NotificationProvider: Processing loan deletion $loanId');
+
+      // Hủy tất cả thông báo liên quan đến loan này
+      await _notificationService.cancelLoanReminders(loanId);
+
+      // Xóa các notification trong database liên quan đến loan này
+      final notifications = await _dbHelper.getNotificationsByLoanId(loanId);
+      for (final notification in notifications) {
+        if (notification.id != null) {
+          await _dbHelper.deleteNotificationById(notification.id!);
+        }
+      }
+
+      // Reload notifications và cập nhật badge
+      await loadNotifications();
+      await updateBadgeCounts();
+
+      debugPrint('✅ NotificationProvider: Deleted loan $loanId notifications');
+    } catch (e) {
+      debugPrint('❌ Error deleting loan $loanId notifications: $e');
+    }
+  }
+
+  /// Xử lý khi loan được đánh dấu đã thanh toán
+  /// Hủy thông báo và cập nhật badge count
+  Future<void> onLoanPaid(int loanId) async {
+    try {
+      debugPrint('💰 NotificationProvider: Processing loan payment $loanId');
+
+      // Hủy tất cả thông báo liên quan
+      await _notificationService.cancelLoanReminders(loanId);
+
+      // Cập nhật badge count
+      await updateBadgeCounts();
+
+      debugPrint('✅ NotificationProvider: Processed loan payment $loanId');
+    } catch (e) {
+      debugPrint('❌ Error processing loan payment $loanId: $e');
+    }
+  }
 }
 

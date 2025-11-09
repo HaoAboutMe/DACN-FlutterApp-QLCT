@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
+import '../../providers/notification_provider.dart';
 
 class EditLoanScreen extends StatefulWidget {
   final Loan loan;
@@ -192,6 +194,11 @@ class _EditLoanScreenState extends State<EditLoanScreen>
 
       // Check if widget is still mounted before using context
       if (!mounted) return;
+
+      // ✅ REALTIME: Notify provider to reschedule reminders and update badge
+      final notificationProvider = context.read<NotificationProvider>();
+      debugPrint('🔔 Notifying provider about updated loan: ${updatedLoan.id}');
+      await notificationProvider.onLoanCreatedOrUpdated(updatedLoan.id!);
 
       Navigator.of(context).pop(true); // Return true to indicate success
     } catch (e) {

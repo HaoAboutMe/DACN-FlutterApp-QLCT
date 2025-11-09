@@ -376,11 +376,15 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       try {
         debugPrint('🗑️ Deleting $count loans...');
 
+        // Store successful deletion IDs
+        final List<int> deletedIds = [];
+
         // Delete each selected loan
         for (int id in _selectedIds) {
           try {
             await _databaseHelper.deleteLoan(id);
             successCount++;
+            deletedIds.add(id);
           } catch (e) {
             failCount++;
             // Lấy tên người vay/cho vay để hiển thị trong thông báo lỗi
@@ -410,6 +414,15 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         }
 
         debugPrint('✅ Successfully deleted $successCount loans, $failCount failed');
+
+        // ✅ REALTIME: Notify provider to cancel reminders and update badge
+        if (deletedIds.isNotEmpty && mounted) {
+          final notificationProvider = context.read<NotificationProvider>();
+          for (int id in deletedIds) {
+            debugPrint('🔔 Notifying provider about deleted loan: $id');
+            await notificationProvider.onLoanDeleted(id);
+          }
+        }
 
         // ✅ REALTIME: Reload loan list immediately after deletion
         await _loadLoans();
@@ -760,6 +773,13 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       );
 
       debugPrint('✅ Loan ${loan.id} marked as paid successfully');
+
+      // ✅ REALTIME: Notify provider to cancel reminders and update badge
+      if (mounted) {
+        final notificationProvider = context.read<NotificationProvider>();
+        debugPrint('🔔 Notifying provider about paid loan: ${loan.id}');
+        await notificationProvider.onLoanPaid(loan.id!);
+      }
 
       // Reload loan list
       await _loadLoans();

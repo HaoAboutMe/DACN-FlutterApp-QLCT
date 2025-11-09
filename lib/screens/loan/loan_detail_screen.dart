@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
 import '../../database/database_helper.dart';
+import '../../providers/notification_provider.dart';
 import 'edit_loan_screen.dart';
 import '../main_navigation_wrapper.dart';
 
@@ -245,6 +247,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
 
+      // ✅ REALTIME: Notify provider to cancel reminders and update badge
+      final notificationProvider = context.read<NotificationProvider>();
+      debugPrint('🔔 Notifying provider about deleted loan: ${_loan!.id}');
+      await notificationProvider.onLoanDeleted(_loan!.id!);
+
       // Trigger HomePage reload
       mainNavigationKey.currentState?.refreshHomePage();
 
@@ -438,6 +445,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       // Close loading dialog first
       if (!mounted) return;
       Navigator.of(context).pop();
+
+      // ✅ REALTIME: Notify provider to cancel reminders and update badge
+      final notificationProvider = context.read<NotificationProvider>();
+      debugPrint('🔔 Notifying provider about paid loan: ${_loan!.id}');
+      await notificationProvider.onLoanPaid(_loan!.id!);
 
       // Reload loan data to show updated status
       await _loadLoanData();
