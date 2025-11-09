@@ -352,7 +352,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Thêm bottom padding để tránh navigation bar
                   child: Column(
                     children: [
                       BalanceOverview(

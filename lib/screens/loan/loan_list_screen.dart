@@ -1195,7 +1195,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                               left: 16,
                               right: 16,
                               top: 16,
-                              bottom: 200, // Extra bottom padding to ensure scrollability
+                              bottom: 100, // Bottom padding để tránh navigation bar
                             ),
                             itemCount: _filteredLoans.length,
                             itemBuilder: (context, index) {

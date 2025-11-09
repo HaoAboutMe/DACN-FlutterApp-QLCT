@@ -250,16 +250,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
       // Pop back to previous screen with success flag
       Navigator.of(context).pop(true);
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('✅ Đã xóa khoản vay thành công'),
-          backgroundColor: const Color(0xFF4CAF50),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
     } catch (e) {
       debugPrint('❌ Error deleting loan: $e');
 
