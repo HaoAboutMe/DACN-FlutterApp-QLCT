@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
+import '../../providers/notification_provider.dart';
 
 class AddLoanPage extends StatefulWidget {
   final String? preselectedType;
@@ -173,10 +175,11 @@ class _AddLoanPageState extends State<AddLoanPage>
         updatedAt: DateTime.now(),
       );
 
+      int createdLoanId;
       if (_isOldDebt) {
         // Khoản vay cũ: chỉ thêm loan, không tạo transaction, không ảnh hưởng số dư
-        await _databaseHelper.insertLoan(loan);
-        debugPrint('Inserted old loan without creating transaction');
+        createdLoanId = await _databaseHelper.insertLoan(loan);
+        debugPrint('Inserted old loan with ID: $createdLoanId');
       } else {
         // Khoản vay mới: tạo loan + transaction tương ứng
         final transaction = transaction_model.Transaction(
@@ -190,15 +193,21 @@ class _AddLoanPageState extends State<AddLoanPage>
           updatedAt: DateTime.now(),
         );
 
-        await _databaseHelper.createLoanWithTransaction(
+        final result = await _databaseHelper.createLoanWithTransaction(
           loan: loan,
           transaction: transaction,
         );
-        debugPrint('Created new loan with transaction');
+        createdLoanId = result['loanId']!;
+        debugPrint('Created new loan with transaction, ID: $createdLoanId');
       }
 
       // Check if widget is still mounted before using context
       if (!mounted) return;
+
+      // ✅ REALTIME: Notify provider to schedule reminders and update badge
+      final notificationProvider = context.read<NotificationProvider>();
+      debugPrint('🔔 Notifying provider about new loan: $createdLoanId');
+      await notificationProvider.onLoanCreatedOrUpdated(createdLoanId);
 
       Navigator.of(context).pop(true); // Return true to indicate success
     } catch (e) {

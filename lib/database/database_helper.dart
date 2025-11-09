@@ -1260,6 +1260,21 @@ class DatabaseHelper {
     }
   }
 
+  /// Lấy ID của loan vừa được insert
+  Future<int?> getLastInsertedLoanId() async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery('SELECT last_insert_rowid() as id');
+      if (result.isNotEmpty) {
+        return result.first['id'] as int?;
+      }
+      return null;
+    } catch (e) {
+      log('Lỗi lấy last inserted loan ID: $e');
+      rethrow;
+    }
+  }
+
   /// Lấy khoản vay theo loại (lend/borrow)
   Future<List<Loan>> getLoansByType(String loanType) async {
     try {

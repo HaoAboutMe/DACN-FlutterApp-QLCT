@@ -163,6 +163,107 @@ class NotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: payload,
     );
+
+    log('Scheduled notification ID: $id for ${scheduledDate.toString()}');
+  }
+
+  /// Lên lịch thông báo cho một khoản vay cụ thể
+  /// Được gọi khi tạo mới hoặc cập nhật loan có bật reminder
+  Future<void> scheduleLoanReminder(Loan loan) async {
+    if (!loan.reminderEnabled || loan.dueDate == null || loan.reminderDays == null) {
+      log('Loan ${loan.id} không có reminder hoặc không có dueDate');
+      return;
+    }
+
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    try {
+      final now = DateTime.now();
+      final daysUntilDue = loan.dueDate!.difference(now).inDays;
+
+      // Hủy các notification cũ của loan này trước
+      await cancelNotification(loan.id!);
+      await cancelNotification(loan.id! + 10000); // Overdue notification
+
+      // Nếu đã quá hạn, không lên lịch thông báo mới
+      if (daysUntilDue < 0) {
+        log('Loan ${loan.id} đã quá hạn, không lên lịch reminder');
+        return;
+      }
+
+      // Tính toán ngày gửi thông báo
+      final reminderDate = loan.dueDate!.subtract(Duration(days: loan.reminderDays!));
+
+      // Chỉ lên lịch nếu ngày nhắc nhở chưa qua
+      if (reminderDate.isAfter(now)) {
+        final title = 'Nhắc nhở: Khoản ${loan.loanType == 'lend' ? 'cho vay' : 'đi vay'} sắp đến hạn';
+        final body = '${loan.personName} - ${_formatAmount(loan.amount)} còn ${loan.reminderDays} ngày nữa đến hạn.';
+
+        // Lên lịch thông báo cho 9:00 sáng ngày nhắc nhở
+        final scheduledDateTime = DateTime(
+          reminderDate.year,
+          reminderDate.month,
+          reminderDate.day,
+          9, // 9:00 AM
+          0,
+        );
+
+        await scheduleNotification(
+          id: loan.id!,
+          title: title,
+          body: body,
+          scheduledDate: scheduledDateTime,
+          payload: 'loan_${loan.id}',
+        );
+
+        log('✅ Scheduled reminder for loan ${loan.id} at $scheduledDateTime');
+      } else {
+        log('Reminder date has passed for loan ${loan.id}, checking if should send now');
+
+        // Nếu đã trong khoảng thời gian nhắc nhở, gửi thông báo ngay
+        if (daysUntilDue <= loan.reminderDays! && daysUntilDue >= 0) {
+          await _createReminderForLoan(loan, daysUntilDue);
+        }
+      }
+
+      // Lên lịch thông báo cho ngày đến hạn (nếu chưa tới)
+      if (daysUntilDue > 0) {
+        final dueDateNotification = DateTime(
+          loan.dueDate!.year,
+          loan.dueDate!.month,
+          loan.dueDate!.day,
+          9, // 9:00 AM
+          0,
+        );
+
+        if (dueDateNotification.isAfter(now)) {
+          final title = 'Khoản ${loan.loanType == 'lend' ? 'cho vay' : 'đi vay'} đến hạn hôm nay!';
+          final body = '${loan.personName} - ${_formatAmount(loan.amount)} đến hạn thanh toán hôm nay.';
+
+          await scheduleNotification(
+            id: loan.id! + 5000, // Offset để tránh trùng ID với reminder
+            title: title,
+            body: body,
+            scheduledDate: dueDateNotification,
+            payload: 'loan_${loan.id}',
+          );
+
+          log('✅ Scheduled due date notification for loan ${loan.id} at $dueDateNotification');
+        }
+      }
+    } catch (e) {
+      log('Error scheduling loan reminder: $e');
+    }
+  }
+
+  /// Hủy tất cả thông báo liên quan đến một loan
+  Future<void> cancelLoanReminders(int loanId) async {
+    await cancelNotification(loanId);
+    await cancelNotification(loanId + 5000); // Due date notification
+    await cancelNotification(loanId + 10000); // Overdue notification
+    log('Cancelled all notifications for loan $loanId');
   }
 
   /// Hủy thông báo theo ID
