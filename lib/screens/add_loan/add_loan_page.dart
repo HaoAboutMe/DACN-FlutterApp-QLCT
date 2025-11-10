@@ -492,6 +492,7 @@ class _AddLoanPageState extends State<AddLoanPage>
           TextFormField(
             controller: _personPhoneController,
             keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               hintText: 'Nhập số điện thoại...',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
