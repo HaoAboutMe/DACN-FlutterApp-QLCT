@@ -31,9 +31,10 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Thông báo',
           style: TextStyle(
+            color : theme.colorScheme.onPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
