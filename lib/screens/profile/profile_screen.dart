@@ -166,27 +166,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // SliverAppBar với animation
-          _buildAnimatedAppBar(isDark),
+      body: Container(
+        color: Theme.of(context).colorScheme.surface, // Màu nền đồng bộ với AppBar
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // SliverAppBar với animation
+              _buildAnimatedAppBar(isDark),
 
-          // Feature Grid Section
-          SliverToBoxAdapter(
-            child: _buildFeatureGrid(isDark),
-          ),
+            // Feature Grid Section
+            SliverToBoxAdapter(
+              child: _buildFeatureGrid(isDark),
+            ),
 
-          // Settings List Section
-          SliverToBoxAdapter(
-            child: _buildSettingsList(isDark),
-          ),
+            // Settings List Section
+            SliverToBoxAdapter(
+              child: _buildSettingsList(isDark),
+            ),
 
-          // Footer
-          SliverToBoxAdapter(
-            child: _buildFooter(isDark),
-          ),
-        ],
+            // Footer
+            SliverToBoxAdapter(
+              child: _buildFooter(isDark),
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }
@@ -200,11 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       stretch: true,
+      collapsedHeight: 90.0, // Tăng chiều cao khi thu gọn (mặc định là 56)
       flexibleSpace: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           // Tính toán tỷ lệ co giãn (0.0 = collapsed, 1.0 = expanded)
           final double maxHeight = 300.0;
-          final double minHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+          final double minHeight = 90.0; // Phải khớp với collapsedHeight
           final double currentHeight = constraints.maxHeight;
           final double expandRatio = ((currentHeight - minHeight) / (maxHeight - minHeight)).clamp(0.0, 1.0);
 
@@ -212,27 +220,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               FlexibleSpaceBar(
                 centerTitle: false,
-                titlePadding: EdgeInsets.only(
+                titlePadding: const EdgeInsets.only(
                   left: 16,
                   right: 16,
                   bottom: 18, // Padding dưới rõ ràng, không dính mép
-                  top: 0,
                 ),
                 background: _buildExpandedHeader(isDark, expandRatio),
-                title: IgnorePointer(
-                  ignoring: expandRatio > 0.2, // Không nhận tap events khi expanded
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    opacity: expandRatio < 0.2 ? 1.0 : 0.0,
-                    child: _buildCollapsedHeader(isDark),
+                title: Container(
+                  margin: const EdgeInsets.only(top: 18),
+                  child: IgnorePointer(
+                    ignoring: expandRatio > 0.2,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      opacity: expandRatio < 0.2 ? 1.0 : 0.0,
+                      child: _buildCollapsedHeader(isDark),
+                    ),
                   ),
                 ),
               ),
               // Nút "Chỉnh sửa thông tin" nằm ngoài FlexibleSpaceBar
               if (expandRatio > 0.99 && !_isEditingName) // Thay đổi từ 0.5 thành 0.3 (biến mất khi kéo 2/3)
                 Positioned(
-                  bottom: 50,
+                  bottom: 52, // Điều chỉnh để không đè lên tên với spacing 32px
                   left: 0,
                   right: 0,
                   child: Center(
@@ -295,9 +305,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final double nameFontSize = 15 + (expandRatio * 4); // 15-19 (giảm từ 16-22)
 
     return Container(
-      padding: EdgeInsets.only(
-        top: 50 + MediaQuery.of(context).padding.top, // giảm từ 60
-        bottom: 20, // giảm từ 30
+      padding: const EdgeInsets.only(
+        top: 40, // Không cần thêm MediaQuery.of(context).padding.top vì đã có SafeArea
+        bottom: 20,
         left: 20,
         right: 20,
       ),
@@ -343,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            SizedBox(height: 12 + (expandRatio * 4)), // giảm từ 16 + 8
+            const SizedBox(height: 16), // Spacing đồng nhất 16px giữa avatar và tên
 
             // Tên người dùng hoặc TextField chỉnh sửa (cùng vị trí)
             Padding(
@@ -420,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
             ),
 
-            SizedBox(height: 30 + (expandRatio * 15)), // Tăng padding giữa tên và nút
+            const SizedBox(height: 32), // Spacing đồng nhất 32px giữa tên và button (16px * 2 để button không bị đè)
           ],
         ),
       ),
@@ -453,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(27.5), // 55/2 = 27.5 để giữ hình tròn hoàn hảo
             child: Image.asset(
               'assets/images/whales-spent-logo.png',
               fit: BoxFit.cover,
