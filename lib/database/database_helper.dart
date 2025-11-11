@@ -691,6 +691,103 @@ class DatabaseHelper {
     }
   }
 
+  /// Khởi tạo danh mục mặc định nếu database trống
+  /// Phương thức này nên được gọi khi app khởi động để đảm bảo có danh mục sẵn sàng
+  /// Trả về true nếu đã thêm danh mục mặc định, false nếu database đã có danh mục
+  Future<bool> insertDefaultCategoriesIfNeeded() async {
+    try {
+      // Kiểm tra xem đã có danh mục nào chưa
+      final existingCategories = await getAllCategories();
+
+      if (existingCategories.isEmpty) {
+        log('Database trống - bắt đầu khởi tạo danh mục mặc định');
+
+        // Import DefaultCategories để lấy danh sách
+        final defaultCategories = _getDefaultCategories();
+
+        // Thêm từng danh mục vào database
+        for (final category in defaultCategories) {
+          await insertCategory(category);
+        }
+
+        log('Đã khởi tạo ${defaultCategories.length} danh mục mặc định');
+        return true;
+      }
+
+      log('Database đã có ${existingCategories.length} danh mục - bỏ qua khởi tạo mặc định');
+      return false;
+    } catch (e) {
+      log('Lỗi khởi tạo danh mục mặc định: $e');
+      rethrow;
+    }
+  }
+
+  /// Helper method để lấy danh sách danh mục mặc định
+  /// Tách riêng để tránh circular dependency khi import
+  List<Category> _getDefaultCategories() {
+    final now = DateTime.now();
+
+    return [
+      // Các danh mục chi tiêu (expense)
+      Category(
+        name: 'Ăn uống',
+        icon: 'restaurant',
+        type: 'expense',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Mua sắm',
+        icon: 'shopping_bag',
+        type: 'expense',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Đi lại',
+        icon: 'directions_car',
+        type: 'expense',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Giải trí',
+        icon: 'movie',
+        type: 'expense',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Y tế',
+        icon: 'medical_services',
+        type: 'expense',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Khác',
+        icon: 'more_horiz',
+        type: 'expense',
+        createdAt: now,
+      ),
+
+      // Các danh mục thu nhập (income)
+      Category(
+        name: 'Lương',
+        icon: 'attach_money',
+        type: 'income',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Thưởng',
+        icon: 'card_giftcard',
+        type: 'income',
+        createdAt: now,
+      ),
+      Category(
+        name: 'Đầu tư',
+        icon: 'trending_up',
+        type: 'income',
+        createdAt: now,
+      ),
+    ];
+  }
+
   // ==================== CRUD cho Transactions ====================
 
   /// Thêm giao dịch mới

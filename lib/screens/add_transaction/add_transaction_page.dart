@@ -46,7 +46,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     super.initState();
     _selectedType = widget.preselectedType ?? 'income';
     _initializeAnimations();
-    _initializeDefaultCategories();
+    _loadCategories();
   }
 
   void _initializeAnimations() {
@@ -72,83 +72,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     super.dispose();
   }
 
-  Future<void> _initializeDefaultCategories() async {
-    try {
-      // Check if categories exist, if not, create default ones
-      final existingCategories = await _databaseHelper.getAllCategories();
-
-      if (existingCategories.isEmpty) {
-        // Create default categories
-        final defaultCategories = [
-          Category(
-            name: 'Ăn uống',
-            icon: 'restaurant',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Mua sắm',
-            icon: 'shopping_bag',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Đi lại',
-            icon: 'directions_car',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Giải trí',
-            icon: 'movie',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Y tế',
-            icon: 'medical_services',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Lương',
-            icon: 'attach_money',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Thưởng',
-            icon: 'card_giftcard',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Đầu tư',
-            icon: 'trending_up',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Khác',
-            icon: 'more_horiz',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-        ];
-
-        // Insert default categories
-        for (final category in defaultCategories) {
-          await _databaseHelper.insertCategory(category);
-        }
-      }
-
-      // Load categories after initialization
-      await _loadCategories();
-    } catch (e) {
-      debugPrint('Error initializing default categories: $e');
-      await _loadCategories();
-    }
-  }
 
   Future<void> _loadCategories() async {
     try {
