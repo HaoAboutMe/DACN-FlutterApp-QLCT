@@ -6,6 +6,7 @@ import 'config/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
 import 'services/notification_service.dart';
+import 'database/database_helper.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
 
@@ -18,6 +19,14 @@ void main() async {
   // Initialize notification helpers
   await NotificationHelper.initialize();
   await NotificationService().initialize();
+
+  // Initialize default categories if database is empty
+  try {
+    final databaseHelper = DatabaseHelper();
+    await databaseHelper.insertDefaultCategoriesIfNeeded();
+  } catch (e) {
+    debugPrint('Error initializing default categories: $e');
+  }
 
   // Check if InitialScreen should be shown
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();

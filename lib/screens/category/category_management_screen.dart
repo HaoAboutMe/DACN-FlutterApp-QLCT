@@ -46,7 +46,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         _loadCategories();
       }
     });
-    _initializeDefaultCategories();
+    _loadCategories();
   }
 
   @override
@@ -56,84 +56,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
     super.dispose();
   }
 
-  /// Initialize default categories if database is empty
-  Future<void> _initializeDefaultCategories() async {
-    try {
-      // Check if categories exist, if not, create default ones
-      final existingCategories = await _databaseHelper.getAllCategories();
-
-      if (existingCategories.isEmpty) {
-        // Create default categories (same as in AddTransactionPage)
-        final defaultCategories = [
-          Category(
-            name: 'Ăn uống',
-            icon: 'restaurant',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Mua sắm',
-            icon: 'shopping_bag',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Đi lại',
-            icon: 'directions_car',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Giải trí',
-            icon: 'movie',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Y tế',
-            icon: 'medical_services',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Lương',
-            icon: 'attach_money',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Thưởng',
-            icon: 'card_giftcard',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Đầu tư',
-            icon: 'trending_up',
-            type: 'income',
-            createdAt: DateTime.now(),
-          ),
-          Category(
-            name: 'Khác',
-            icon: 'more_horiz',
-            type: 'expense',
-            createdAt: DateTime.now(),
-          ),
-        ];
-
-        // Insert default categories
-        for (final category in defaultCategories) {
-          await _databaseHelper.insertCategory(category);
-        }
-      }
-
-      // Load categories after initialization
-      await _loadCategories();
-    } catch (e) {
-      debugPrint('Lỗi khởi tạo danh mục mặc định: $e');
-      await _loadCategories();
-    }
-  }
 
   /// Load all categories from database
   Future<void> _loadCategories() async {
