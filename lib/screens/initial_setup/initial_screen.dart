@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
+import '../../utils/currency_formatter.dart';
 
 class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});
@@ -129,7 +130,7 @@ class _InitialScreenState extends State<InitialScreen> {
     // Nếu không chuyển đổi được thì báo lỗi
     double balance;
     try {
-      balance = double.parse(_balanceController.text.replaceAll(',', ''));
+      balance = double.parse(_balanceController.text.replaceAll('.', ''));
     } catch (e) {
       _showValidationSnackbar('Số dư không hợp lệ');
       return;
@@ -515,7 +516,9 @@ class _InitialScreenState extends State<InitialScreen> {
                 controller: _balanceController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                  // FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                  FilteringTextInputFormatter.digitsOnly,
+                  CurrencyInputFormatter(),
                 ],
                 style: const TextStyle(
                   fontSize: 16,
@@ -631,6 +634,31 @@ class _InitialScreenState extends State<InitialScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final amount = CurrencyFormatter.parseAmount(newValue.text);
+
+    if (amount == 0) {
+      return newValue.copyWith(text: '');
+    }
+
+    final formatted = CurrencyFormatter.formatForInput(amount);
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
