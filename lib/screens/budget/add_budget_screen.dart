@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/budget.dart';
 import '../../models/category.dart';
+import '../../utils/currency_formatter.dart';
+import '../../providers/currency_provider.dart';
+import 'package:provider/provider.dart';
 
 /// Màn hình thêm ngân sách mới
 class AddBudgetScreen extends StatefulWidget {
@@ -54,10 +57,13 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   Future<void> _initializeEditMode() async {
     final budget = widget.budget!;
-    // Format số tiền đẹp khi hiển thị (300.000 thay vì 300000.0)
-    final amount = budget.amount.toInt();
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '');
-    _amountController.text = currencyFormat.format(amount).replaceAll(RegExp(r'[\u00A0\s]+$'), '');
+
+    // Convert VND amount từ database sang currency hiện tại để hiển thị
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final displayAmount = currencyProvider.convertFromVND(budget.amount);
+      _amountController.text = CurrencyFormatter.formatForInput(displayAmount);
+    });
 
     _startDate = budget.startDate;
     _endDate = budget.endDate;
@@ -139,13 +145,24 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Remove all non-digit characters (dots, commas, spaces, currency symbols)
-      final cleanValue = _amountController.text.replaceAll(RegExp(r'[^\d]'), '');
-      final amount = double.parse(cleanValue);
+      // Parse input amount using CurrencyFormatter for consistency
+      final inputAmount = CurrencyFormatter.parseAmount(_amountController.text);
+
+      // Convert từ currency hiện tại về VND để lưu vào database
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final amountInVND = currencyProvider.convertToVND(inputAmount);
+
+      // Debug log để kiểm tra conversion
+      debugPrint('=== DEBUG BUDGET AMOUNT CONVERSION ===');
+      debugPrint('Input text: "${_amountController.text}"');
+      debugPrint('Parsed amount: $inputAmount ${currencyProvider.selectedCurrency}');
+      debugPrint('Converted to VND: $amountInVND VND');
+      debugPrint('Exchange rate: ${currencyProvider.exchangeRate}');
+      debugPrint('======================================');
 
       final budget = Budget(
         id: widget.budget?.id,
-        amount: amount,
+        amount: amountInVND,
         categoryId: _isOverallBudget ? null : _selectedCategory?.id,
         startDate: _startDate,
         endDate: _endDate,
@@ -188,7 +205,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '');
+    // Use CurrencyFormatter for multi-currency support
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
@@ -315,11 +332,12 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                             keyboardType: TextInputType.number,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
+                              CurrencyInputFormatter(),
                             ],
                             decoration: InputDecoration(
-                              hintText: 'Nhập số tiền',
+                              hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
                               prefixIcon: const Icon(Icons.attach_money),
-                              suffixText: '₫',
+                              suffixText: Provider.of<CurrencyProvider>(context, listen: false).currencySymbol,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -328,66 +346,30 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập số tiền';
                               }
-                              // Remove all non-digit characters before parsing
-                              final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-                              if (cleanValue.isEmpty) {
-                                return 'Vui lòng nhập số tiền';
-                              }
-                              final amount = double.tryParse(cleanValue);
-                              if (amount == null || amount <= 0) {
+                              // Use CurrencyFormatter for consistent parsing
+                              final amount = CurrencyFormatter.parseAmount(value);
+                              if (amount <= 0) {
                                 return 'Số tiền phải lớn hơn 0';
                               }
                               return null;
                             },
-                            onChanged: (value) {
-                              // Format number as user types
-                              if (value.isEmpty) return;
 
-                              // Remove all non-digit characters
-                              final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-
-                              // If user deleted everything, allow it
-                              if (cleanValue.isEmpty) {
-                                return;
+                          ),
+                          // Helper text for currency conversion
+                          const SizedBox(height: 8),
+                          Consumer<CurrencyProvider>(
+                            builder: (context, currencyProvider, child) {
+                              if (currencyProvider.selectedCurrency == 'USD') {
+                                return Text(
+                                  'Sẽ được chuyển đổi thành VND khi lưu (tỷ giá: 1 USD = ${currencyProvider.exchangeRate.toStringAsFixed(0)} VND)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                );
                               }
-
-                              final number = int.tryParse(cleanValue);
-                              if (number != null) {
-                                // Format and trim any trailing spaces
-                                final formatted = currencyFormat.format(number).replaceAll(RegExp(r'\s'), '');
-
-                                // Calculate cursor position
-                                final cursorPosition = _amountController.selection.baseOffset;
-                                final digitsBeforeCursor = value.substring(0, cursorPosition).replaceAll(RegExp(r'[^\d]'), '').length;
-
-                                // Count how many digits are before cursor in formatted string
-                                int newCursorPos = 0;
-                                int digitCount = 0;
-                                for (int i = 0; i < formatted.length; i++) {
-                                  if (formatted[i].contains(RegExp(r'\d'))) {
-                                    digitCount++;
-                                    if (digitCount == digitsBeforeCursor) {
-                                      newCursorPos = i + 1;
-                                      break;
-                                    }
-                                  }
-                                }
-
-                                // If we haven't found the position, put cursor at end
-                                if (newCursorPos == 0) {
-                                  newCursorPos = formatted.length;
-                                }
-
-                                // Only update if the formatted value is different
-                                if (formatted != value) {
-                                  _amountController.value = TextEditingValue(
-                                    text: formatted,
-                                    selection: TextSelection.collapsed(
-                                      offset: newCursorPos,
-                                    ),
-                                  );
-                                }
-                              }
+                              return const SizedBox.shrink();
                             },
                           ),
                         ],
@@ -593,6 +575,30 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       return const Icon(Icons.category, color: Colors.grey, size: 24);
     }
   }
-
 }
 
+// CurrencyInputFormatter class for proper currency input formatting
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final amount = CurrencyFormatter.parseAmount(newValue.text);
+
+    if (amount == 0) {
+      return newValue.copyWith(text: '');
+    }
+
+    final formatted = CurrencyFormatter.formatForInput(amount);
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}

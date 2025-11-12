@@ -668,7 +668,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Số tiền: ${CurrencyFormatter.formatVND(loan.amount)}',
+                      'Số tiền: ${CurrencyFormatter.formatAmount(loan.amount)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -682,8 +682,8 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             const SizedBox(height: 12),
             Text(
               loan.loanType == 'lend'
-                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatVND(loan.amount)}'
-                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(loan.amount)}',
+                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatAmount(loan.amount)}'
+                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatAmount(loan.amount)}',
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurfaceVariant,
@@ -1406,7 +1406,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                             crossAxisAlignment: CrossAxisAlignment.end,
                                             children: [
                                               Text(
-                                                CurrencyFormatter.formatVND(loan.amount),
+                                                CurrencyFormatter.formatAmount(loan.amount),
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -1568,7 +1568,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ),
           const SizedBox(height: 8),
           Text(
-            CurrencyFormatter.formatVND(amount),
+            CurrencyFormatter.formatAmount(amount),
             style: TextStyle(
               color: color,
               fontSize: 16,

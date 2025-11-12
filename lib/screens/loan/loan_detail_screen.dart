@@ -343,7 +343,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Số tiền: ${CurrencyFormatter.formatVND(_loan!.amount)}',
+                    'Số tiền: ${CurrencyFormatter.formatAmount(_loan!.amount)}',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -356,8 +356,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             const SizedBox(height: 12),
             Text(
               _loan!.loanType == 'lend'
-                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatVND(_loan!.amount)}'
-                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatVND(_loan!.amount)}',
+                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatAmount(_loan!.amount)}'
+                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatAmount(_loan!.amount)}',
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurfaceVariant,
@@ -743,7 +743,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              CurrencyFormatter.formatVND(_loan!.amount),
+                              CurrencyFormatter.formatAmount(_loan!.amount),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
@@ -816,7 +816,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                           _buildInfoRow(
                             icon: Icons.attach_money,
                             label: 'Số tiền',
-                            value: CurrencyFormatter.formatVND(_loan!.amount),
+                            value: CurrencyFormatter.formatAmount(_loan!.amount),
                             valueStyle: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

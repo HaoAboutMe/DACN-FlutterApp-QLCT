@@ -424,7 +424,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
   String _getTransactionAmountDisplay(transaction_model.Transaction transaction) {
     String sign = transaction.type == 'income' || transaction.type == 'loan_received' || transaction.type == "debt_collected" ? '+' : '-';
-    return '$sign${CurrencyFormatter.formatVND(transaction.amount.abs())}';
+    return '$sign${CurrencyFormatter.formatAmount(transaction.amount.abs())}';
   }
 
   @override
@@ -711,7 +711,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  CurrencyFormatter.formatVND(_totalIncome),
+                                  CurrencyFormatter.formatAmount(_totalIncome),
                                   style: TextStyle(
                                     color: HomeColors.income,
                                     fontSize: 16,
@@ -733,7 +733,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  CurrencyFormatter.formatVND(_totalExpense),
+                                  CurrencyFormatter.formatAmount(_totalExpense),
                                   style: TextStyle(
                                     color: HomeColors.expense,
                                     fontSize: 16,
@@ -758,7 +758,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                               ),
                             ),
                             Text(
-                              CurrencyFormatter.formatVND(_totalIncome - _totalExpense),
+                              CurrencyFormatter.formatAmount(_totalIncome - _totalExpense),
                               style: TextStyle(
                                 color: (_totalIncome - _totalExpense) >= 0
                                     ? HomeColors.income

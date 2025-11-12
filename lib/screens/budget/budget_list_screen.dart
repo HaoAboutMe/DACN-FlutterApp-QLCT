@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
+import '../../utils/currency_formatter.dart';
 import 'add_budget_screen.dart';
 import 'budget_category_transaction_screen.dart';
 import 'overall_budget_transaction_screen.dart';
@@ -102,7 +103,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    // Use CurrencyFormatter for multi-currency support
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -139,7 +140,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 children: [
                   // Ngân sách tổng
                   if (_overallBudgetProgress != null)
-                    _buildOverallBudgetCard(_overallBudgetProgress!, currencyFormat, isDark),
+                    _buildOverallBudgetCard(_overallBudgetProgress!, isDark),
 
                   const SizedBox(height: 16),
 
@@ -180,7 +181,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   else
                     ..._budgetProgress.map((item) => _buildBudgetCategoryCard(
                           item,
-                          currencyFormat,
+
                           isDark,
                         )),
                 ],
@@ -190,19 +191,18 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   }
 
   Widget _buildOverallBudgetCard(
-    Map<String, dynamic> data,
-    NumberFormat currencyFormat,
+    Map<String, dynamic> progress,
     bool isDark,
   ) {
-    final budgetAmount = (data['budgetAmount'] as num).toDouble();
-    final totalSpent = (data['totalSpent'] as num).toDouble();
-    final progressPercentage = (data['progressPercentage'] as num).toDouble();
-    final isOverBudget = data['isOverBudget'] as bool;
+    final budgetAmount = (progress['budgetAmount'] as num).toDouble();
+    final totalSpent = (progress['totalSpent'] as num).toDouble();
+    final progressPercentage = (progress['progressPercentage'] as num).toDouble();
+    final isOverBudget = progress['isOverBudget'] as bool;
     final remainingAmount = budgetAmount - totalSpent;
     final progressColor = _getProgressColor(progressPercentage);
-    final budgetId = data['budgetId'] as int;
-    final startDate = DateTime.parse(data['startDate'] as String);
-    final endDate = DateTime.parse(data['endDate'] as String);
+    final budgetId = progress['budgetId'] as int;
+    final startDate = DateTime.parse(progress['startDate'] as String);
+    final endDate = DateTime.parse(progress['endDate'] as String);
 
     return Card(
       elevation: isDark ? 4 : 2,
@@ -270,7 +270,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                             ),
                       ),
                       Text(
-                        currencyFormat.format(budgetAmount),
+                        CurrencyFormatter.formatAmount(budgetAmount),
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: progressColor,
@@ -324,9 +324,9 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   ],
                   onSelected: (value) {
                     if (value == 'edit') {
-                      _editBudget(data);
+                      _editBudget(progress);
                     } else if (value == 'delete') {
-                      _confirmDelete(data['budgetId'] as int, 'Tổng ngân sách');
+                      _confirmDelete(progress['budgetId'] as int, 'Tổng ngân sách');
                     }
                   },
                 ),
@@ -363,7 +363,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 _buildStatItem(
                   context,
                   'Đã chi',
-                  currencyFormat.format(totalSpent),
+                  CurrencyFormatter.formatAmount(totalSpent),
                   progressColor,
                 ),
                 _buildStatItem(
@@ -375,7 +375,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 _buildStatItem(
                   context,
                   isOverBudget ? 'Vượt' : 'Còn lại',
-                  currencyFormat.format(remainingAmount.abs()),
+                  CurrencyFormatter.formatAmount(remainingAmount.abs()),
                   isOverBudget ? Colors.red : Colors.green,
                 ),
               ],
@@ -388,7 +388,6 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   Widget _buildBudgetCategoryCard(
     Map<String, dynamic> item,
-    NumberFormat currencyFormat,
     bool isDark,
   ) {
     final categoryName = item['categoryName'] as String;
@@ -474,13 +473,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '${currencyFormat.format(totalSpent)} / ${currencyFormat.format(budgetAmount)}',
+                              '${CurrencyFormatter.formatAmount(totalSpent)} / ${CurrencyFormatter.formatAmount(budgetAmount)}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             Text(
                               isOverBudget
-                                  ? 'Vượt ${currencyFormat.format(remainingAmount.abs())}'
-                                  : 'Còn ${currencyFormat.format(remainingAmount)}',
+                                  ? 'Vượt ${CurrencyFormatter.formatAmount(remainingAmount.abs())}'
+                                  : 'Còn ${CurrencyFormatter.formatAmount(remainingAmount)}',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: isOverBudget ? Colors.red : Colors.grey,
                                     fontWeight: FontWeight.w500,

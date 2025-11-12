@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
+import '../../providers/currency_provider.dart';
 import '../../widgets/category_picker_sheet.dart';
 
 class AddTransactionPage extends StatefulWidget {
@@ -146,15 +148,21 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
     try {
       // Sử dụng CurrencyFormatter.parseAmount để parse số tiền an toàn
-      final amount = CurrencyFormatter.parseAmount(_amountController.text);
+      final inputAmount = CurrencyFormatter.parseAmount(_amountController.text);
 
-      // Debug log để kiểm tra parsing
-      debugPrint('=== DEBUG AMOUNT PARSING (UPDATED) ===');
+      // Convert từ currency hiện tại về VND để lưu vào database
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final amountInVND = currencyProvider.convertToVND(inputAmount);
+
+      // Debug log để kiểm tra parsing và conversion
+      debugPrint('=== DEBUG AMOUNT PARSING & CONVERSION ===');
       debugPrint('Input text: "${_amountController.text}"');
-      debugPrint('Parsed amount using CurrencyFormatter: $amount');
-      debugPrint('========================');
+      debugPrint('Parsed amount: $inputAmount ${currencyProvider.selectedCurrency}');
+      debugPrint('Converted to VND: $amountInVND VND');
+      debugPrint('Exchange rate: ${currencyProvider.exchangeRate}');
+      debugPrint('========================================');
 
-      if (amount <= 0) {
+      if (inputAmount <= 0) {
         _showErrorSnackBar('Số tiền phải lớn hơn 0');
         return;
       }
@@ -162,7 +170,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       final description = _descriptionController.text.trim();
 
       final transaction = transaction_model.Transaction(
-        amount: amount, // Sử dụng amount từ CurrencyFormatter.parseAmount
+        amount: amountInVND, // Sử dụng amount đã chuyển đổi về VND
         description: description,
         date: _selectedDate,
         categoryId: _selectedCategoryId,
@@ -180,10 +188,10 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
       // Update user balance dynamically using current user ID
       debugPrint('=== DEBUG BALANCE UPDATE (UPDATED) ===');
-      debugPrint('Calling updateUserBalanceAfterTransaction with amount: $amount, type: $_selectedType');
+      debugPrint('Calling updateUserBalanceAfterTransaction with amount: $amountInVND, type: $_selectedType');
 
       await _databaseHelper.updateUserBalanceAfterTransaction(
-        amount: amount,
+        amount: amountInVND,
         transactionType: _selectedType,
       );
 
@@ -475,9 +483,9 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               CurrencyInputFormatter(), // Sử dụng formatter mới
             ],
             decoration: InputDecoration(
-              hintText: '0',
+              hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-              suffixText: 'đ',
+              suffixText: Provider.of<CurrencyProvider>(context, listen: false).currencySymbol,
               suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.attach_money,
@@ -517,6 +525,25 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                 return 'Số tiền phải lớn hơn 0';
               }
               return null;
+            },
+          ),
+          // Helper text for currency conversion
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              if (currencyProvider.selectedCurrency == 'USD') {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                  child: Text(
+                    'Sẽ được chuyển đổi thành VND khi lưu (tỷ giá: 1 USD = ${currencyProvider.exchangeRate.toStringAsFixed(0)} VND)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
         ],
@@ -661,7 +688,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               return null;
             },
           ),
-          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(

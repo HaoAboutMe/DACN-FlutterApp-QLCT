@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../../utils/currency_formatter.dart';
 
 /// Widget hiển thị tiến độ ngân sách tổng trên HomePage
 class BudgetProgressWidget extends StatelessWidget {
@@ -32,7 +32,7 @@ class BudgetProgressWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    // Use CurrencyFormatter for multi-currency support
     final progressColor = _getProgressColor(isDark);
     final remainingAmount = budgetAmount - totalSpent;
 
@@ -139,7 +139,7 @@ class BudgetProgressWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          currencyFormat.format(totalSpent),
+                          CurrencyFormatter.formatAmount(totalSpent),
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: progressColor,
@@ -178,7 +178,7 @@ class BudgetProgressWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          currencyFormat.format(remainingAmount.abs()),
+                          CurrencyFormatter.formatAmount(remainingAmount.abs()),
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isOverBudget ? Colors.red : Colors.grey[700],
@@ -205,7 +205,7 @@ class BudgetProgressWidget extends StatelessWidget {
                         ),
                   ),
                   Text(
-                    currencyFormat.format(budgetAmount),
+                    CurrencyFormatter.formatAmount(budgetAmount),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),

@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/currency_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
 import '../../utils/notification_helper.dart';
+import '../../utils/currency_formatter.dart';
 
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
@@ -26,12 +28,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
+  String _selectedCurrency = 'VND';
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
     _loadReminderSettings();
+    _loadCurrencySettings();
+  }
+
+  Future<void> _loadCurrencySettings() async {
+    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+    setState(() {
+      _selectedCurrency = currencyProvider.selectedCurrency;
+    });
+  }
+
+  /// Handle currency selection change
+  Future<void> _changeCurrency(String? newCurrency) async {
+    if (newCurrency == null || newCurrency == _selectedCurrency) return;
+
+    try {
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+
+      // Update currency provider
+      await currencyProvider.setCurrency(newCurrency);
+
+      // Update CurrencyFormatter
+      CurrencyFormatter.setCurrencyProvider(currencyProvider);
+
+      setState(() {
+        _selectedCurrency = newCurrency;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã chuyển sang ${newCurrency == 'VND' ? 'VND (₫)' : 'USD (\$)'}'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error changing currency: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Có lỗi khi thay đổi loại tiền: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -726,40 +775,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 1,
                     color: Theme.of(context).dividerColor,
                   ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                // Special handling for currency selection
+                if (setting['title'] == 'Tùy chọn loại tiền')
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        setting['icon'] as IconData,
+                        color: const Color(0xFF5D5FEF),
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      setting['icon'] as IconData,
-                      color: const Color(0xFF5D5FEF),
-                      size: 20,
+                    title: Text(
+                      setting['title'] as String,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    setting['title'] as String,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
+                    subtitle: Text(
+                      setting['subtitle'] as String,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    setting['subtitle'] as String,
-                    style: TextStyle(
-                      fontSize: 12,
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButton<String>(
+                        value: _selectedCurrency,
+                        underline: const SizedBox(),
+                        isDense: true,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'VND',
+                            child: Text('VND (₫)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'USD',
+                            child: Text('USD (\$)'),
+                          ),
+                        ],
+                        onChanged: _changeCurrency,
+                      ),
+                    ),
+                  )
+                else
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        setting['icon'] as IconData,
+                        color: const Color(0xFF5D5FEF),
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      setting['title'] as String,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    subtitle: Text(
+                      setting['subtitle'] as String,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
                       color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
+                    onTap: () => _showFeatureSnackbar(setting['title'] as String),
                   ),
-                  trailing: Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                  onTap: () => _showFeatureSnackbar(setting['title'] as String),
-                ),
               ],
             );
           }).toList(),

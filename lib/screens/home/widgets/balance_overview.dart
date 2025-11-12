@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../../../models/user.dart';
 import '../../../utils/currency_formatter.dart';
+import '../../../providers/currency_provider.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
 
@@ -106,13 +108,25 @@ class _BalanceOverviewState extends State<BalanceOverview> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          _buildCurrentBalance(context),
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              return _buildCurrentBalance(context);
+            },
+          ),
           // Only show animation after first build
           if (_isFirstBuild && _cachedExpandedState == null)
-            displayExpanded ? _buildStatsGrid(context) : const SizedBox.shrink()
+            displayExpanded ? Consumer<CurrencyProvider>(
+              builder: (context, currencyProvider, child) {
+                return _buildStatsGrid(context);
+              },
+            ) : const SizedBox.shrink()
           else
             AnimatedCrossFade(
-              firstChild: _buildStatsGrid(context),
+              firstChild: Consumer<CurrencyProvider>(
+                builder: (context, currencyProvider, child) {
+                  return _buildStatsGrid(context);
+                },
+              ),
               secondChild: const SizedBox.shrink(),
               crossFadeState: displayExpanded
                   ? CrossFadeState.showFirst
@@ -197,7 +211,7 @@ class _BalanceOverviewState extends State<BalanceOverview> {
           const SizedBox(height: 8),
           Text(
             widget.isBalanceVisible
-                ? CurrencyFormatter.formatVND(widget.currentUser?.balance ?? 0)
+                ? CurrencyFormatter.formatAmount(widget.currentUser?.balance ?? 0)
                 : '••••••••',
             style: TextStyle(
               fontSize: 24,
@@ -302,7 +316,7 @@ class _OverviewStatCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            isVisible ? CurrencyFormatter.formatVND(amount) : '••••••',
+            isVisible ? CurrencyFormatter.formatAmount(amount) : '••••••',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

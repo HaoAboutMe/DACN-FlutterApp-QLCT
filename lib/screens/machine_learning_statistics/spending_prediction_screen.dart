@@ -231,7 +231,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
 
             // Số tiền dự đoán
             Text(
-              CurrencyFormatter.formatVND(prediction.predictedAmount),
+              CurrencyFormatter.formatAmount(prediction.predictedAmount),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 36,
@@ -490,7 +490,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
                         return LineTooltipItem(
-                          CurrencyFormatter.formatVND(spot.y),
+                          CurrencyFormatter.formatAmount(spot.y),
                           const TextStyle(color: Colors.white, fontSize: 12),
                         );
                       }).toList();
@@ -689,15 +689,15 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
 
     switch (alert.severity) {
       case 'high': // Đỏ - Nguy hiểm
-        message = 'Cảnh báo! Bạn đã chi ${CurrencyFormatter.formatVND(alert.spentAmount)} '
+        message = 'Cảnh báo! Bạn đã chi ${CurrencyFormatter.formatAmount(alert.spentAmount)} '
             '(${alert.usedPercentage.toStringAsFixed(1)}% trong ngân sách hiện tại). '
-            '\nDự kiến bạn sẽ vượt ${CurrencyFormatter.formatVND(alert.projectedOverage)} trong những ngày còn lại của ngân sách nếu tiếp tục với tốc độ này.'
+            '\nDự kiến bạn sẽ vượt ${CurrencyFormatter.formatAmount(alert.projectedOverage)} trong những ngày còn lại của ngân sách nếu tiếp tục với tốc độ này.'
             'Hãy giảm chi tiêu ngay!';
         icon = Icons.trending_up;
         break;
 
       case 'medium': // Cam - Cảnh báo
-        message = 'Bạn đã chi tiêu ${CurrencyFormatter.formatVND(alert.spentAmount)} '
+        message = 'Bạn đã chi tiêu ${CurrencyFormatter.formatAmount(alert.spentAmount)} '
             '(~${alert.usedPercentage.toStringAsFixed(1)}% ngân sách). '
             'Hãy tiết kiệm lại một chút để tránh vượt ngân sách này nhé!';
         icon = Icons.savings;
@@ -705,7 +705,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
 
       default: // Xanh - An toàn
         message = 'Tuyệt vời! Bạn đang chi tiêu rất hợp lý. '
-            'Đã chi ${CurrencyFormatter.formatVND(alert.spentAmount)} '
+            'Đã chi ${CurrencyFormatter.formatAmount(alert.spentAmount)} '
             '(${alert.usedPercentage.toStringAsFixed(1)}% ngân sách). '
             'Tiếp tục duy trì nhé!';
         icon = Icons.thumb_up;
@@ -903,7 +903,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
                 child: _buildCompactInsightCard(
                   icon: Icons.today,
                   label: 'Chi TB/ngày',
-                  value: CurrencyFormatter.formatVND(habit.avgDailySpending),
+                  value: CurrencyFormatter.formatAmount(habit.avgDailySpending),
                   color: Colors.blueAccent,
                 ),
               ),
@@ -1179,7 +1179,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
                 _buildStatRow(
                   icon: Icons.trending_up,
                   label: 'Chi TB/tháng',
-                  value: CurrencyFormatter.formatVND(cluster.avgMonthlySpending),
+                  value: CurrencyFormatter.formatAmount(cluster.avgMonthlySpending),
                   color: Colors.blue,
                 ),
                 const Divider(height: 20),
@@ -1354,7 +1354,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          CurrencyFormatter.formatVND(data.amount),
+                          CurrencyFormatter.formatAmount(data.amount),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: color,

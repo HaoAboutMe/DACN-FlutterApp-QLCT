@@ -2,6 +2,7 @@ import 'package:app_qlct/config/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../utils/icon_helper.dart';
+import '../../../utils/currency_formatter.dart';
 import '../../budget/budget_list_screen.dart';
 import '../../budget/budget_category_transaction_screen.dart';
 import '../../budget/overall_budget_transaction_screen.dart';
@@ -29,7 +30,7 @@ class AllBudgetsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    // Use CurrencyFormatter for multi-currency support
 
     // Luôn hiển thị container ngân sách
     // Nếu không có ngân sách nào, hiển thị empty state
@@ -90,7 +91,7 @@ class AllBudgetsWidget extends StatelessWidget {
 
             // Ngân sách tổng (nếu có)
             if (overallBudget != null) ...[
-              _buildOverallBudgetCard(overallBudget!, currencyFormat, isDark, context),
+              _buildOverallBudgetCard(overallBudget!, isDark, context),
               if (categoryBudgets.isNotEmpty) const SizedBox(height: 12),
             ],
 
@@ -99,7 +100,7 @@ class AllBudgetsWidget extends StatelessWidget {
               final isLast = categoryBudgets.indexOf(budget) == categoryBudgets.take(3).length - 1;
               return Column(
                 children: [
-                  _buildCategoryBudgetCard(budget, currencyFormat, isDark, context),
+                  _buildCategoryBudgetCard(budget, isDark, context),
                   if (!isLast) const SizedBox(height: 12),
                 ],
               );
@@ -136,7 +137,6 @@ class AllBudgetsWidget extends StatelessWidget {
 
   Widget _buildOverallBudgetCard(
     Map<String, dynamic> data,
-    NumberFormat currencyFormat,
     bool isDark,
     BuildContext context,
   ) {
@@ -213,7 +213,7 @@ class AllBudgetsWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${currencyFormat.format(totalSpent)} / ${currencyFormat.format(budgetAmount)}',
+                      '${CurrencyFormatter.formatAmount(totalSpent)} / ${CurrencyFormatter.formatAmount(budgetAmount)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Colors.grey,
                           ),
@@ -264,7 +264,6 @@ class AllBudgetsWidget extends StatelessWidget {
 
   Widget _buildCategoryBudgetCard(
     Map<String, dynamic> data,
-    NumberFormat currencyFormat,
     bool isDark,
     BuildContext context,
   ) {
@@ -347,7 +346,7 @@ class AllBudgetsWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${currencyFormat.format(totalSpent)} / ${currencyFormat.format(budgetAmount)}',
+                          '${CurrencyFormatter.formatAmount(totalSpent)} / ${CurrencyFormatter.formatAmount(budgetAmount)}',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.grey,
                               ),
