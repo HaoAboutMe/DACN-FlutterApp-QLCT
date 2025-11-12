@@ -5,6 +5,7 @@ import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/currency_provider.dart';
 
 class EditLoanScreen extends StatefulWidget {
   final Loan loan;
@@ -57,9 +58,13 @@ class _EditLoanScreenState extends State<EditLoanScreen>
     // Initialize controllers with existing data
     _personNameController = TextEditingController(text: loan.personName);
     _personPhoneController = TextEditingController(text: loan.personPhone ?? '');
-    _amountController = TextEditingController(
-      text: CurrencyFormatter.formatForInput(loan.amount),
-    );
+    // Convert VND amount từ database sang currency hiện tại để hiển thị
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final displayAmount = currencyProvider.convertFromVND(loan.amount);
+      _amountController.text = CurrencyFormatter.formatForInput(displayAmount);
+    });
+    _amountController = TextEditingController();
     _descriptionController = TextEditingController(text: loan.description ?? '');
 
     // Initialize form data
@@ -160,7 +165,18 @@ class _EditLoanScreenState extends State<EditLoanScreen>
     });
 
     try {
-      final amount = CurrencyFormatter.parseAmount(_amountController.text);
+      final inputAmount = CurrencyFormatter.parseAmount(_amountController.text);
+
+      // Convert từ currency hiện tại về VND để lưu vào database
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final amountInVND = currencyProvider.convertToVND(inputAmount);
+
+      // Debug log
+      debugPrint('=== DEBUG EDIT LOAN CONVERSION ===');
+      debugPrint('Input amount: $inputAmount ${currencyProvider.selectedCurrency}');
+      debugPrint('Converted to VND: $amountInVND VND');
+      debugPrint('==================================');
+
       final personName = _personNameController.text.trim();
       final personPhone = _personPhoneController.text.trim().isEmpty
           ? null
@@ -173,7 +189,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         id: widget.loan.id,
         personName: personName,
         personPhone: personPhone,
-        amount: amount,
+        amount: amountInVND,
         loanType: _selectedType,
         loanDate: _loanDate,
         dueDate: _dueDate,
@@ -542,9 +558,9 @@ class _EditLoanScreenState extends State<EditLoanScreen>
               CurrencyInputFormatter(),
             ],
             decoration: InputDecoration(
-              hintText: '0',
+              hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-              suffixText: 'đ',
+              suffixText: Provider.of<CurrencyProvider>(context, listen: false).currencySymbol,
               suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.attach_money,
@@ -575,6 +591,25 @@ class _EditLoanScreenState extends State<EditLoanScreen>
                 return 'Số tiền phải lớn hơn 0';
               }
               return null;
+            },
+          ),
+          // Helper text for currency conversion
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              if (currencyProvider.selectedCurrency == 'USD') {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                  child: Text(
+                    'Sẽ được chuyển đổi thành VND khi lưu (tỷ giá: 1 USD = ${currencyProvider.exchangeRate.toStringAsFixed(0)} VND)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
         ],

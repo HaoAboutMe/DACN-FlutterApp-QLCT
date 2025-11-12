@@ -5,6 +5,7 @@ import '../../models/user.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/currency_provider.dart';
 import 'widgets/greeting_appbar.dart';
 import 'widgets/balance_overview.dart';
 import 'widgets/quick_actions.dart';
@@ -378,10 +379,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                           ],
                         ),
-                        child: AllBudgetsWidget(
-                          overallBudget: _overallBudgetProgress,
-                          categoryBudgets: _categoryBudgets,
-                          onRefresh: _loadBudgetProgress,
+                        child: Consumer<CurrencyProvider>(
+                          builder: (context, currencyProvider, child) {
+                            return AllBudgetsWidget(
+                              overallBudget: _overallBudgetProgress,
+                              categoryBudgets: _categoryBudgets,
+                              onRefresh: _loadBudgetProgress,
+                            );
+                          },
                         ),
                       ),
 

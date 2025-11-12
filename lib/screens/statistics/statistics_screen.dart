@@ -97,7 +97,7 @@ class ExpenseDataProvider extends ChangeNotifier {
       // Tính tổng thu nhập
       _totalIncome = incomeTransactions.fold(0.0, (sum, transaction) => sum + transaction.amount);
 
-      print('Thu nhập tháng ${_selectedMonth.month}/${_selectedMonth.year}: ${CurrencyFormatter.formatVND(_totalIncome)}');
+      print('Thu nhập tháng ${_selectedMonth.month}/${_selectedMonth.year}: ${CurrencyFormatter.formatAmount(_totalIncome)}');
       print('Số giao dịch thu nhập: ${incomeTransactions.length}');
 
       // Tính toán chi tiêu theo danh mục
@@ -849,7 +849,7 @@ class _ExpenseSummaryCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           provider.isMoneyVisible
-                              ? CurrencyFormatter.formatVND(provider.totalExpense)
+                              ? CurrencyFormatter.formatAmount(provider.totalExpense)
                               : '***.***đ',
                           style: TextStyle(
                             fontSize: 20,
@@ -914,7 +914,7 @@ class _ExpenseSummaryCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           provider.isMoneyVisible
-                              ? CurrencyFormatter.formatVND(provider.totalIncome)
+                              ? CurrencyFormatter.formatAmount(provider.totalIncome)
                               : '***.***đ',
                           style: TextStyle(
                             fontSize: 20,
@@ -970,8 +970,8 @@ class _ComparisonCard extends StatelessWidget {
           Expanded(
             child: Text(
               savings >= 0
-                  ? 'Tiết kiệm được ${CurrencyFormatter.formatVND(savings.abs())} trong tháng này'
-                  : 'Chi vượt ${CurrencyFormatter.formatVND(savings.abs())} so với thu nhập',
+                  ? 'Tiết kiệm được ${CurrencyFormatter.formatAmount(savings.abs())} trong tháng này'
+                  : 'Chi vượt ${CurrencyFormatter.formatAmount(savings.abs())} so với thu nhập',
               style: TextStyle(
                 color: savings >= 0 ? const Color(0xFF4CAF50) : const Color(0xFFF44336),
                 fontSize: 14,
@@ -1109,7 +1109,7 @@ class _SimpleChart extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 provider.isMoneyVisible
-                    ? CurrencyFormatter.formatVND(total)
+                    ? CurrencyFormatter.formatAmount(total)
                     : '***.***đ',
                 style: TextStyle(
                   fontSize: 16,
@@ -1367,7 +1367,7 @@ class _SimpleChart extends StatelessWidget {
               ),
               Text(
                 provider.isMoneyVisible
-                    ? CurrencyFormatter.formatVND(category.amount)
+                    ? CurrencyFormatter.formatAmount(category.amount)
                     : '***.***đ',
                 style: TextStyle(
                   fontSize: 8,
@@ -1625,7 +1625,7 @@ class _CategoryItem extends StatelessWidget {
                   children: [
                     Text(
                       provider.isMoneyVisible
-                          ? CurrencyFormatter.formatVND(category.amount)
+                          ? CurrencyFormatter.formatAmount(category.amount)
                           : '***.***đ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -1729,7 +1729,7 @@ class _TrendSummaryCard extends StatelessWidget {
                       icon: Icons.history,
                       iconColor: Theme.of(context).colorScheme.secondary,
                       title: 'Tháng ${previousMonth.month}/${previousMonth.year}',
-                      value: CurrencyFormatter.formatVND(previousMonthAmount),
+                      value: CurrencyFormatter.formatAmount(previousMonthAmount),
                       subtitle: 'Tháng trước',
                     ),
                   ),
@@ -1739,7 +1739,7 @@ class _TrendSummaryCard extends StatelessWidget {
                       icon: Icons.calendar_month,
                       iconColor: Theme.of(context).colorScheme.primary,
                       title: 'Tháng ${currentMonth.month}/${currentMonth.year}',
-                      value: CurrencyFormatter.formatVND(currentMonthAmount),
+                      value: CurrencyFormatter.formatAmount(currentMonthAmount),
                       subtitle: 'Tháng hiện tại',
                     ),
                   ),
@@ -1763,7 +1763,7 @@ class _TrendSummaryCard extends StatelessWidget {
                           ? const Color(0xFF4CAF50)
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                       title: 'Chênh lệch',
-                      value: CurrencyFormatter.formatVND(difference.abs()),
+                      value: CurrencyFormatter.formatAmount(difference.abs()),
                       subtitle: isIncrease
                           ? 'Tăng'
                           : isDecrease

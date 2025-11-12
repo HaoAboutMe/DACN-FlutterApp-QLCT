@@ -4,6 +4,7 @@ import '../../database/database_helper.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
+import '../../utils/currency_formatter.dart';
 import '../transaction/transaction_detail_screen.dart';
 import 'add_budget_screen.dart';
 
@@ -219,7 +220,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    // Use CurrencyFormatter for multi-currency support
     final dateFormat = DateFormat('dd/MM/yyyy');
     final progressPercentage = _currentBudgetAmount > 0
         ? (_totalSpent / _currentBudgetAmount) * 100
@@ -323,7 +324,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  currencyFormat.format(_totalSpent),
+                                  CurrencyFormatter.formatAmount(_totalSpent),
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: _totalSpent > _currentBudgetAmount
@@ -344,7 +345,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  currencyFormat.format(_currentBudgetAmount),
+                                  CurrencyFormatter.formatAmount(_currentBudgetAmount),
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -389,7 +390,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
                             itemCount: _transactions.length,
                             itemBuilder: (context, index) {
                               final transaction = _transactions[index];
-                              return _buildTransactionItem(transaction, currencyFormat, dateFormat);
+                              return _buildTransactionItem(transaction, dateFormat);
                             },
                           ),
                   ),
@@ -401,7 +402,6 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
 
   Widget _buildTransactionItem(
     transaction_model.Transaction transaction,
-    NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
     // Get category name and icon - handle loan transactions specially
@@ -476,7 +476,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
           ],
         ),
         trailing: Text(
-          '-${currencyFormat.format(transaction.amount)}',
+          '-${CurrencyFormatter.formatAmount(transaction.amount)}',
           style: const TextStyle(
             color: Colors.red,
             fontWeight: FontWeight.bold,

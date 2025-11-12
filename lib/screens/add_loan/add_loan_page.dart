@@ -6,6 +6,7 @@ import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/currency_provider.dart';
 
 class AddLoanPage extends StatefulWidget {
   final String? preselectedType;
@@ -148,7 +149,18 @@ class _AddLoanPageState extends State<AddLoanPage>
     });
 
     try {
-      final amount = CurrencyFormatter.parseAmount(_amountController.text);
+      final inputAmount = CurrencyFormatter.parseAmount(_amountController.text);
+
+      // Convert từ currency hiện tại về VND để lưu vào database
+      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+      final amountInVND = currencyProvider.convertToVND(inputAmount);
+
+      // Debug log
+      debugPrint('=== DEBUG LOAN AMOUNT CONVERSION ===');
+      debugPrint('Input amount: $inputAmount ${currencyProvider.selectedCurrency}');
+      debugPrint('Converted to VND: $amountInVND VND');
+      debugPrint('===================================');
+
       final personName = _personNameController.text.trim();
       final personPhone = _personPhoneController.text.trim().isEmpty
           ? null
@@ -160,7 +172,7 @@ class _AddLoanPageState extends State<AddLoanPage>
       final loan = Loan(
         personName: personName,
         personPhone: personPhone,
-        amount: amount,
+        amount: amountInVND,
         loanType: _selectedType,
         loanDate: _loanDate,
         dueDate: _dueDate,
@@ -183,7 +195,7 @@ class _AddLoanPageState extends State<AddLoanPage>
       } else {
         // Khoản vay mới: tạo loan + transaction tương ứng
         final transaction = transaction_model.Transaction(
-          amount: amount,
+          amount: amountInVND,
           description: description ?? 'Khoản ${_selectedType == 'lend' ? 'cho vay' : 'đi vay'}: $personName',
           date: _loanDate,
           categoryId: null, // Loans don't use categories
@@ -553,9 +565,9 @@ class _AddLoanPageState extends State<AddLoanPage>
               CurrencyInputFormatter(), // Sử dụng formatter mới
             ],
             decoration: InputDecoration(
-              hintText: '0',
+              hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-              suffixText: 'đ',
+              suffixText: Provider.of<CurrencyProvider>(context, listen: false).currencySymbol,
               suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(
                 Icons.attach_money,
@@ -587,6 +599,25 @@ class _AddLoanPageState extends State<AddLoanPage>
                 return 'Số tiền phải lớn hơn 0';
               }
               return null;
+            },
+          ),
+          // Helper text for currency conversion
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              if (currencyProvider.selectedCurrency == 'USD') {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                  child: Text(
+                    'Sẽ được chuyển đổi thành VND khi lưu (tỷ giá: 1 USD = ${currencyProvider.exchangeRate.toStringAsFixed(0)} VND)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
             },
           ),
         ],

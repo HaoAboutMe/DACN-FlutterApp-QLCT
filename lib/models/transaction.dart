@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../utils/currency_formatter.dart';
 
 @immutable
 class Transaction {
@@ -121,7 +122,8 @@ class Transaction {
       count++;
     }
 
-    return '$result ₫';
+    // Use CurrencyFormatter for proper currency formatting
+    return CurrencyFormatter.formatAmount(amount);
   }
 
   /// Lấy tên hiển thị của loại giao dịch bằng tiếng Việt

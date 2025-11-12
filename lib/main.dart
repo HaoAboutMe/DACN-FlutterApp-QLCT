@@ -5,10 +5,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'config/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/currency_provider.dart';
 import 'services/notification_service.dart';
 import 'database/database_helper.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
+import 'utils/currency_formatter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = CurrencyProvider();
+            CurrencyFormatter.setCurrencyProvider(provider);
+            return provider;
+          },
+        ),
       ],
       child: MyApp(isFirstRun: isFirstRun),
     ),

@@ -110,7 +110,7 @@ class LoanItemCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      CurrencyFormatter.formatVND(loan.amount),
+                      CurrencyFormatter.formatAmount(loan.amount),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

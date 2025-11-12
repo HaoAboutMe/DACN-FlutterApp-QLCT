@@ -131,7 +131,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                       _currentTransaction.type == 'debt_collected' ||
                       _currentTransaction.type == 'loan_received';
     final sign = isPositive ? '+' : '-';
-    return '$sign${CurrencyFormatter.formatVND(_currentTransaction.amount)}';
+    return '$sign${CurrencyFormatter.formatAmount(_currentTransaction.amount)}';
   }
 
   String _getLoanCategoryDisplayName() {
