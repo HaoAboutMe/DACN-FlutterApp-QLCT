@@ -1279,7 +1279,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                       ),
                                       child: Row(
                                         children: [
-                                          // Selection checkbox or icon
+                                          // Selection checkbox or icon with badge
                                           if (_isSelectionMode)
                                             Container(
                                               margin: const EdgeInsets.only(right: 12),
@@ -1294,18 +1294,67 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                               ),
                                             )
                                           else
+                                            // Stack để đặt badge lên trên icon
                                             Container(
                                               width: 48,
                                               height: 48,
                                               margin: const EdgeInsets.only(right: 12),
-                                              decoration: BoxDecoration(
-                                                color: loanColor.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Icon(
-                                                _getLoanIcon(loan),
-                                                color: loanColor,
-                                                size: 24,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  // Icon container
+                                                  Container(
+                                                    width: 48,
+                                                    height: 48,
+                                                    decoration: BoxDecoration(
+                                                      color: loanColor.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: Icon(
+                                                      _getLoanIcon(loan),
+                                                      color: loanColor,
+                                                      size: 24,
+                                                    ),
+                                                  ),
+                                                  // Badge "Cũ/Mới" căn giữa phía trên icon
+                                                  Positioned(
+                                                    top: -8,
+                                                    left: 0,
+                                                    right: 0,
+                                                    child: Center(
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 2,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: loan.isOldDebt == 0
+                                                              ? HomeColors.primary.withValues(alpha: 0.95)
+                                                              : Colors.grey.withValues(alpha: 0.85),
+                                                          borderRadius: BorderRadius.circular(6),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black.withValues(alpha: 0.15),
+                                                              blurRadius: 4,
+                                                              offset: const Offset(0, 1),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Text(
+                                                          _getBadgeText(loan),
+                                                          style: TextStyle(
+                                                            fontSize: 9,
+                                                            color: loan.isOldDebt == 0
+                                                                ? Colors.white
+                                                                : (isDark ? Colors.grey[300] : Colors.grey[800]),
+                                                            fontWeight: FontWeight.bold,
+                                                            letterSpacing: 0.3,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
 
@@ -1314,42 +1363,13 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        loan.personName,
-                                                        style: TextStyle(
-                                                          color: Theme.of(context).colorScheme.onSurface,
-                                                          fontSize: 16,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: loan.isOldDebt == 0
-                                                            ? HomeColors.primary.withValues(alpha: 0.1)
-                                                            : Colors.grey.withValues(alpha: 0.2),
-                                                        borderRadius: BorderRadius.circular(8),
-                                                      ),
-                                                      child: Text(
-                                                        _getBadgeText(loan),
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          color: loan.isOldDebt == 0
-                                                              ? HomeColors.primary
-                                                              : Colors.grey[700],
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                Text(
+                                                  loan.personName,
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
