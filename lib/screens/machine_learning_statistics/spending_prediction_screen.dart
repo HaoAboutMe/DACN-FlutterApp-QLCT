@@ -1105,7 +1105,8 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Row(
             children: [
@@ -1116,7 +1117,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Phân loại hành vi (AI)',
+                'Phân loại hành vi',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1158,6 +1159,8 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
                 Text(
                   cluster.description,
                   textAlign: TextAlign.center,
+                  softWrap: true,
+                  maxLines: null,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

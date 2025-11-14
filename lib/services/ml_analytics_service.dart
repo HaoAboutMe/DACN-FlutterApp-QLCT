@@ -771,7 +771,8 @@ class MLAnalyticsService {
       if (ratio < 0.6 && avgSpending < 5000000) {
         // Chi ít và tỉ lệ thấp
         clusterName = 'Tiết kiệm';
-        description = 'Bạn chi tiêu cẩn trọng và có kế hoạch tốt. Tỉ lệ chi/thu dưới 60%.';
+        description = 'Bạn chi tiêu cẩn trọng và có kế hoạch tốt. '
+            '\nTỉ lệ chi/thu dưới 60%.';
       } else if (ratio >= 0.9 || avgSpending > 10000000 || highValueCount > 15) {
         // Chi nhiều hoặc tỉ lệ cao
         clusterName = 'Thoải mái';
