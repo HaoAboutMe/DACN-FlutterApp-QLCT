@@ -1,5 +1,6 @@
 import 'package:app_qlct/utils/notification_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'config/app_theme.dart';
@@ -7,6 +8,7 @@ import 'providers/theme_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/currency_provider.dart';
 import 'services/notification_service.dart';
+import 'services/widget_service.dart';
 import 'database/database_helper.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
@@ -30,6 +32,17 @@ void main() async {
     debugPrint('Error initializing default categories: $e');
   }
 
+  // ✅ CẬP NHẬT WIDGET KHI APP MỞ
+  try {
+    debugPrint('🔄 Updating home screen widget...');
+    await WidgetService.updateWidgetData();
+  } catch (e) {
+    debugPrint('❌ Error updating widget on startup: $e');
+  }
+
+  // Setup MethodChannel để nhận intent từ widget
+  setupWidgetChannel();
+
   // Check if InitialScreen should be shown
   final isFirstRun = await InitialScreen.shouldShowInitialScreen();
 
@@ -49,6 +62,25 @@ void main() async {
       child: MyApp(isFirstRun: isFirstRun),
     ),
   );
+}
+
+/// Setup MethodChannel để nhận message từ Android widget
+void setupWidgetChannel() {
+  const channel = MethodChannel('com.example.app_qlct/widget');
+
+  channel.setMethodCallHandler((call) async {
+    if (call.method == 'openTab') {
+      final int tabIndex = call.arguments as int;
+      debugPrint('📱 Widget clicked - Opening tab $tabIndex');
+
+      final navState = mainNavigationKey.currentState;
+      if (navState != null) {
+        navState.switchToTab(tabIndex);
+      } else {
+        pendingWidgetTabNotifier.value = tabIndex;
+      }
+    }
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -75,10 +107,18 @@ class MyApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
           // Show InitialScreen or MainNavigationWrapper based on isFirstRun
-          home: isFirstRun ? const InitialScreen() : MainNavigationWrapper(key: mainNavigationKey),
+          home: isFirstRun
+              ? const InitialScreen()
+              : MainNavigationWrapper(
+            key: mainNavigationKey,
+            initialIndex: pendingWidgetTabNotifier.value ?? 0,
+          ),
           // Define named routes
           routes: {
-            '/home': (context) => MainNavigationWrapper(key: mainNavigationKey),
+            '/home': (context) => MainNavigationWrapper(
+              key: mainNavigationKey,
+              initialIndex: pendingWidgetTabNotifier.value ?? 0,
+            ),
             '/initial': (context) => const InitialScreen(),
           },
           debugShowCheckedModeBanner: false, // Remove debug banner

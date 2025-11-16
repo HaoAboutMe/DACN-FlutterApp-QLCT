@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
@@ -9,6 +11,7 @@ import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
 import '../../utils/notification_helper.dart';
 import '../../utils/currency_formatter.dart';
+import '../../services/widget_service.dart';
 
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
@@ -19,7 +22,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   User? _currentUser;
   String _userName = 'Người dùng Whales Spent';
   bool _isEditingName = false;
@@ -29,13 +32,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
   String _selectedCurrency = 'VND';
+  bool _isWidgetPinned = false;
+  bool _isRequestingWidget = false;
+  static const MethodChannel _widgetChannel = MethodChannel('com.example.app_qlct/widget');
+
+  bool get _supportsAndroidWidget =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCurrentUser();
     _loadReminderSettings();
     _loadCurrencySettings();
+    _checkWidgetPinStatus();
   }
 
   Future<void> _loadCurrencySettings() async {
@@ -87,7 +98,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkWidgetPinStatus();
+    }
   }
 
 
@@ -226,23 +245,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // SliverAppBar với animation
               _buildAnimatedAppBar(isDark),
 
-            // Feature Grid Section
-            SliverToBoxAdapter(
-              child: _buildFeatureGrid(isDark),
-            ),
+              // Feature Grid Section
+              SliverToBoxAdapter(
+                child: _buildFeatureGrid(isDark),
+              ),
 
-            // Settings List Section
-            SliverToBoxAdapter(
-              child: _buildSettingsList(isDark),
-            ),
+              // Settings List Section
+              SliverToBoxAdapter(
+                child: _buildSettingsList(isDark),
+              ),
 
-            // Footer
-            SliverToBoxAdapter(
-              child: _buildFooter(isDark),
-            ),
-          ],
+              // Footer
+              SliverToBoxAdapter(
+                child: _buildFooter(isDark),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -409,74 +428,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _isEditingName
                   ? SizedBox(
-                      width: 260, // giảm từ 280
-                      child: TextField(
-                        controller: _nameController,
-                        textAlign: TextAlign.center,
-                        autofocus: true,
-                        style: TextStyle(
-                          fontSize: 14, // cố định nhỏ hơn
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                width: 260, // giảm từ 280
+                child: TextField(
+                  controller: _nameController,
+                  textAlign: TextAlign.center,
+                  autofocus: true,
+                  style: TextStyle(
+                    fontSize: 14, // cố định nhỏ hơn
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[800] : Colors.white,
+                    isDense: true, // thêm để giảm kích thước
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green, size: 18), // giảm từ 20
+                          onPressed: () => _saveUserName(_nameController.text),
+                          padding: const EdgeInsets.all(4), // giảm từ 6
+                          constraints: const BoxConstraints(),
                         ),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: isDark ? Colors.grey[800] : Colors.white,
-                          isDense: true, // thêm để giảm kích thước
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.check, color: Colors.green, size: 18), // giảm từ 20
-                                onPressed: () => _saveUserName(_nameController.text),
-                                padding: const EdgeInsets.all(4), // giảm từ 6
-                                constraints: const BoxConstraints(),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red, size: 18), // giảm từ 20
-                                onPressed: () {
-                                  setState(() {
-                                    _isEditingName = false;
-                                    _nameController.text = _userName;
-                                  });
-                                },
-                                padding: const EdgeInsets.all(4), // giảm từ 6
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10), // giảm từ 12
-                            borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF5D5FEF), width: 2),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // giảm từ 16, 12
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red, size: 18), // giảm từ 20
+                          onPressed: () {
+                            setState(() {
+                              _isEditingName = false;
+                              _nameController.text = _userName;
+                            });
+                          },
+                          padding: const EdgeInsets.all(4), // giảm từ 6
+                          constraints: const BoxConstraints(),
                         ),
-                      ),
-                    )
-                  : AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      style: TextStyle(
-                        fontSize: nameFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                        letterSpacing: 0.3,
-                      ),
-                      textAlign: TextAlign.center,
-                      child: Text(
-                        _userName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      ],
                     ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10), // giảm từ 12
+                      borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF5D5FEF), width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // giảm từ 16, 12
+                  ),
+                ),
+              )
+                  : AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                style: TextStyle(
+                  fontSize: nameFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                  letterSpacing: 0.3,
+                ),
+                textAlign: TextAlign.center,
+                child: Text(
+                  _userName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
 
             const SizedBox(height: 32), // Spacing đồng nhất 32px giữa tên và button (16px * 2 để button không bị đè)
@@ -776,7 +795,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Theme.of(context).dividerColor,
                   ),
                 // Special handling for currency selection
-                if (setting['title'] == 'Tùy chọn loại tiền')
+                if (setting['title'] == 'Thêm Widget')
+                  _buildWidgetSettingTile(setting)
+                else if (setting['title'] == 'Tùy chọn loại tiền')
                   ListTile(
                     leading: Container(
                       padding: const EdgeInsets.all(8),
@@ -878,6 +899,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildWidgetSettingTile(Map<String, dynamic> setting) {
+    final accentColor = const Color(0xFF5D5FEF);
+    final subtitleText = !_supportsAndroidWidget
+        ? 'Tính năng này hiện chỉ hỗ trợ Android'
+        : _isWidgetPinned
+        ? 'Widget đã hiển thị trên màn hình chính'
+        : setting['subtitle'] as String;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          setting['icon'] as IconData,
+          color: accentColor,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        setting['title'] as String,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      subtitle: Text(
+        subtitleText,
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).textTheme.bodySmall?.color,
+        ),
+      ),
+      trailing: _isRequestingWidget
+          ? const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      )
+          : _isWidgetPinned
+          ? Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text(
+          'Đã thêm',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
+      )
+          : Icon(
+        Icons.add_circle_outline,
+        size: 20,
+        color: accentColor,
+      ),
+      onTap: _supportsAndroidWidget ? _handleWidgetSettingTap : null,
+    );
+  }
+
   /// Xây dựng Footer
   Widget _buildFooter(bool isDark) {
     return Container(
@@ -924,6 +1011,207 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
+      ),
+    );
+  }
+
+  void _handleWidgetSettingTap() {
+    if (_isRequestingWidget) return;
+    _showAddWidgetDialog();
+  }
+
+  Future<void> _showAddWidgetDialog() async {
+    if (!_supportsAndroidWidget) {
+      _showManualWidgetGuide();
+      return;
+    }
+
+    final bool? shouldAdd = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Thêm widget Whales Spent'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _isWidgetPinned
+                    ? 'Widget đã có trên màn hình chính. Bạn có thể làm mới dữ liệu bất cứ lúc nào.'
+                    : 'Widget giúp xem nhanh thu chi, khoản vay và danh mục nổi bật ngay từ màn hình chính.',
+              ),
+              const SizedBox(height: 16),
+              _buildInstructionRow('1', 'Nhấn Giữ màn hình chính → chọn Widgets.'),
+              _buildInstructionRow('2', 'Chọn Whales Spent và kéo widget ra màn hình.'),
+              _buildInstructionRow('3', 'Chạm vào widget để mở nhanh thống kê trong ứng dụng.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Để sau'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5D5FEF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(_isWidgetPinned ? 'Cập nhật widget' : 'Thêm ngay'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldAdd == true) {
+      await _requestWidgetPin();
+    }
+  }
+
+  Future<void> _requestWidgetPin() async {
+    if (!_supportsAndroidWidget) return;
+
+    setState(() {
+      _isRequestingWidget = true;
+    });
+
+    try {
+      await WidgetService.updateWidgetData();
+      final bool? result = await _widgetChannel.invokeMethod<bool>('requestPinWidget');
+
+      if (!mounted) return;
+
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã gửi yêu cầu. Hãy chấp nhận pop-up "Thêm widget" để hoàn tất.'),
+            backgroundColor: Color(0xFF5D5FEF),
+          ),
+        );
+
+        // Poll trạng thái widget trong vài giây để cập nhật UI
+        bool pinned = _isWidgetPinned;
+        for (int i = 0; i < 5; i++) {
+          await Future.delayed(const Duration(seconds: 1));
+          pinned = await _widgetChannel.invokeMethod<bool>('hasPinnedWidget') ?? false;
+          if (pinned) {
+            break;
+          }
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _isWidgetPinned = pinned;
+        });
+
+        if (pinned) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Widget Whales Spent đã được thêm thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        _showManualWidgetGuide();
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể thêm widget: ${e.message ?? e.code}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Có lỗi xảy ra: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequestingWidget = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkWidgetPinStatus() async {
+    if (!_supportsAndroidWidget) return;
+    try {
+      final bool? isPinned = await _widgetChannel.invokeMethod<bool>('hasPinnedWidget');
+      if (!mounted) return;
+      setState(() {
+        _isWidgetPinned = isPinned ?? false;
+      });
+    } catch (e) {
+      debugPrint('Không thể kiểm tra trạng thái widget: $e');
+    }
+  }
+
+  void _showManualWidgetGuide() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Thêm widget thủ công'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Nếu thiết bị không hỗ trợ tự động, hãy làm theo các bước sau:'),
+            SizedBox(height: 12),
+            Text('1. Về màn hình chính và nhấn giữ vào vùng trống.'),
+            Text('2. Chọn Widgets → tìm Whales Spent.'),
+            Text('3. Kéo widget ra màn hình và thả.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionRow(String step, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              step,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5D5FEF),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              description,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }

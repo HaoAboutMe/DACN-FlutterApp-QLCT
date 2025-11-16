@@ -389,6 +389,7 @@ class ExpenseDataProvider extends ChangeNotifier {
   Color _generateColorFromId(int id) {
     // Danh sách màu đẹp và dễ phân biệt (Material Design palette)
     final colorPalette = [
+      const Color(0xFFA1887F), // Brown 300
       const Color(0xFF64B5F6), // Blue 300
       const Color(0xFF4FC3F7), // Light Blue 300
       const Color(0xFF4DD0E1), // Cyan 300
@@ -397,6 +398,7 @@ class ExpenseDataProvider extends ChangeNotifier {
       const Color(0xFFAED581), // Light Green 300
       const Color(0xFFFFD54F), // Amber 300
       const Color(0xFFFFB74D), // Orange 300
+      const Color(0xFFF06292), // Pink 300
       const Color(0xFFE57373), // Red 300
       const Color(0xFFBA68C8), // Purple 300
       const Color(0xFF9575CD), // Deep Purple 300
@@ -417,8 +419,7 @@ class ExpenseDataProvider extends ChangeNotifier {
       const Color(0xFF8D6E63), // Brown 400
       const Color(0xFF78909C), // Blue Grey 400
       const Color(0xFFEC407A), // Pink 400
-      const Color(0xFFF06292), // Pink 300
-      const Color(0xFFA1887F), // Brown 300
+
     ];
 
     // Sử dụng ID để chọn màu từ palette, đảm bảo tính ổn định

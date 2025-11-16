@@ -9,6 +9,9 @@ import 'profile/profile_screen.dart';
 /// GlobalKey để truy cập MainNavigationWrapper từ bất kỳ đâu
 final GlobalKey<_MainNavigationWrapperState> mainNavigationKey = GlobalKey<_MainNavigationWrapperState>();
 
+/// Ghi nhớ tab cần mở nếu widget Android kích hoạt khi app chưa sẵn sàng
+final ValueNotifier<int?> pendingWidgetTabNotifier = ValueNotifier<int?>(null);
+
 /// MainNavigationWrapper - Wrapper chính quản lý navigation bar động
 /// Sử dụng IndexedStack để giữ trạng thái các trang khi chuyển tab
 /// Hỗ trợ ẩn/hiện navigation bar khi scroll
@@ -28,6 +31,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   late int _currentIndex;
   bool _isNavBarVisible = true;
   double _lastScrollOffset = 0;
+  late final VoidCallback _pendingTabListener;
 
   // Keys for accessing screen states for reload functionality
   final GlobalKey _homeKey = GlobalKey();
@@ -43,6 +47,10 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     super.initState();
     _currentIndex = widget.initialIndex;
 
+    _pendingTabListener = _consumePendingWidgetTab;
+    pendingWidgetTabNotifier.addListener(_pendingTabListener);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingWidgetTab());
+
     // Khởi tạo danh sách màn hình với NotificationListener để detect scroll
     _screens = [
       _buildScreenWithScrollDetection(HomePage(key: _homeKey), 0),
@@ -51,6 +59,25 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       _buildScreenWithScrollDetection(StatisticsScreen(key: _statisticsKey), 3),
       _buildScreenWithScrollDetection(const ProfileScreen(), 4),
     ];
+  }
+
+  @override
+  void dispose() {
+    pendingWidgetTabNotifier.removeListener(_pendingTabListener);
+    super.dispose();
+  }
+
+  void _consumePendingWidgetTab() {
+    final pendingTab = pendingWidgetTabNotifier.value;
+    if (pendingTab == null || !mounted) return;
+
+    if (pendingTab != _currentIndex) {
+      switchToTab(pendingTab);
+    } else {
+      _triggerTabReload(pendingTab);
+    }
+
+    pendingWidgetTabNotifier.value = null;
   }
 
   /// Xây dựng màn hình với scroll detection để ẩn/hiện navigation bar
@@ -273,7 +300,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           }
           break;
 
-        // Statistics and Profile tabs - minimal reload for better performance
+      // Statistics and Profile tabs - minimal reload for better performance
         case 3: // StatisticsScreen
           final statisticsState = _statisticsKey.currentState;
           if (statisticsState != null && statisticsState is State) {

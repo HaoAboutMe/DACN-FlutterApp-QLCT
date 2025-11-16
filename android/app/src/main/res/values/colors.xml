@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget Colors - Theo phong cách Whales Spent -->
+    
+    <!-- Background màu xanh dương chủ đạo của app -->
+    <color name="widget_background">#00A8CC</color>
+    
+    <!-- Text colors -->
+    <color name="widget_text_primary">#FFFFFF</color>
+    <color name="widget_text_secondary">#E0F7FA</color>
+    
+    <!-- Expense/Income colors -->
+    <color name="widget_expense_red">#FF6B6B</color>
+    <color name="widget_income_green">#4ECDC4</color>
+    
+    <!-- Accent color -->
+    <color name="widget_accent">#0077B6</color>
+    
+    <!-- Divider -->
+    <color name="widget_divider">#4DFFFFFF</color>
+    
+    <!-- Chip background (tháng) -->
+    <color name="widget_chip_background">#330077B6</color>
+    
+    <!-- Progress bar colors -->
+    <color name="widget_progress_container">#1AFFFFFF</color>
+    <color name="widget_progress_bg">#4DFFFFFF</color>
+    <color name="widget_progress_fill">#FFFFFF</color>
+</resources>
