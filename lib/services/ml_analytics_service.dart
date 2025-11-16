@@ -277,18 +277,8 @@ class MLAnalyticsService {
     // ===== PHÂN TÍCH THỜI GIAN TRONG NGÀY =====
     final timeSpending = <String, double>{};
     for (var expense in expenses) {
-      final hour = expense.date.hour;
-      String timeOfDay;
-      if (hour >= 6 && hour < 12) {
-        timeOfDay = 'Buổi sáng';
-      } else if (hour >= 12 && hour < 18) {
-        timeOfDay = 'Buổi chiều';
-      } else if (hour >= 18 && hour < 22) {
-        timeOfDay = 'Buổi tối';
-      } else {
-        timeOfDay = 'Đêm khuya';
-      }
-      timeSpending[timeOfDay] = (timeSpending[timeOfDay] ?? 0) + expense.amount;
+      final period = _getTimePeriod(expense.date.hour);
+      timeSpending[period] = (timeSpending[period] ?? 0) + expense.amount;
     }
 
     final preferredTime = timeSpending.isNotEmpty
@@ -344,11 +334,6 @@ class MLAnalyticsService {
     final alerts = <BudgetAlert>[];
     final now = DateTime.now();
 
-    // Tính số ngày đã trôi qua và tổng số ngày trong tháng
-    final daysInMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final daysElapsed = now.day;
-    final timeElapsedPercentage = (daysElapsed / daysInMonth) * 100;
-
     // ===== 1. KIỂM TRA NGÂN SÁCH TỔNG (Overall Budget) =====
     try {
       final overallProgress = await _dbHelper.getOverallBudgetProgress();
@@ -358,8 +343,19 @@ class MLAnalyticsService {
         final budgetAmount = (overallProgress['budgetAmount'] as num).toDouble();
         final spent = (overallProgress['totalSpent'] as num).toDouble();
 
+        // Lấy ngày bắt đầu và kết thúc từ ngân sách
+        final startDate = DateTime.parse(overallProgress['startDate'] as String);
+        final endDate = DateTime.parse(overallProgress['endDate'] as String);
+
+        // Tính số ngày dựa trên khoảng thời gian thực của ngân sách
+        final totalDays = endDate.difference(startDate).inDays + 1;
+        final daysElapsed = now.difference(startDate).inDays + 1;
+        final timeElapsedPercentage = (daysElapsed / totalDays) * 100;
+
         log('💰 Ngân sách tổng: ${budgetAmount.toStringAsFixed(0)} VND');
         log('💸 Đã chi: ${spent.toStringAsFixed(0)} VND');
+        log('📅 Thời gian: ${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month} ($totalDays ngày)');
+        log('📆 Đã qua: $daysElapsed/$totalDays ngày (${timeElapsedPercentage.toStringAsFixed(1)}%)');
 
         if (budgetAmount > 0) {
           // Tính % đã sử dụng
@@ -370,7 +366,7 @@ class MLAnalyticsService {
           final spendingRate = expectedUsage > 0 ? usedPercentage / expectedUsage : 0.0;
 
           // Dự đoán số tiền vượt nếu tiếp tục chi tiêu
-          final projectedTotal = daysElapsed > 0 ? (spent / daysElapsed) * daysInMonth : spent;
+          final projectedTotal = daysElapsed > 0 ? (spent / daysElapsed) * totalDays : spent;
           final projectedOverage = math.max(0.0, projectedTotal - budgetAmount);
 
           // Xác định mức độ nghiêm trọng (giảm ngưỡng để dễ cảnh báo hơn)
@@ -425,6 +421,15 @@ class MLAnalyticsService {
 
         if (budgetAmount <= 0) continue;
 
+        // Lấy ngày bắt đầu và kết thúc từ ngân sách
+        final startDate = DateTime.parse(item['startDate'] as String);
+        final endDate = DateTime.parse(item['endDate'] as String);
+
+        // Tính số ngày dựa trên khoảng thời gian thực của ngân sách
+        final totalDays = endDate.difference(startDate).inDays + 1;
+        final daysElapsed = now.difference(startDate).inDays + 1;
+        final timeElapsedPercentage = (daysElapsed / totalDays) * 100;
+
         // Tính % đã sử dụng
         final usedPercentage = (spent / budgetAmount) * 100;
 
@@ -434,13 +439,14 @@ class MLAnalyticsService {
 
         // Dự đoán số tiền vượt nếu tiếp tục chi tiêu
         final dailyAverage = daysElapsed > 0 ? spent / daysElapsed : 0;
-        final projectedTotal = dailyAverage * daysInMonth;
+        final projectedTotal = dailyAverage * totalDays;
         final projectedOverage = math.max(0.0, projectedTotal - budgetAmount);
 
         log('📋 [$categoryName] Budget: ${budgetAmount.toStringAsFixed(0)}, Spent: ${spent.toStringAsFixed(0)}');
-        log('📊 Ngày đã qua: $daysElapsed/$daysInMonth ngày (${timeElapsedPercentage.toStringAsFixed(1)}%)');
+        log('📅 Thời gian: ${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month} ($totalDays ngày)');
+        log('📆 Ngày đã qua: $daysElapsed/$totalDays ngày (${timeElapsedPercentage.toStringAsFixed(1)}%)');
         log('💸 Chi TB/ngày: ${dailyAverage.toStringAsFixed(0)} VND');
-        log('🔮 Dự đoán cuối tháng: ${projectedTotal.toStringAsFixed(0)} VND');
+        log('🔮 Dự đoán cuối kỳ: ${projectedTotal.toStringAsFixed(0)} VND');
         log('⚠️ Dự kiến vượt: ${projectedOverage.toStringAsFixed(0)} VND');
 
         // ===== LUÔN HIỂN THỊ TẤT CẢ NGÂN SÁCH, CHỈ PHÂN LOẠI MÀU =====
@@ -490,6 +496,11 @@ class MLAnalyticsService {
       final categories = await _dbHelper.getAllCategories();
       final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
       final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0, 23, 59, 59);
+
+      // Tính số ngày trong tháng cho phần backup này
+      final daysInMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+      final daysElapsed = now.day;
+      final timeElapsedPercentage = (daysElapsed / daysInMonth) * 100;
 
       for (var category in categories) {
         if (category.type != 'expense' || category.budget == null || category.budget! <= 0) {
