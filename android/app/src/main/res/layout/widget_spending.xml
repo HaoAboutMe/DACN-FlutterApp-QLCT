@@ -59,7 +59,7 @@
                 android:id="@+id/categories_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Chi tiêu nhiều nhất"
+                android:text="3 danh mục chi nhiều nhất tháng"
                 android:textColor="#E0F7FA"
                 android:textSize="12sp"
                 android:textStyle="bold" />

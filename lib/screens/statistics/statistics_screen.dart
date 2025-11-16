@@ -389,40 +389,39 @@ class ExpenseDataProvider extends ChangeNotifier {
   Color _generateColorFromId(int id) {
     // Danh sách màu đẹp và dễ phân biệt (Material Design palette)
     final colorPalette = [
-      const Color(0xFFA1887F), // Brown 300
-      const Color(0xFF64B5F6), // Blue 300
-      const Color(0xFF4FC3F7), // Light Blue 300
-      const Color(0xFF4DD0E1), // Cyan 300
-      const Color(0xFF4DB6AC), // Teal 300
-      const Color(0xFF81C784), // Green 300
-      const Color(0xFFAED581), // Light Green 300
-      const Color(0xFFFFD54F), // Amber 300
-      const Color(0xFFFFB74D), // Orange 300
-      const Color(0xFFF06292), // Pink 300
-      const Color(0xFFE57373), // Red 300
-      const Color(0xFFBA68C8), // Purple 300
-      const Color(0xFF9575CD), // Deep Purple 300
-      const Color(0xFF7986CB), // Indigo 300
-      const Color(0xFF90A4AE), // Blue Grey 300
-      const Color(0xFFEF5350), // Red 400
-      const Color(0xFFAB47BC), // Purple 400
-      const Color(0xFF7E57C2), // Deep Purple 400
-      const Color(0xFF5C6BC0), // Indigo 400
-      const Color(0xFF42A5F5), // Blue 400
-      const Color(0xFF29B6F6), // Light Blue 400
-      const Color(0xFF26C6DA), // Cyan 400
-      const Color(0xFF26A69A), // Teal 400
-      const Color(0xFF66BB6A), // Green 400
-      const Color(0xFF9CCC65), // Light Green 400
-      const Color(0xFFFFCA28), // Amber 400
-      const Color(0xFFFFA726), // Orange 400
-      const Color(0xFF8D6E63), // Brown 400
-      const Color(0xFF78909C), // Blue Grey 400
-      const Color(0xFFEC407A), // Pink 400
-
+      Color(0xFFFFA726), // Orange 400
+      Color(0xFF26C6DA), // Cyan 400
+      Color(0xFFBA68C8), // Purple 300
+      Color(0xFF66BB6A), // Green 400
+      Color(0xFFF06292), // Pink 300
+      Color(0xFF42A5F5), // Blue 400
+      Color(0xFFFFD54F), // Amber 300
+      Color(0xFF26A69A), // Teal 400
+      Color(0xFFE57373), // Red 300
+      Color(0xFF4FC3F7), // Light Blue 300
+      Color(0xFFAB47BC), // Purple 400
+      Color(0xFFAED581), // Light Green 300
+      Color(0xFFEC407A), // Pink 400
+      Color(0xFF64B5F6), // Blue 300
+      Color(0xFFFFCA28), // Amber 400
+      Color(0xFF4DB6AC), // Teal 300
+      Color(0xFFEF5350), // Red 400
+      Color(0xFF29B6F6), // Light Blue 400
+      Color(0xFF7E57C2), // Deep Purple 400
+      Color(0xFF81C784), // Green 300
+      Color(0xFFFFB74D), // Orange 300
+      Color(0xFF4DD0E1), // Cyan 300
+      Color(0xFF9575CD), // Deep Purple 300
+      Color(0xFF9CCC65), // Light Green 400
+      Color(0xFFA1887F), // Brown 300
+      Color(0xFF5C6BC0), // Indigo 400
+      Color(0xFF90A4AE), // Blue Grey 300
+      Color(0xFF8D6E63), // Brown 400
+      Color(0xFF7986CB), // Indigo 300
+      Color(0xFF78909C), // Blue Grey 400
     ];
 
-    // Sử dụng ID để chọn màu từ palette, đảm bảo tính ổn định
+    /// Ví dụ id là 10 thì sẽ là colorPalltete[10] --> màu: LightBlue
     return colorPalette[id % colorPalette.length];
   }
 
@@ -851,7 +850,7 @@ class _ExpenseSummaryCard extends StatelessWidget {
                         Text(
                           provider.isMoneyVisible
                               ? CurrencyFormatter.formatAmount(provider.totalExpense)
-                              : '***.***đ',
+                              : '••••••••',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -916,7 +915,7 @@ class _ExpenseSummaryCard extends StatelessWidget {
                         Text(
                           provider.isMoneyVisible
                               ? CurrencyFormatter.formatAmount(provider.totalIncome)
-                              : '***.***đ',
+                              : '••••••••',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -1111,7 +1110,7 @@ class _SimpleChart extends StatelessWidget {
               Text(
                 provider.isMoneyVisible
                     ? CurrencyFormatter.formatAmount(total)
-                    : '***.***đ',
+                    : '••••••••',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1369,7 +1368,7 @@ class _SimpleChart extends StatelessWidget {
               Text(
                 provider.isMoneyVisible
                     ? CurrencyFormatter.formatAmount(category.amount)
-                    : '***.***đ',
+                    : '••••••••',
                 style: TextStyle(
                   fontSize: 8,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1627,7 +1626,7 @@ class _CategoryItem extends StatelessWidget {
                     Text(
                       provider.isMoneyVisible
                           ? CurrencyFormatter.formatAmount(category.amount)
-                          : '***.***đ',
+                          : '••••••••',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15, // Tăng từ 14 lên 15
