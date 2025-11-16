@@ -6,6 +6,7 @@ import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/currency_provider.dart';
+import '../../services/widget_service.dart';
 import 'widgets/greeting_appbar.dart';
 import 'widgets/balance_overview.dart';
 import 'widgets/quick_actions.dart';
@@ -71,6 +72,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     debugPrint('🏠 HomePage: _refreshHomeData() called');
     if (!mounted) return;
     await _loadData();
+    
+    // ✅ CẬP NHẬT WIDGET KHI REFRESH
+    try {
+      await WidgetService.updateWidgetData();
+    } catch (e) {
+      debugPrint('❌ Error updating widget: $e');
+    }
   }
 
   /// Public method for external calls from MainNavigationWrapper
@@ -78,6 +86,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     debugPrint('🏠 HomePage: refreshData() called from external');
     if (!mounted) return;
     await _loadData();
+    
+    // ✅ CẬP NHẬT WIDGET
+    try {
+      await WidgetService.updateWidgetData();
+    } catch (e) {
+      debugPrint('❌ Error updating widget: $e');
+    }
   }
 
   Future<void> _loadData() async {
