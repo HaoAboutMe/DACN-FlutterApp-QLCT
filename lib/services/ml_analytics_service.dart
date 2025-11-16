@@ -277,18 +277,8 @@ class MLAnalyticsService {
     // ===== PHÂN TÍCH THỜI GIAN TRONG NGÀY =====
     final timeSpending = <String, double>{};
     for (var expense in expenses) {
-      final hour = expense.date.hour;
-      String timeOfDay;
-      if (hour >= 6 && hour < 12) {
-        timeOfDay = 'Buổi sáng';
-      } else if (hour >= 12 && hour < 18) {
-        timeOfDay = 'Buổi chiều';
-      } else if (hour >= 18 && hour < 22) {
-        timeOfDay = 'Buổi tối';
-      } else {
-        timeOfDay = 'Đêm khuya';
-      }
-      timeSpending[timeOfDay] = (timeSpending[timeOfDay] ?? 0) + expense.amount;
+      final period = _getTimePeriod(expense.date.hour);
+      timeSpending[period] = (timeSpending[period] ?? 0) + expense.amount;
     }
 
     final preferredTime = timeSpending.isNotEmpty
