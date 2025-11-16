@@ -185,10 +185,13 @@ class ExpenseDataProvider extends ChangeNotifier {
     }
 
     // Chỉ lấy danh mục có chi tiêu > 0
-    _categories = categoryMap.values
+    final allCategories = categoryMap.values
         .where((category) => category.amount > 0)
         .toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
+
+    // Gộp các danh mục nhỏ hơn 1% thành "Các danh mục khác"
+    _categories = _groupSmallCategories(allCategories);
   }
 
   // Tính toán thu nhập theo danh mục
@@ -234,10 +237,43 @@ class ExpenseDataProvider extends ChangeNotifier {
     }
 
     // Chỉ lấy danh mục có thu nhập > 0
-    _incomeCategories = categoryMap.values
+    final allIncomeCategories = categoryMap.values
         .where((category) => category.amount > 0)
         .toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
+
+    // Gộp các danh mục nhỏ hơn 1% thành "Các danh mục khác"
+    _incomeCategories = _groupSmallCategories(allIncomeCategories);
+  }
+
+  // Gộp các danh mục nhỏ hơn 1% thành "Các danh mục khác"
+  List<ExpenseCategory> _groupSmallCategories(List<ExpenseCategory> categories) {
+    if (categories.isEmpty) return [];
+
+    // Tách danh mục lớn (>= 1%) và nhỏ (< 1%)
+    final largeCategories = categories.where((cat) => cat.percentage >= 1.0).toList();
+    final smallCategories = categories.where((cat) => cat.percentage < 1.0).toList();
+
+    // Nếu không có danh mục nhỏ, trả về danh sách gốc
+    if (smallCategories.isEmpty) {
+      return categories;
+    }
+
+    // Tính tổng các danh mục nhỏ
+    final totalSmallAmount = smallCategories.fold(0.0, (sum, cat) => sum + cat.amount);
+    final totalSmallPercentage = smallCategories.fold(0.0, (sum, cat) => sum + cat.percentage);
+
+    // Tạo danh mục "Các danh mục khác"
+    final otherCategory = ExpenseCategory(
+      name: 'Các danh mục khác',
+      amount: totalSmallAmount,
+      icon: Icons.leaderboard_sharp,
+      color: Colors.grey,
+      percentage: totalSmallPercentage,
+    );
+
+    // Kết hợp danh mục lớn với danh mục "Khác"
+    return [...largeCategories, otherCategory];
   }
 
   // Tính toán so sánh theo tháng dựa trên dữ liệu giao dịch thực tế
