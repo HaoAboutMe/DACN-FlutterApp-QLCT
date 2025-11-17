@@ -160,12 +160,22 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       debugPrint('Exchange rate: ${currencyProvider.exchangeRate}');
       debugPrint('======================================');
 
+      // Đảm bảo endDate là cuối ngày (23:59:59) để budget tồn tại cả ngày
+      final endDateEndOfDay = DateTime(
+        _endDate.year,
+        _endDate.month,
+        _endDate.day,
+        23,
+        59,
+        59,
+      );
+
       final budget = Budget(
         id: widget.budget?.id,
         amount: amountInVND,
         categoryId: _isOverallBudget ? null : _selectedCategory?.id,
         startDate: _startDate,
-        endDate: _endDate,
+        endDate: endDateEndOfDay,
         createdAt: widget.budget?.createdAt ?? DateTime.now(),
       );
 

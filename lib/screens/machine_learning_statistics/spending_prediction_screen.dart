@@ -669,7 +669,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
 
           Text(
             'Đã sử dụng ${alert.usedPercentage.toStringAsFixed(1)}% ngân sách '
-                'trong ${alert.daysElapsed} ngày đầu của ngân sách '
+                'trong ${alert.daysElapsed}/${alert.totalDays} ngày '
                 '(${alert.timeElapsedPercentage.toStringAsFixed(0)}% thời gian).',
             style: theme.textTheme.bodySmall,
           ),

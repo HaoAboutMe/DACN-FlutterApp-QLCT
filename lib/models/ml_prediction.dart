@@ -107,6 +107,9 @@ class BudgetAlert {
   /// Số ngày đã trôi qua trong tháng
   final int daysElapsed;
 
+  /// Tổng số ngày trong khoảng thời gian ngân sách
+  final int totalDays;
+
   /// % thời gian đã trôi qua trong tháng
   final double timeElapsedPercentage;
 
@@ -129,6 +132,7 @@ class BudgetAlert {
     required this.categoryName,
     required this.usedPercentage,
     required this.daysElapsed,
+    required this.totalDays,
     required this.timeElapsedPercentage,
     required this.spendingRate,
     required this.projectedOverage,
