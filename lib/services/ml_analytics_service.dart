@@ -395,6 +395,7 @@ class MLAnalyticsService {
             categoryName: '💰 Ngân sách tổng', // Đánh dấu đặc biệt
             usedPercentage: usedPercentage,
             daysElapsed: daysElapsed,
+            totalDays: totalDays,
             timeElapsedPercentage: timeElapsedPercentage,
             spendingRate: spendingRate,
             projectedOverage: projectedOverage,
@@ -479,6 +480,7 @@ class MLAnalyticsService {
           categoryName: categoryName,
           usedPercentage: usedPercentage,
           daysElapsed: daysElapsed,
+          totalDays: totalDays,
           timeElapsedPercentage: timeElapsedPercentage,
           spendingRate: spendingRate,
           projectedOverage: projectedOverage,
@@ -545,6 +547,7 @@ class MLAnalyticsService {
             categoryName: category.name,
             usedPercentage: usedPercentage,
             daysElapsed: daysElapsed,
+            totalDays: daysInMonth,
             timeElapsedPercentage: timeElapsedPercentage,
             spendingRate: spendingRate,
             projectedOverage: projectedOverage,
