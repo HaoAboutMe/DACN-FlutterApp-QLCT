@@ -290,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           double expandRatio = rawRatio.clamp(0.0, 1.0);
 
           // 🔥 Ép tắt animation sớm để không còn 1 pixel mờ nào
-          if (currentHeight <= minHeight + 12) {
+          if (currentHeight <= minHeight + 20) {
             expandRatio = 0.0;
           }
           return Stack(
