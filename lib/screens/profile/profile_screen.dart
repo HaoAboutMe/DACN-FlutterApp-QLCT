@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
@@ -9,14 +8,14 @@ import '../../providers/currency_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
-import '../../utils/notification_helper.dart';
 import '../../utils/currency_formatter.dart';
-import '../../services/widget_service.dart';
 import 'widgets/profile_expanded_header.dart';
 import 'widgets/profile_collapsed_header.dart';
 import 'widgets/profile_feature_grid.dart';
-import 'widgets/profile_widget_setting_tile.dart';
 import 'widgets/profile_footer.dart';
+import 'widgets/profile_settings_list.dart';
+import 'widgets/profile_reminder_dialog.dart';
+import 'widgets/profile_widget_dialogs.dart';
 
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
@@ -39,7 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   String _selectedCurrency = 'VND';
   bool _isWidgetPinned = false;
   bool _isRequestingWidget = false;
-  static const MethodChannel _widgetChannel = MethodChannel('com.example.app_qlct/widget');
 
   bool get _supportsAndroidWidget =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -430,191 +428,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   /// Xây dựng danh sách cài đặt
   Widget _buildSettingsList(bool isDark) {
-    final settings = [
-      {
-        'icon': Icons.widgets_outlined,
-        'title': 'Thêm Widget',
-        'subtitle': 'Tùy chỉnh widget trên màn hình chính',
-      },
-      {
-        'icon': Icons.language_outlined,
-        'title': 'Tùy chọn ngôn ngữ',
-        'subtitle': 'Thay đổi ngôn ngữ hiển thị',
-      },
-      {
-        'icon': Icons.attach_money_outlined,
-        'title': 'Tùy chọn loại tiền',
-        'subtitle': 'Chọn đơn vị tiền tệ mặc định',
-      },
-      {
-        'icon': Icons.info_outline,
-        'title': 'Về chúng tôi',
-        'subtitle': 'Thông tin về đội ngũ phát triển',
-      },
-      {
-        'icon': Icons.system_update_outlined,
-        'title': 'Phiên bản cập nhật',
-        'subtitle': 'Kiểm tra phiên bản mới nhất',
-      },
-    ];
-
-    return Container(
-      margin: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.settings,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Cài đặt',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ...settings.asMap().entries.map((entry) {
-            final index = entry.key;
-            final setting = entry.value;
-            return Column(
-              children: [
-                if (index > 0)
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context).dividerColor,
-                  ),
-                // Special handling for currency selection
-                if (setting['title'] == 'Thêm Widget')
-                  _buildWidgetSettingTile(setting)
-                else if (setting['title'] == 'Tùy chọn loại tiền')
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        setting['icon'] as IconData,
-                        color: const Color(0xFF5D5FEF),
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      setting['title'] as String,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    subtitle: Text(
-                      setting['subtitle'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButton<String>(
-                        value: _selectedCurrency,
-                        underline: const SizedBox(),
-                        isDense: true,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'VND',
-                            child: Text('VND (₫)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'USD',
-                            child: Text('USD (\$)'),
-                          ),
-                        ],
-                        onChanged: _changeCurrency,
-                      ),
-                    ),
-                  )
-                else
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        setting['icon'] as IconData,
-                        color: const Color(0xFF5D5FEF),
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      setting['title'] as String,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    subtitle: Text(
-                      setting['subtitle'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                    onTap: () => _showFeatureSnackbar(setting['title'] as String),
-                  ),
-              ],
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWidgetSettingTile(Map<String, dynamic> setting) {
-    return ProfileWidgetSettingTile(
-      setting: setting,
+    return ProfileSettingsList(
+      isDark: isDark,
+      selectedCurrency: _selectedCurrency,
+      onChangeCurrency: _changeCurrency,
+      onShowReminderDialog: _showReminderDialog,
+      onWidgetSettingTap: _handleWidgetSettingTap,
+      onShowFeatureSnackbar: _showFeatureSnackbar,
       supportsAndroidWidget: _supportsAndroidWidget,
       isWidgetPinned: _isWidgetPinned,
       isRequestingWidget: _isRequestingWidget,
-      onTap: _handleWidgetSettingTap,
     );
   }
 
@@ -639,395 +462,55 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   void _handleWidgetSettingTap() {
     if (_isRequestingWidget) return;
-    _showAddWidgetDialog();
-  }
-
-  Future<void> _showAddWidgetDialog() async {
-    if (!_supportsAndroidWidget) {
-      _showManualWidgetGuide();
-      return;
-    }
-
-    final bool? shouldAdd = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Thêm widget Whales Spent'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isWidgetPinned
-                    ? 'Widget đã có trên màn hình chính. Bạn có thể làm mới dữ liệu bất cứ lúc nào.'
-                    : 'Widget giúp xem nhanh thu chi, khoản vay và danh mục nổi bật ngay từ màn hình chính.',
-              ),
-              const SizedBox(height: 16),
-              _buildInstructionRow('1', 'Nhấn Giữ màn hình chính → chọn Widgets.'),
-              _buildInstructionRow('2', 'Chọn Whales Spent và kéo widget ra màn hình.'),
-              _buildInstructionRow('3', 'Chạm vào widget để mở nhanh thống kê trong ứng dụng.'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Để sau'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5D5FEF),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text(_isWidgetPinned ? 'Cập nhật widget' : 'Thêm ngay'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldAdd == true) {
-      await _requestWidgetPin();
-    }
-  }
-
-  Future<void> _requestWidgetPin() async {
-    if (!_supportsAndroidWidget) return;
 
     setState(() {
       _isRequestingWidget = true;
     });
 
-    try {
-      await WidgetService.updateWidgetData();
-      final bool? result = await _widgetChannel.invokeMethod<bool>('requestPinWidget');
-
-      if (!mounted) return;
-
-      if (result == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã gửi yêu cầu. Hãy chấp nhận pop-up "Thêm widget" để hoàn tất.'),
-            backgroundColor: Color(0xFF5D5FEF),
-          ),
-        );
-
-        // Poll trạng thái widget trong vài giây để cập nhật UI
-        bool pinned = _isWidgetPinned;
-        for (int i = 0; i < 5; i++) {
-          await Future.delayed(const Duration(seconds: 1));
-          pinned = await _widgetChannel.invokeMethod<bool>('hasPinnedWidget') ?? false;
-          if (pinned) {
-            break;
-          }
-        }
-
-        if (!mounted) return;
+    ProfileWidgetDialogs.showAddWidgetDialog(
+      context: context,
+      isWidgetPinned: _isWidgetPinned,
+      supportsAndroidWidget: _supportsAndroidWidget,
+      onPinStatusChanged: (isPinned) {
         setState(() {
-          _isWidgetPinned = pinned;
+          _isWidgetPinned = isPinned;
+          _isRequestingWidget = false;
         });
-
-        if (pinned) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Widget Whales Spent đã được thêm thành công!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        _showManualWidgetGuide();
-      }
-    } on PlatformException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không thể thêm widget: ${e.message ?? e.code}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Có lỗi xảy ra: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
+      },
+    ).then((_) {
       if (mounted) {
         setState(() {
           _isRequestingWidget = false;
         });
       }
-    }
+    });
   }
 
   Future<void> _checkWidgetPinStatus() async {
     if (!_supportsAndroidWidget) return;
-    try {
-      final bool? isPinned = await _widgetChannel.invokeMethod<bool>('hasPinnedWidget');
-      if (!mounted) return;
+    final isPinned = await ProfileWidgetDialogs.checkWidgetPinStatus();
+    if (mounted) {
       setState(() {
-        _isWidgetPinned = isPinned ?? false;
+        _isWidgetPinned = isPinned;
       });
-    } catch (e) {
-      debugPrint('Không thể kiểm tra trạng thái widget: $e');
     }
   }
 
-  void _showManualWidgetGuide() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Thêm widget thủ công'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('Nếu thiết bị không hỗ trợ tự động, hãy làm theo các bước sau:'),
-            SizedBox(height: 12),
-            Text('1. Về màn hình chính và nhấn giữ vào vùng trống.'),
-            Text('2. Chọn Widgets → tìm Whales Spent.'),
-            Text('3. Kéo widget ra màn hình và thả.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đã hiểu'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructionRow(String step, String description) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              step,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5D5FEF),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              description,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showReminderDialog() {
-    showDialog(
+    ProfileReminderDialog.show(
       context: context,
-      builder: (context) {
-        bool tempEnabled = _reminderEnabled;
-        TimeOfDay tempTime = _reminderTime;
-
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text('Cài đặt nhắc nhở hằng ngày'),
-          content: StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Bật nhắc nhở'),
-                      Switch(
-                        value: tempEnabled,
-                        onChanged: (value) {
-                          setStateDialog(() => tempEnabled = value);
-                        },
-                        activeTrackColor: const Color(0xFF5D5FEF),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Thời gian'),
-                      TextButton.icon(
-                        onPressed: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: tempTime,
-                          );
-                          if (picked != null) {
-                            setStateDialog(() => tempTime = picked);
-                          }
-                        },
-                        icon: const Icon(Icons.access_time, size: 18),
-                        label: Text(
-                          '${tempTime.hour.toString().padLeft(2, '0')}:${tempTime.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Nút Test thông báo
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await NotificationHelper.showInstantNotification(
-                        title: '🐋 Whales Spent Test',
-                        body: 'Thông báo đang hoạt động tốt! Bây giờ là ${TimeOfDay.now().hour}:${TimeOfDay.now().minute.toString().padLeft(2, '0')}',
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã gửi thông báo test!'),
-                          backgroundColor: Color(0xFF5D5FEF),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.notifications_active, size: 18),
-                    label: const Text('Test thông báo ngay'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF5D5FEF),
-                      side: const BorderSide(color: Color(0xFF5D5FEF)),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                setState(() {
-                  _reminderEnabled = tempEnabled;
-                  _reminderTime = tempTime;
-                });
-                _saveReminderSettings();
-
-                if (_reminderEnabled) {
-                  // Kiểm tra quyền Exact Alarm trước khi đặt lịch
-                  final hasPermission = await NotificationHelper.checkExactAlarmPermission();
-
-                  if (!hasPermission) {
-                    // Hiển thị dialog hướng dẫn cấp quyền
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      _showExactAlarmPermissionDialog();
-                    }
-                    return;
-                  }
-
-                  await NotificationHelper.scheduleDailyNotification(
-                    hour: _reminderTime.hour,
-                    minute: _reminderTime.minute,
-                  );
-                } else {
-                  await NotificationHelper.cancelDailyNotification();
-                }
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(_reminderEnabled
-                        ? 'Đã bật nhắc nhở lúc ${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}'
-                        : 'Đã tắt nhắc nhở hằng ngày'),
-                    backgroundColor: const Color(0xFF5D5FEF),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5D5FEF),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Lưu', style: TextStyle(color: Colors.white)),
-            ),
-
-          ],
-        );
+      reminderEnabled: _reminderEnabled,
+      reminderTime: _reminderTime,
+      onSave: (enabled, time) {
+        setState(() {
+          _reminderEnabled = enabled;
+          _reminderTime = time;
+        });
+        _saveReminderSettings();
+      },
+      onRequestPermission: () {
+        ProfileWidgetDialogs.showExactAlarmPermissionDialog(context);
       },
     );
   }
-
-  /// Hiển thị dialog hướng dẫn cấp quyền Exact Alarm
-  void _showExactAlarmPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 8),
-            Text('Cần cấp quyền'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Để thông báo hằng ngày hoạt động, bạn cần cấp quyền "Alarms & reminders" cho ứng dụng.',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF5D5FEF).withValues(alpha: 0.3)),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hướng dẫn:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  SizedBox(height: 8),
-                  Text('1. Vào Settings → Apps', style: TextStyle(fontSize: 12)),
-                  Text('2. Chọn Whales Spent', style: TextStyle(fontSize: 12)),
-                  Text('3. Tìm "Special app access"', style: TextStyle(fontSize: 12)),
-                  Text('4. Chọn "Alarms & reminders"', style: TextStyle(fontSize: 12)),
-                  Text('5. Bật quyền cho Whales Spent', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
-
 }
