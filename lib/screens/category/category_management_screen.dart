@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../../models/category.dart';
@@ -16,8 +17,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   late TabController _tabController;
 
+  // Raw data from database (not filtered)
+  List<Category> _allIncomeCategories = [];
+  List<Category> _allExpenseCategories = [];
+
+  // Filtered data for display
   List<Category> _incomeCategories = [];
   List<Category> _expenseCategories = [];
+
   bool _isLoading = true;
   String _searchKeyword = '';
   final TextEditingController _searchController = TextEditingController();
@@ -68,8 +75,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
       final expenseCategories = await _databaseHelper.getCategoriesByType('expense');
 
       setState(() {
-        _incomeCategories = _filterCategories(incomeCategories);
-        _expenseCategories = _filterCategories(expenseCategories);
+        _allIncomeCategories = incomeCategories;
+        _allExpenseCategories = expenseCategories;
+        _applyFilter();
         _isLoading = false;
       });
     } catch (e) {
@@ -78,6 +86,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         _isLoading = false;
       });
     }
+  }
+
+  /// Apply search filter without reloading from database
+  void _applyFilter() {
+    _incomeCategories = _filterCategories(_allIncomeCategories);
+    _expenseCategories = _filterCategories(_allExpenseCategories);
   }
 
   /// Filter categories by search keyword
@@ -416,8 +430,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
                                 _searchController.clear();
                                 setState(() {
                                   _searchKeyword = '';
+                                  _applyFilter();
                                 });
-                                _loadCategories();
                               },
                             )
                           : null,
@@ -435,8 +449,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
                     onChanged: (value) {
                       setState(() {
                         _searchKeyword = value;
+                        _applyFilter();
                       });
-                      _loadCategories();
                     },
                   ),
                 ),

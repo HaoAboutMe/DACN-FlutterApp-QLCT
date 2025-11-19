@@ -6,6 +6,7 @@ import '../../../utils/currency_formatter.dart';
 import '../../../providers/currency_provider.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
+import '../home_page.dart'; // Import để sử dụng TimeFilter enum
 
 class BalanceOverview extends StatefulWidget {
   final User? currentUser;
@@ -15,6 +16,8 @@ class BalanceOverview extends StatefulWidget {
   final double totalExpense;
   final double totalLent;
   final double totalBorrowed;
+  final TimeFilter timeFilter;
+  final ValueChanged<TimeFilter> onTimeFilterChanged;
 
   const BalanceOverview({
     super.key,
@@ -25,6 +28,8 @@ class BalanceOverview extends StatefulWidget {
     required this.totalExpense,
     required this.totalLent,
     required this.totalBorrowed,
+    required this.timeFilter,
+    required this.onTimeFilterChanged,
   });
 
   @override
@@ -153,6 +158,56 @@ class _BalanceOverviewState extends State<BalanceOverview> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Time filter dropdown
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<TimeFilter>(
+                  value: widget.timeFilter,
+                  isDense: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  dropdownColor: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  items: const [
+                    DropdownMenuItem(
+                      value: TimeFilter.week,
+                      child: Text('Tuần này'),
+                    ),
+                    DropdownMenuItem(
+                      value: TimeFilter.month,
+                      child: Text('Tháng này'),
+                    ),
+                    DropdownMenuItem(
+                      value: TimeFilter.year,
+                      child: Text('Năm nay'),
+                    ),
+                  ],
+                  onChanged: (TimeFilter? newValue) {
+                    if (newValue != null) {
+                      widget.onTimeFilterChanged(newValue);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
             IconButton(
               onPressed: _toggleExpanded,
               icon: AnimatedRotation(

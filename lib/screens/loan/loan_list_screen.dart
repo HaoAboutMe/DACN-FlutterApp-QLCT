@@ -14,6 +14,8 @@ import '../add_loan/add_loan_page.dart';
 import 'loan_detail_screen.dart';
 import 'edit_loan_screen.dart';
 import '../main_navigation_wrapper.dart';
+import 'widgets/loan_summary_card.dart';
+import 'widgets/loan_card_widget.dart';
 
 enum LoanTypeFilter { all, lendNew, lendOld, borrowNew, borrowOld }
 
@@ -439,19 +441,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
 
         if (mounted) {
           if (successCount > 0 && failCount == 0) {
-            // ✅ TẤT CẢ THÀNH CÔNG NHƯNG KHÔNG HIỆN SNACKBAR
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(
-            //     content: Text(
-            //       '✅ Đã xóa $successCount khoản vay thành công!',
-            //       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            //     ),
-            //     backgroundColor: HomeColors.income,
-            //     behavior: SnackBarBehavior.floating,
-            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            //     duration: const Duration(seconds: 4),
-            //   ),
-            // );
+            //Thành công thì không cần hiện gì cả
           } else if (successCount > 0 && failCount > 0) {
             // ⚠️ MỘT SỐ THÀNH CÔNG, MỘT SỐ THẤT BẠI
             String errorMessage = '⚠️ Đã xóa $successCount khoản vay. $failCount khoản vay không thể xóa:\n';
@@ -506,10 +496,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             );
           }
         }
-
-        // ✅ REALTIME: Set flag to indicate data has changed
-        debugPrint('🔄 LoanListScreen: Data changes completed, ready for realtime sync');
-
       } catch (e) {
         debugPrint('❌ Error deleting loans: $e');
         if (mounted) {
@@ -552,10 +538,6 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     if (mounted) {
       context.read<NotificationProvider>().updateBadgeCounts();
     }
-
-    // ✅ REALTIME: Return true để trigger HomePage refresh khi quay về từ navigation
-    // Điều này đảm bảo HomePage cập nhật số dư ngay khi user chuyển tab
-    debugPrint('🔄 LoanListScreen: Notifying parent about data changes');
   }
 
   Future<void> _navigateToLoanDetail(Loan loan) async {
@@ -811,56 +793,17 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     }
   }
 
-  IconData _getLoanIcon(Loan loan) {
-    if (loan.loanType == 'lend') {
-      return Icons.arrow_upward_rounded;
-    } else {
-      return Icons.arrow_downward_rounded;
-    }
-  }
-
-  String _getLoanTypeText(Loan loan) {
-    if (loan.loanType == 'lend') {
-      return 'Cho vay';
-    } else {
-      return 'Đi vay';
-    }
-  }
-
-  String _getStatusText(Loan loan) {
-    // Kiểm tra trạng thái thanh toán trước
-    if (loan.status == 'completed' || loan.status == 'paid') {
-      return 'Đã thanh toán';
-    }
-
-    final now = DateTime.now();
-    if (loan.dueDate == null) return 'Đang hoạt động';
-    if (loan.dueDate!.isBefore(now)) return 'Quá hạn';
-    if (loan.dueDate!.difference(now).inDays <= 7) return 'Sắp hết hạn';
-    return 'Đang hoạt động';
-  }
-
-  Color _getStatusColor(Loan loan) {
-    final status = _getStatusText(loan);
-    if (status == 'Quá hạn') return Colors.red;
-    if (status == 'Sắp hết hạn') return Colors.orange;
-    if (status == 'Đã thanh toán') return HomeColors.income; // Màu xanh lá cho đã thanh toán
-    return HomeColors.income;
-  }
-
-  String _getBadgeText(Loan loan) {
-    return loan.isOldDebt == 0 ? 'MỚI' : 'CŨ';
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Chỉ tính các khoản vay đang hoạt động (status = 'active')
     final totalLend = _filteredLoans
-        .where((l) => l.loanType == 'lend')
+        .where((l) => l.loanType == 'lend' && l.status == 'active')
         .fold<double>(0, (sum, l) => sum + l.amount);
 
     final totalBorrow = _filteredLoans
-        .where((l) => l.loanType == 'borrow')
+        .where((l) => l.loanType == 'borrow' && l.status == 'active')
         .fold<double>(0, (sum, l) => sum + l.amount);
 
 
@@ -1005,7 +948,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
             child: Row(
               children: [
                 Expanded(
-                  child: _buildSummaryCard(
+                  child: LoanSummaryCard(
                     label: 'Tổng cho vay',
                     amount: totalLend,
                     color: HomeColors.loanGiven,
@@ -1014,7 +957,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildSummaryCard(
+                  child: LoanSummaryCard(
                     label: 'Tổng đi vay',
                     amount: totalBorrow,
                     color: HomeColors.loanReceived,
@@ -1232,368 +1175,27 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
                             itemBuilder: (context, index) {
                               final loan = _filteredLoans[index];
                               final isSelected = _selectedIds.contains(loan.id);
-                              final loanColor = _getLoanColor(loan);
-                              final isDark = Theme.of(context).brightness == Brightness.dark;
-                              final containerColor = isDark
-                                  ? Theme.of(context).colorScheme.surface
-                                  : Colors.white;
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: Material(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                      : containerColor,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      if (_isSelectionMode) {
-                                        _onSelect(loan.id!, !isSelected);
-                                      } else {
-                                        _navigateToLoanDetail(loan);
-                                      }
-                                    },
-                                    onLongPress: () {
-                                      _onSelect(loan.id!, true);
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? null : containerColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: isSelected
-                                            ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                                            : null,
-                                        boxShadow: !isSelected
-                                            ? [
-                                                BoxShadow(
-                                                  color: Theme.of(context).brightness == Brightness.dark
-                                                    ? Colors.black.withValues(alpha: 0.3)
-                                                    : Colors.black.withValues(alpha: 0.08),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ]
-                                            : null,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          // Selection checkbox or icon with badge
-                                          if (_isSelectionMode)
-                                            Container(
-                                              margin: const EdgeInsets.only(right: 12),
-                                              child: Icon(
-                                                isSelected
-                                                    ? Icons.check_circle
-                                                    : Icons.radio_button_unchecked,
-                                                color: isSelected
-                                                    ? HomeColors.primary
-                                                    : Colors.grey,
-                                                size: 24,
-                                              ),
-                                            )
-                                          else
-                                            // Stack để đặt badge lên trên icon
-                                            Container(
-                                              width: 48,
-                                              height: 48,
-                                              margin: const EdgeInsets.only(right: 12),
-                                              child: Stack(
-                                                clipBehavior: Clip.none,
-                                                children: [
-                                                  // Icon container
-                                                  Container(
-                                                    width: 48,
-                                                    height: 48,
-                                                    decoration: BoxDecoration(
-                                                      color: loanColor.withValues(alpha: 0.1),
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                    child: Icon(
-                                                      _getLoanIcon(loan),
-                                                      color: loanColor,
-                                                      size: 24,
-                                                    ),
-                                                  ),
-                                                  // Badge "Cũ/Mới" căn giữa phía trên icon
-                                                  Positioned(
-                                                    top: -8,
-                                                    left: 0,
-                                                    right: 0,
-                                                    child: Center(
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2,
-                                                        ),
-                                                        decoration: BoxDecoration(
-                                                          color: loan.isOldDebt == 0
-                                                              ? HomeColors.primary.withValues(alpha: 0.95)
-                                                              : Colors.grey.withValues(alpha: 0.85),
-                                                          borderRadius: BorderRadius.circular(6),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: Colors.black.withValues(alpha: 0.15),
-                                                              blurRadius: 4,
-                                                              offset: const Offset(0, 1),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        child: Text(
-                                                          _getBadgeText(loan),
-                                                          style: TextStyle(
-                                                            fontSize: 9,
-                                                            color: loan.isOldDebt == 0
-                                                                ? Colors.white
-                                                                : (isDark ? Colors.grey[300] : Colors.grey[800]),
-                                                            fontWeight: FontWeight.bold,
-                                                            letterSpacing: 0.3,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-
-                                          // Loan details
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  loan.personName,
-                                                  style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.onSurface,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  _getLoanTypeText(loan),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: loanColor,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.calendar_today,
-                                                      size: 12,
-                                                      color: HomeColors.textSecondary,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${loan.loanDate.day}/${loan.loanDate.month}/${loan.loanDate.year}',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: HomeColors.textSecondary,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: _getStatusColor(loan).withValues(alpha: 0.1),
-                                                        borderRadius: BorderRadius.circular(6),
-                                                      ),
-                                                      child: Text(
-                                                        _getStatusText(loan),
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          color: _getStatusColor(loan),
-                                                          fontWeight: FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-
-                                          // Amount and Edit button
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                CurrencyFormatter.formatAmount(loan.amount),
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: loanColor,
-                                                ),
-                                              ),
-                                              if (loan.dueDate != null) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'Hạn: ${loan.dueDate!.day}/${loan.dueDate!.month}',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: HomeColors.textSecondary,
-                                                  ),
-                                                ),
-                                              ],
-                                              if (!_isSelectionMode) ...[
-                                                const SizedBox(height: 8),
-                                                // Mark as Paid button (only show if not paid)
-                                                if (loan.status != 'completed' && loan.status != 'paid')
-                                                  InkWell(
-                                                    onTap: () => _markLoanAsPaid(loan),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: HomeColors.income.withValues(alpha: 0.1),
-                                                        borderRadius: BorderRadius.circular(8),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                            Icons.check_circle,
-                                                            size: 14,
-                                                            color: HomeColors.income,
-                                                          ),
-                                                          const SizedBox(width: 4),
-                                                          Text(
-                                                            loan.loanType == 'lend' ? 'Thu nợ' : 'Trả nợ',
-                                                            style: TextStyle(
-                                                              fontSize: 12,
-                                                              color: HomeColors.income,
-                                                              fontWeight: FontWeight.w600,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                if (loan.status != 'completed' && loan.status != 'paid')
-                                                  const SizedBox(height: 4),
-                                                // Edit button
-                                                InkWell(
-                                                  onTap: () => _navigateToEditLoan(loan),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: HomeColors.primary.withValues(alpha: 0.1),
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.edit,
-                                                          size: 14,
-                                                          color: HomeColors.primary,
-                                                        ),
-                                                        const SizedBox(width: 4),
-                                                        Text(
-                                                          'Sửa',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: HomeColors.primary,
-                                                            fontWeight: FontWeight.w600,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              return LoanCardWidget(
+                                loan: loan,
+                                isSelected: isSelected,
+                                isSelectionMode: _isSelectionMode,
+                                onTap: () {
+                                  if (_isSelectionMode) {
+                                    _onSelect(loan.id!, !isSelected);
+                                  } else {
+                                    _navigateToLoanDetail(loan);
+                                  }
+                                },
+                                onLongPress: () {
+                                  _onSelect(loan.id!, true);
+                                },
+                                onMarkAsPaid: () => _markLoanAsPaid(loan),
+                                onEdit: () => _navigateToEditLoan(loan),
                               );
                             },
                           ),
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard({
-    required String label,
-    required double amount,
-    required Color color,
-    required IconData icon,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final containerColor = isDark
-        ? Theme.of(context).colorScheme.surface
-        : Colors.white;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-              ? Colors.black.withValues(alpha: 0.3)
-              : Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            CurrencyFormatter.formatAmount(amount),
-            style: TextStyle(
-              color: color,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ],
       ),
