@@ -46,7 +46,7 @@ class CurrencyFormatter {
       final formatter = NumberFormat.currency(
         locale: 'en_US',
         symbol: symbol,
-        decimalDigits: 2,
+        decimalDigits: 3,
       );
       return formatter.format(convertedAmount);
     } else {
@@ -79,30 +79,72 @@ class CurrencyFormatter {
   }
 
   /// Parse số tiền từ string input một cách an toàn
-  /// Loại bỏ tất cả ký tự không phải số và parse thành double
-  /// Xử lý đúng format vi_VN (dấu chấm là phân cách hàng nghìn)
+  /// Xử lý cả VND (số nguyên) và USD (có thập phân)
   static double parseAmount(String input) {
     if (input.isEmpty) return 0.0;
 
-    // Loại bỏ tất cả ký tự không phải số
-    // Quan trọng: Loại bỏ dấu chấm vì trong vi_VN dấu chấm là phân cách hàng nghìn
-    final cleanedInput = input.replaceAll(RegExp(r'[^\d]'), '');
+    // Loại bỏ spaces và currency symbols
+    String cleanedInput = input.trim()
+        .replaceAll(' ', '')
+        .replaceAll('₫', '')
+        .replaceAll('\$', '')
+        .replaceAll('USD', '')
+        .replaceAll('VND', '');
 
     if (cleanedInput.isEmpty) return 0.0;
 
-    // Parse thành double từ chuỗi chỉ chứa số
-    final amount = double.tryParse(cleanedInput) ?? 0.0;
+    // Xử lý dựa trên currency hiện tại
+    if (_selectedCurrency == 'USD') {
+      // Cho USD: chấp nhận dấu chấm là decimal separator
+      // Loại bỏ dấu phẩy (thousand separator)
+      cleanedInput = cleanedInput.replaceAll(',', '');
 
-    return amount;
+      // Kiểm tra format USD hợp lệ (chỉ có 1 dấu chấm)
+      final dotCount = cleanedInput.split('.').length - 1;
+      if (dotCount > 1) return 0.0;
+
+      return double.tryParse(cleanedInput) ?? 0.0;
+    } else {
+      // Cho VND: dấu chấm là thousand separator, không có decimal
+      // Loại bỏ dấu chấm và dấu phẩy (thousand separators)
+      cleanedInput = cleanedInput.replaceAll(RegExp(r'[^\d]'), '');
+
+      if (cleanedInput.isEmpty) return 0.0;
+      return double.tryParse(cleanedInput) ?? 0.0;
+    }
   }
 
-  /// Format số tiền để hiển thị trong input field (có dấu phẩy ngăn cách hàng nghìn)
+  /// Format số tiền để hiển thị trong input field
+  /// Giữ nguyên số thập phân cho USD, format VND như cũ
   static String formatForInput(double amount) {
     if (amount == 0) return '';
 
-    // Format với dấu phẩy ngăn cách hàng nghìn (không có ký hiệu đ)
-    final formatter = NumberFormat('#,###', 'vi_VN');
-    return formatter.format(amount);
+    if (_selectedCurrency == 'USD') {
+      // Cho USD: hiển thị với 3 chữ số thập phân, không có thousand separator trong input
+      return amount.toStringAsFixed(3);
+    } else {
+      // Cho VND: format với dấu phẩy ngăn cách hàng nghìn (không có ký hiệu đ)
+      final formatter = NumberFormat('#,###', 'vi_VN');
+      return formatter.format(amount);
+    }
+  }
+
+  /// Format số tiền với độ chính xác cao cho edit screen
+  /// Giữ nguyên tất cả chữ số thập phân có nghĩa
+  static String formatForInputWithPrecision(double amount) {
+    if (amount == 0) return '';
+
+    if (_selectedCurrency == 'USD') {
+      // Cho USD: hiển thị đến 6 chữ số thập phân nhưng loại bỏ các số 0 thừa
+      String formatted = amount.toStringAsFixed(6);
+      // Loại bỏ các số 0 thừa ở cuối
+      formatted = formatted.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+      return formatted;
+    } else {
+      // Cho VND: format với dấu phẩy ngăn cách hàng nghìn
+      final formatter = NumberFormat('#,###', 'vi_VN');
+      return formatter.format(amount);
+    }
   }
 
   /// Kiểm tra xem string có phải là số tiền hợp lệ không
