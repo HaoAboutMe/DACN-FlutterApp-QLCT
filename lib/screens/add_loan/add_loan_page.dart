@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
@@ -559,10 +560,9 @@ class _AddLoanPageState extends State<AddLoanPage>
           const SizedBox(height: 12),
           TextFormField(
             controller: _amountController,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              CurrencyInputFormatter(), // Sử dụng formatter mới
+              CurrencyInputFormatter(), // Chỉ sử dụng formatter custom
             ],
             decoration: InputDecoration(
               hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
@@ -1002,23 +1002,56 @@ class CurrencyInputFormatter extends TextInputFormatter {
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
+    // Cho phép empty string
     if (newValue.text.isEmpty) {
       return newValue.copyWith(text: '');
     }
 
-    // Parse số tiền bằng CurrencyFormatter để đảm bảo consistency
-    final amount = CurrencyFormatter.parseAmount(newValue.text);
+    // Get current currency from CurrencyFormatter
+    final currentCurrency = CurrencyFormatter.getCurrency();
 
-    if (amount == 0) {
-      return newValue.copyWith(text: '');
+    if (currentCurrency == 'USD') {
+      // Cho USD: chỉ cho phép digits và 1 dấu chấm
+      String filtered = newValue.text;
+
+      // Loại bỏ tất cả ký tự không hợp lệ
+      filtered = filtered.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      // Đảm bảo chỉ có 1 dấu chấm
+      final parts = filtered.split('.');
+      if (parts.length > 2) {
+        filtered = parts[0] + '.' + parts.sublist(1).join('');
+      }
+
+      // Giới hạn 3 chữ số thập phân
+      if (parts.length == 2 && parts[1].length > 3) {
+        filtered = parts[0] + '.' + parts[1].substring(0, 3);
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
+    } else {
+      // Cho VND: chỉ cho phép digits và dấu phẩy
+      String filtered = newValue.text.replaceAll(RegExp(r'[^0-9,]'), '');
+
+      // Auto-format với dấu phẩy ngăn cách hàng nghìn cho VND
+      if (filtered.isNotEmpty) {
+        final digitsOnly = filtered.replaceAll(',', '');
+        if (digitsOnly.isNotEmpty) {
+          final amount = double.tryParse(digitsOnly) ?? 0;
+          if (amount > 0) {
+            final formatter = NumberFormat('#,###', 'vi_VN');
+            filtered = formatter.format(amount);
+          }
+        }
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
     }
-
-    // Format lại bằng CurrencyFormatter
-    final formatted = CurrencyFormatter.formatForInput(amount);
-
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
   }
 }

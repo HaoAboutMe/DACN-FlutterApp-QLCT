@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
@@ -58,13 +59,14 @@ class _EditLoanScreenState extends State<EditLoanScreen>
     // Initialize controllers with existing data
     _personNameController = TextEditingController(text: loan.personName);
     _personPhoneController = TextEditingController(text: loan.personPhone ?? '');
+    _amountController = TextEditingController();
     // Convert VND amount từ database sang currency hiện tại để hiển thị
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
       final displayAmount = currencyProvider.convertFromVND(loan.amount);
-      _amountController.text = CurrencyFormatter.formatForInput(displayAmount);
+      // Sử dụng formatForInputWithPrecision để giữ nguyên độ chính xác
+      _amountController.text = CurrencyFormatter.formatForInputWithPrecision(displayAmount);
     });
-    _amountController = TextEditingController();
     _descriptionController = TextEditingController(text: loan.description ?? '');
 
     // Initialize form data
@@ -552,10 +554,9 @@ class _EditLoanScreenState extends State<EditLoanScreen>
           const SizedBox(height: 12),
           TextFormField(
             controller: _amountController,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              CurrencyInputFormatter(),
+              CurrencyInputFormatter(), // Chỉ sử dụng formatter custom
             ],
             decoration: InputDecoration(
               hintText: 'Nhập số tiền (${Provider.of<CurrencyProvider>(context, listen: false).selectedCurrency})',
@@ -990,22 +991,57 @@ class CurrencyInputFormatter extends TextInputFormatter {
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
+    // Cho phép empty string
     if (newValue.text.isEmpty) {
       return newValue.copyWith(text: '');
     }
 
-    final amount = CurrencyFormatter.parseAmount(newValue.text);
+    // Get current currency from CurrencyFormatter
+    final currentCurrency = CurrencyFormatter.getCurrency();
 
-    if (amount == 0) {
-      return newValue.copyWith(text: '');
+    if (currentCurrency == 'USD') {
+      // Cho USD: chỉ cho phép digits và 1 dấu chấm
+      String filtered = newValue.text;
+
+      // Loại bỏ tất cả ký tự không hợp lệ
+      filtered = filtered.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      // Đảm bảo chỉ có 1 dấu chấm
+      final parts = filtered.split('.');
+      if (parts.length > 2) {
+        filtered = parts[0] + '.' + parts.sublist(1).join('');
+      }
+
+      // Giới hạn 3 chữ số thập phân
+      if (parts.length == 2 && parts[1].length > 3) {
+        filtered = parts[0] + '.' + parts[1].substring(0, 3);
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
+    } else {
+      // Cho VND: chỉ cho phép digits và dấu phẩy
+      String filtered = newValue.text.replaceAll(RegExp(r'[^0-9,]'), '');
+
+      // Auto-format với dấu phẩy ngăn cách hàng nghìn cho VND
+      if (filtered.isNotEmpty) {
+        final digitsOnly = filtered.replaceAll(',', '');
+        if (digitsOnly.isNotEmpty) {
+          final amount = double.tryParse(digitsOnly) ?? 0;
+          if (amount > 0) {
+            final formatter = NumberFormat('#,###', 'vi_VN');
+            filtered = formatter.format(amount);
+          }
+        }
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
     }
-
-    final formatted = CurrencyFormatter.formatForInput(amount);
-
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
   }
 }
 

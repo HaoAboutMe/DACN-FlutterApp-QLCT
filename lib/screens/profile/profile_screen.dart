@@ -8,7 +8,6 @@ import '../../providers/currency_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
-import '../../utils/currency_formatter.dart';
 import 'widgets/profile_expanded_header.dart';
 import 'widgets/profile_collapsed_header.dart';
 import 'widgets/profile_feature_grid.dart';
@@ -35,7 +34,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   final ScrollController _scrollController = ScrollController();
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
-  String _selectedCurrency = 'VND';
   bool _isWidgetPinned = false;
   bool _isRequestingWidget = false;
 
@@ -48,33 +46,17 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this);
     _loadCurrentUser();
     _loadReminderSettings();
-    _loadCurrencySettings();
     _checkWidgetPinStatus();
-  }
-
-  Future<void> _loadCurrencySettings() async {
-    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
-    setState(() {
-      _selectedCurrency = currencyProvider.selectedCurrency;
-    });
   }
 
   /// Handle currency selection change
   Future<void> _changeCurrency(String? newCurrency) async {
-    if (newCurrency == null || newCurrency == _selectedCurrency) return;
+    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+    if (newCurrency == null || newCurrency == currencyProvider.selectedCurrency) return;
 
     try {
-      final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
-
-      // Update currency provider
+      // Update currency provider (this will also update CurrencyFormatter automatically)
       await currencyProvider.setCurrency(newCurrency);
-
-      // Update CurrencyFormatter
-      CurrencyFormatter.setCurrencyProvider(currencyProvider);
-
-      setState(() {
-        _selectedCurrency = newCurrency;
-      });
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -288,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           double expandRatio = rawRatio.clamp(0.0, 1.0);
 
           // 🔥 Ép tắt animation sớm để không còn 1 pixel mờ nào
-          if (currentHeight <= minHeight + 20) {
+          if (currentHeight <= minHeight + 30) {
             expandRatio = 0.0;
           }
           return Stack(
@@ -428,16 +410,20 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   /// Xây dựng danh sách cài đặt
   Widget _buildSettingsList(bool isDark) {
-    return ProfileSettingsList(
-      isDark: isDark,
-      selectedCurrency: _selectedCurrency,
-      onChangeCurrency: _changeCurrency,
-      onShowReminderDialog: _showReminderDialog,
-      onWidgetSettingTap: _handleWidgetSettingTap,
-      onShowFeatureSnackbar: _showFeatureSnackbar,
-      supportsAndroidWidget: _supportsAndroidWidget,
-      isWidgetPinned: _isWidgetPinned,
-      isRequestingWidget: _isRequestingWidget,
+    return Consumer<CurrencyProvider>(
+      builder: (context, currencyProvider, child) {
+        return ProfileSettingsList(
+          isDark: isDark,
+          selectedCurrency: currencyProvider.selectedCurrency, // Use provider directly
+          onChangeCurrency: _changeCurrency,
+          onShowReminderDialog: _showReminderDialog,
+          onWidgetSettingTap: _handleWidgetSettingTap,
+          onShowFeatureSnackbar: _showFeatureSnackbar,
+          supportsAndroidWidget: _supportsAndroidWidget,
+          isWidgetPinned: _isWidgetPinned,
+          isRequestingWidget: _isRequestingWidget,
+        );
+      },
     );
   }
 
