@@ -187,6 +187,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       _iconDangChon = null;
       _loiValidation = null;
       _nhomIconDangChon = IconGroup.all;
+      // Xóa từ khóa tìm kiếm để không ảnh hưởng đến việc chọn icon
+      _tuKhoaTimKiem = '';
+      _timKiemController.clear();
     });
   }
 
@@ -196,6 +199,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       _tenDanhMucController.clear();
       _iconDangChon = null;
       _loiValidation = null;
+      // Xóa từ khóa tìm kiếm khi quay lại
+      _tuKhoaTimKiem = '';
+      _timKiemController.clear();
     });
     _taiDanhSachDanhMuc();
   }
@@ -647,15 +653,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   }
 
   Widget _buildGridIcon() {
+    // Chỉ filter theo nhóm icon, không filter theo từ khóa tìm kiếm
+    // vì ở chế độ thêm danh mục không có thanh tìm kiếm
     final iconsToShow = IconGroupHelper.getIconsByGroup(_nhomIconDangChon);
-    final filteredIcons = _tuKhoaTimKiem.isEmpty
-        ? iconsToShow
-        : iconsToShow.where((icon) {
-      // Tìm kiếm theo tên nhóm hoặc có thể mở rộng thêm
-      return IconGroupHelper.getGroupName(_nhomIconDangChon)
-          .toLowerCase()
-          .contains(_tuKhoaTimKiem.toLowerCase());
-    }).toList();
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -680,7 +680,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               ),
             ),
             child: Text(
-              '${filteredIcons.length} biểu tượng có sẵn',
+              '${iconsToShow.length} biểu tượng có sẵn',
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurfaceVariant,
@@ -697,7 +697,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
               childAspectRatio: 1.0, // Đảm bảo icon vuông vắn
-              children: filteredIcons.map((icon) {
+              children: iconsToShow.map((icon) {
                 final isSelected = _iconDangChon?.codePoint == icon.codePoint;
 
                 return GestureDetector(
