@@ -19,6 +19,8 @@ import '../transaction/transaction_detail_screen.dart';
 import '../notification/notification_list_screen.dart';
 import '../main_navigation_wrapper.dart';
 
+enum TimeFilter { week, month, year }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -34,6 +36,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Map<int, Category> _categoriesMap = {};
   bool _isLoading = true;
   bool _isBalanceVisible = true;
+
+  // Time filter for income/expense (default: month)
+  TimeFilter _timeFilter = TimeFilter.month;
 
   // Overview statistics
   double _totalIncome = 0;
@@ -215,22 +220,58 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _totalLent = 0;
       _totalBorrowed = 0;
 
-      // Calculate income and expense from transactions (unchanged)
+      // Get time range based on filter
+      final now = DateTime.now();
+      DateTime startDate;
+      DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      switch (_timeFilter) {
+        case TimeFilter.week:
+          // Tuần này: từ thứ 2 đến chủ nhật
+          final weekday = now.weekday; // 1=Monday, 7=Sunday
+          startDate = DateTime(now.year, now.month, now.day - (weekday - 1));
+          endDate = DateTime(now.year, now.month, now.day + (7 - weekday), 23, 59, 59);
+          break;
+        case TimeFilter.month:
+          // Tháng này: từ ngày 1 đến ngày cuối tháng
+          startDate = DateTime(now.year, now.month, 1);
+          endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59); // Ngày cuối tháng
+          break;
+        case TimeFilter.year:
+          // Năm này: từ 1/1 đến 31/12
+          startDate = DateTime(now.year, 1, 1);
+          endDate = DateTime(now.year, 12, 31, 23, 59, 59);
+          break;
+      }
+
+      // Calculate income and expense from transactions with time filter
       for (final transaction in allTransactions) {
-        switch (transaction.type) {
-          case 'income':
-          case 'debt_collected':
-            _totalIncome += transaction.amount;
-            break;
-          case 'expense':
-          case 'debt_paid':
-            _totalExpense += transaction.amount;
-            break;
-        // Remove loan calculations from transactions as we'll calculate directly from loans table
+        // Only filter income and expense by time
+        if (transaction.type == 'income' ||
+            transaction.type == 'debt_collected' ||
+            transaction.type == 'expense' ||
+            transaction.type == 'debt_paid') {
+
+          // Check if transaction is within time range
+          final isInRange = transaction.date.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
+                           transaction.date.isBefore(endDate.add(const Duration(seconds: 1)));
+
+          if (isInRange) {
+            switch (transaction.type) {
+              case 'income':
+              case 'debt_collected':
+                _totalIncome += transaction.amount;
+                break;
+              case 'expense':
+              case 'debt_paid':
+                _totalExpense += transaction.amount;
+                break;
+            }
+          }
         }
       }
 
-      // Calculate loan statistics directly from loans table to include both old and new loans
+      // Calculate loan statistics directly from loans table (không bị ảnh hưởng bởi filter)
       await _calculateLoanStats();
     } catch (e) {
       debugPrint('Error calculating overview stats: $e');
@@ -379,6 +420,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         totalExpense: _totalExpense,
                         totalLent: _totalLent,
                         totalBorrowed: _totalBorrowed,
+                        timeFilter: _timeFilter,
+                        onTimeFilterChanged: (newFilter) {
+                          setState(() {
+                            _timeFilter = newFilter;
+                          });
+                          _calculateOverviewStats().then((_) {
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 24),
 
