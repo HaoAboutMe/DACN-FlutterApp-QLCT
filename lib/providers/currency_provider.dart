@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/currency_formatter.dart';
 
 /// Provider quản lý currency cho toàn bộ ứng dụng
 class CurrencyProvider extends ChangeNotifier {
@@ -43,12 +44,31 @@ class CurrencyProvider extends ChangeNotifier {
 
       // Fetch new rate if cache is expired or doesn't exist
       await _fetchExchangeRateIfNeeded();
+
+      // ✅ IMPORTANT: Update CurrencyFormatter after loading currency settings
+      // This ensures CurrencyFormatter uses the correct currency from SharedPreferences
+      await _updateCurrencyFormatter();
+
       notifyListeners();
     } catch (e) {
       print('Error loading currency settings: $e');
       // Keep default values and try to fetch fresh rate
       await _fetchExchangeRate();
+
+      // ✅ IMPORTANT: Update CurrencyFormatter even on error
+      await _updateCurrencyFormatter();
+
       notifyListeners();
+    }
+  }
+
+  /// Update CurrencyFormatter with current provider settings
+  Future<void> _updateCurrencyFormatter() async {
+    try {
+      CurrencyFormatter.setCurrencyProvider(this);
+      print('✅ CurrencyFormatter updated with currency: $_selectedCurrency');
+    } catch (e) {
+      print('Error updating CurrencyFormatter: $e');
     }
   }
 
@@ -61,6 +81,10 @@ class CurrencyProvider extends ChangeNotifier {
       await prefs.setString(_currencyKey, currency);
 
       await _fetchExchangeRateIfNeeded();
+
+      // ✅ Update CurrencyFormatter when currency changes
+      await _updateCurrencyFormatter();
+
       notifyListeners();
     }
   }

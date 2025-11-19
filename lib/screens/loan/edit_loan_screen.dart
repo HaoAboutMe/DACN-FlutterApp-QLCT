@@ -63,7 +63,6 @@ class _EditLoanScreenState extends State<EditLoanScreen>
     // Convert VND amount từ database sang currency hiện tại để hiển thị
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
-      CurrencyFormatter.setCurrencyProvider(currencyProvider);
       final displayAmount = currencyProvider.convertFromVND(loan.amount);
       // Sử dụng formatForInputWithPrecision để giữ nguyên độ chính xác
       _amountController.text = CurrencyFormatter.formatForInputWithPrecision(displayAmount);
