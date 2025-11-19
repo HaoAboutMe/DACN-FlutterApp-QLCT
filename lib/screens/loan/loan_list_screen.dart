@@ -855,12 +855,14 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Chỉ tính các khoản vay đang hoạt động (status = 'active')
     final totalLend = _filteredLoans
-        .where((l) => l.loanType == 'lend')
+        .where((l) => l.loanType == 'lend' && l.status == 'active')
         .fold<double>(0, (sum, l) => sum + l.amount);
 
     final totalBorrow = _filteredLoans
-        .where((l) => l.loanType == 'borrow')
+        .where((l) => l.loanType == 'borrow' && l.status == 'active')
         .fold<double>(0, (sum, l) => sum + l.amount);
 
 
