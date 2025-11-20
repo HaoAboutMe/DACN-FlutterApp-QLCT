@@ -206,40 +206,58 @@ class LoanCardWidget extends StatelessWidget {
                         ),
                       if (loan.status != 'completed' && loan.status != 'paid')
                         const SizedBox(height: 4),
-                      // Edit button
-                      InkWell(
-                        onTap: onEdit,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: HomeColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.edit,
-                                size: 14,
-                                color: HomeColors.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Sửa',
-                                style: TextStyle(
-                                  fontSize: 12,
+                      // Edit button (only show if not paid) or Lock icon (if paid)
+                      if (loan.status != 'completed' && loan.status != 'paid')
+                        InkWell(
+                          onTap: onEdit,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: HomeColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  size: 14,
                                   color: HomeColors.primary,
-                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Sửa',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: HomeColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      // Lock icon for paid loans
+                      if (loan.status == 'completed' || loan.status == 'paid')
+                        Tooltip(
+                          message: 'Không thể chỉnh sửa khoản vay đã thanh toán',
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.lock,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                              size: 16,
+                            ),
+                          ),
+                        ),
                     ],
                   ],
                 ),

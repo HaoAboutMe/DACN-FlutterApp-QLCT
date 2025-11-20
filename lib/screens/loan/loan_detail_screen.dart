@@ -108,6 +108,19 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   Future<void> _navigateToEditLoan() async {
     if (_loan == null) return;
 
+    // Check if loan is already paid
+    if (_loan!.status == 'completed' || _loan!.status == 'paid') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('🔒 Không thể chỉnh sửa khoản vay đã thanh toán'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+        ),
+      );
+      return;
+    }
+
     debugPrint('🚀 Navigating to EditLoanScreen...');
 
     final result = await Navigator.push<bool>(
@@ -618,9 +631,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
           IconButton(
-            icon: Icon(Icons.edit, color: colorScheme.onSurface),
+            icon: Icon(
+              (_loan?.status == 'completed' || _loan?.status == 'paid')
+                ? Icons.lock
+                : Icons.edit,
+              color: colorScheme.onSurface,
+            ),
             onPressed: _navigateToEditLoan,
-            tooltip: 'Chỉnh sửa',
+            tooltip: (_loan?.status == 'completed' || _loan?.status == 'paid')
+                ? 'Không thể chỉnh sửa khoản vay đã thanh toán'
+                : 'Chỉnh sửa',
           ),
           IconButton(
             icon: Icon(Icons.delete, color: colorScheme.onSurface),
