@@ -52,12 +52,6 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   Future<void> _deleteBudget(int budgetId) async {
     try {
       await _databaseHelper.deleteBudget(budgetId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xóa ngân sách'),
-          backgroundColor: Colors.green,
-        ),
-      );
       _loadBudgetData();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
