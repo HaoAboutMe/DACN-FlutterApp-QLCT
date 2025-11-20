@@ -74,11 +74,14 @@ class CurrencyProvider extends ChangeNotifier {
 
   /// Set currency và lưu vào SharedPreferences
   Future<void> setCurrency(String currency) async {
+    debugPrint('🔄 CurrencyProvider.setCurrency() called with: $currency (current: $_selectedCurrency)');
+
     if (_selectedCurrency != currency) {
       _selectedCurrency = currency;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_currencyKey, currency);
+      debugPrint('💾 Saved currency to SharedPreferences: $currency');
 
       await _fetchExchangeRateIfNeeded();
 
@@ -86,6 +89,9 @@ class CurrencyProvider extends ChangeNotifier {
       await _updateCurrencyFormatter();
 
       notifyListeners();
+      debugPrint('✅ Currency updated and listeners notified: $_selectedCurrency');
+    } else {
+      debugPrint('⚠️ Currency already set to: $currency, skipping update');
     }
   }
 
