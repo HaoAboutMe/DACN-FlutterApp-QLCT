@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
 import 'about_screen.dart';
+import 'user_guide_screen.dart';
 import 'widgets/profile_expanded_header.dart';
 import 'widgets/profile_collapsed_header.dart';
 import 'widgets/profile_feature_grid.dart';
@@ -398,6 +399,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
+  /// Navigate to User Guide Screen
+  void _navigateToUserGuide() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const UserGuideScreen(),
+      ),
+    );
+  }
+
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
     return ProfileFeatureGrid(
@@ -421,6 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           onShowReminderDialog: _showReminderDialog,
           onWidgetSettingTap: _handleWidgetSettingTap,
           onNavigateToAbout: _navigateToAbout,
+          onNavigateToUserGuide: _navigateToUserGuide,
           onShowFeatureSnackbar: _showFeatureSnackbar,
           supportsAndroidWidget: _supportsAndroidWidget,
           isWidgetPinned: _isWidgetPinned,

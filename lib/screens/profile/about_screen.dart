@@ -77,15 +77,16 @@ class AboutScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: const Color(0xFF5D5FEF).withValues(alpha: 0.3),
-              width: 2,
-            ),
           ),
-          child: const Icon(
-            Icons.account_balance_wallet_rounded,
-            size: 50,
-            color: Color(0xFF5D5FEF),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Image.asset(
+                'assets/images/whales-spent-logo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 16),
