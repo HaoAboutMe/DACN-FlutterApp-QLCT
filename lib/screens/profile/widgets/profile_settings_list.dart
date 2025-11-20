@@ -6,6 +6,8 @@ class ProfileSettingsList extends StatelessWidget {
   final Function(String?) onChangeCurrency;
   final VoidCallback onShowReminderDialog;
   final VoidCallback onWidgetSettingTap;
+  final VoidCallback onNavigateToAbout;
+  final VoidCallback onNavigateToUserGuide;
   final Function(String) onShowFeatureSnackbar;
   final bool supportsAndroidWidget;
   final bool isWidgetPinned;
@@ -18,6 +20,8 @@ class ProfileSettingsList extends StatelessWidget {
     required this.onChangeCurrency,
     required this.onShowReminderDialog,
     required this.onWidgetSettingTap,
+    required this.onNavigateToAbout,
+    required this.onNavigateToUserGuide,
     required this.onShowFeatureSnackbar,
     required this.supportsAndroidWidget,
     required this.isWidgetPinned,
@@ -33,9 +37,9 @@ class ProfileSettingsList extends StatelessWidget {
         'subtitle': 'Tùy chỉnh widget trên màn hình chính',
       },
       {
-        'icon': Icons.language_outlined,
-        'title': 'Tùy chọn ngôn ngữ',
-        'subtitle': 'Thay đổi ngôn ngữ hiển thị',
+        'icon': Icons.help_outline,
+        'title': 'Hướng dẫn sử dụng',
+        'subtitle': 'Hướng dẫn chi tiết cách sử dụng ứng dụng',
       },
       {
         'icon': Icons.attach_money_outlined,
@@ -277,7 +281,11 @@ class ProfileSettingsList extends StatelessWidget {
         size: 16,
         color: Theme.of(context).textTheme.bodySmall?.color,
       ),
-      onTap: () => onShowFeatureSnackbar(setting['title'] as String),
+      onTap: setting['title'] == 'Về chúng tôi'
+          ? onNavigateToAbout
+          : setting['title'] == 'Hướng dẫn sử dụng'
+          ? onNavigateToUserGuide
+          : () => onShowFeatureSnackbar(setting['title'] as String),
     );
   }
 }
