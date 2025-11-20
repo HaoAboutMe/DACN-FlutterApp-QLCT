@@ -83,13 +83,6 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
           if (updatedBudget.categoryId != widget.categoryId) {
             // Category changed - go back to BudgetListScreen
             if (mounted) {
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   const SnackBar(
-              //     content: Text('Đã cập nhật ngân sách'),
-              //     backgroundColor: Colors.green,
-              //     duration: Duration(seconds: 2),
-              //   ),
-              // );
               Navigator.pop(context, true); // Return to BudgetListScreen
             }
             return;
@@ -106,17 +99,6 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
 
       // Reload data to show updated budget info
       await _loadTransactions();
-
-      // Show success message only once
-      if (mounted) {
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   const SnackBar(
-        //     content: Text('Đã cập nhật ngân sách'),
-        //     backgroundColor: Colors.green,
-        //     duration: Duration(seconds: 2),
-        //   ),
-        // );
-      }
     }
   }
 
@@ -148,13 +130,6 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
       try {
         await _databaseHelper.deleteBudget(widget.budgetId!);
         if (mounted) {
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   const SnackBar(
-          //     content: Text('Đã xóa ngân sách'),
-          //     backgroundColor: Colors.green,
-          //   ),
-          // );
-          // Go back to BudgetListScreen
           Navigator.pop(context, true);
         }
       } catch (e) {

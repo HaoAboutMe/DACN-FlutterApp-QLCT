@@ -1049,7 +1049,7 @@ class DatabaseHelper {
           // Tạo transaction mới
           final newTransaction = transaction_model.Transaction(
             amount: loan.amount,
-            description: 'Khoản ${loan.loanType == 'borrow' ? 'vay' : 'cho vay'}: ${loan.personName}',
+            description: loan.description ?? 'Khoản ${loan.loanType == 'borrow' ? 'vay' : 'cho vay'}: ${loan.personName}',
             date: loan.loanDate,
             categoryId: null,
             loanId: loan.id,
@@ -1079,10 +1079,13 @@ class DatabaseHelper {
         }
       }
 
-      // ========== XỬ LÝ CÁC THAY ĐỔI KHÁC (amount, loanType) ==========
+      // ========== XỬ LÝ CÁC THAY ĐỔI KHÁC (amount, loanType, description, loanDate) ==========
       // Chỉ cập nhật transaction nếu loan hiện tại là khoản vay MỚI (isOldDebt = 0)
-      // và có thay đổi về amount hoặc loanType
-      if (loan.isOldDebt == 0 && (oldLoan.amount != loan.amount || oldLoan.loanType != loan.loanType)) {
+      // và có thay đổi về amount, loanType, description, hoặc loanDate
+      if (loan.isOldDebt == 0 && (oldLoan.amount != loan.amount ||
+          oldLoan.loanType != loan.loanType ||
+          oldLoan.description != loan.description ||
+          oldLoan.loanDate != loan.loanDate)) {
         // Find the initial transaction for this loan
         final transactionMaps = await db.query(
           _tableTransactions,
@@ -1105,22 +1108,24 @@ class DatabaseHelper {
             newTransactionType = 'loan_given'; // Cho vay = cho tiền vay
           }
 
-
-          // Calculate balance changes
+          // Calculate balance changes only if amount or type changed
           double balanceChange = 0;
+          bool shouldUpdateBalance = (oldLoan.amount != loan.amount || oldLoan.loanType != loan.loanType);
 
-          // Reverse old transaction effect
-          if (oldTransactionType == 'loan_received' || oldTransactionType == 'income') {
-            balanceChange -= oldTransactionAmount; // Remove old income effect
-          } else if (oldTransactionType == 'loan_given' || oldTransactionType == 'expense') {
-            balanceChange += oldTransactionAmount; // Remove old expense effect
-          }
+          if (shouldUpdateBalance) {
+            // Reverse old transaction effect
+            if (oldTransactionType == 'loan_received' || oldTransactionType == 'income') {
+              balanceChange -= oldTransactionAmount; // Remove old income effect
+            } else if (oldTransactionType == 'loan_given' || oldTransactionType == 'expense') {
+              balanceChange += oldTransactionAmount; // Remove old expense effect
+            }
 
-          // Apply new transaction effect
-          if (newTransactionType == 'loan_received') {
-            balanceChange += loan.amount; // Add new income
-          } else if (newTransactionType == 'loan_given') {
-            balanceChange -= loan.amount; // Add new expense
+            // Apply new transaction effect
+            if (newTransactionType == 'loan_received') {
+              balanceChange += loan.amount; // Add new income
+            } else if (newTransactionType == 'loan_given') {
+              balanceChange -= loan.amount; // Add new expense
+            }
           }
 
           // Update the transaction
@@ -1130,14 +1135,15 @@ class DatabaseHelper {
               _colTransactionAmount: loan.amount,
               _colTransactionType: newTransactionType,
               _colTransactionDate: loan.loanDate.toIso8601String(),
+              _colTransactionDescription: loan.description ?? 'Khoản ${loan.loanType == 'borrow' ? 'vay' : 'cho vay'}: ${loan.personName}',
               _colTransactionUpdatedAt: DateTime.now().toIso8601String(),
             },
             where: '$_colTransactionId = ?',
             whereArgs: [transactionId],
           );
 
-          // Update user balance
-          if (balanceChange != 0) {
+          // Update user balance only if amount or type changed
+          if (shouldUpdateBalance && balanceChange != 0) {
             await db.rawUpdate(
               'UPDATE $_tableUsers SET $_colUserBalance = $_colUserBalance + ? WHERE $_colUserId = ?',
               [balanceChange, currentUserId],
