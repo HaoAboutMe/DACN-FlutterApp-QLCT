@@ -6,6 +6,7 @@ class ProfileSettingsList extends StatelessWidget {
   final Function(String?) onChangeCurrency;
   final VoidCallback onShowReminderDialog;
   final VoidCallback onWidgetSettingTap;
+  final VoidCallback onNavigateToAbout;
   final Function(String) onShowFeatureSnackbar;
   final bool supportsAndroidWidget;
   final bool isWidgetPinned;
@@ -18,6 +19,7 @@ class ProfileSettingsList extends StatelessWidget {
     required this.onChangeCurrency,
     required this.onShowReminderDialog,
     required this.onWidgetSettingTap,
+    required this.onNavigateToAbout,
     required this.onShowFeatureSnackbar,
     required this.supportsAndroidWidget,
     required this.isWidgetPinned,
@@ -277,7 +279,9 @@ class ProfileSettingsList extends StatelessWidget {
         size: 16,
         color: Theme.of(context).textTheme.bodySmall?.color,
       ),
-      onTap: () => onShowFeatureSnackbar(setting['title'] as String),
+      onTap: setting['title'] == 'Về chúng tôi'
+          ? onNavigateToAbout
+          : () => onShowFeatureSnackbar(setting['title'] as String),
     );
   }
 }

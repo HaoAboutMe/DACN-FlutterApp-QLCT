@@ -8,6 +8,7 @@ import '../../providers/currency_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
+import 'about_screen.dart';
 import 'widgets/profile_expanded_header.dart';
 import 'widgets/profile_collapsed_header.dart';
 import 'widgets/profile_feature_grid.dart';
@@ -210,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Container(
-        color: Theme.of(context).colorScheme.surface, // Màu nền đồng bộ với AppBar
+        color: Theme.of(context).scaffoldBackgroundColor, // Màu nền đồng bộ với AppBar
         child: SafeArea(
           top: true,
           bottom: false,
@@ -247,7 +248,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       expandedHeight: 300.0,
       floating: false,
       pinned: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      foregroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       stretch: true,
       collapsedHeight: 90.0,
@@ -273,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   bottom: 18,
                 ),
                 background: expandRatio == 0
-                  ? Container(color: Theme.of(context).colorScheme.surface)
+                  ? Container(color: Theme.of(context).scaffoldBackgroundColor)
                   : ProfileExpandedHeader(
                   isDark: isDark,
                   expandRatio: expandRatio,
@@ -386,6 +388,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
+  /// Navigate to About Screen
+  void _navigateToAbout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AboutScreen(),
+      ),
+    );
+  }
+
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
     return ProfileFeatureGrid(
@@ -408,6 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           onChangeCurrency: _changeCurrency,
           onShowReminderDialog: _showReminderDialog,
           onWidgetSettingTap: _handleWidgetSettingTap,
+          onNavigateToAbout: _navigateToAbout,
           onShowFeatureSnackbar: _showFeatureSnackbar,
           supportsAndroidWidget: _supportsAndroidWidget,
           isWidgetPinned: _isWidgetPinned,
