@@ -75,7 +75,7 @@ class AboutScreen extends StatelessWidget {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+            color: isDark ? Colors.white: Colors.transparent ,
             borderRadius: BorderRadius.circular(24),
           ),
           child: ClipRRect(
@@ -83,7 +83,7 @@ class AboutScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Image.asset(
-                'assets/images/whales-spent-logo.png',
+                'assets/images/logo.png',
                 fit: BoxFit.contain,
               ),
             ),
