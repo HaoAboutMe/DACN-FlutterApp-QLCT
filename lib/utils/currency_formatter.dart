@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import '../providers/currency_provider.dart';
 
 class CurrencyFormatter {
@@ -35,12 +36,15 @@ class CurrencyFormatter {
   static String formatAmount(double vndAmount) {
     if (_currencyProvider == null) {
       // Fallback to VND if provider not set
+      debugPrint('⚠️ CurrencyFormatter: Provider is null, using VND');
       return formatVND(vndAmount);
     }
 
     final convertedAmount = _currencyProvider!.convertFromVND(vndAmount);
     final symbol = _currencyProvider!.currencySymbol;
     final currency = _currencyProvider!.selectedCurrency;
+
+    debugPrint('💰 formatAmount: vndAmount=$vndAmount, currency=$currency, converted=$convertedAmount');
 
     if (currency == 'USD') {
       final formatter = NumberFormat.currency(

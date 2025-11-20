@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../database/database_helper.dart';
 import '../../models/user.dart';
 import '../../utils/currency_formatter.dart';
+import '../../providers/currency_provider.dart';
 
 class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});
@@ -25,6 +28,7 @@ class _InitialScreenState extends State<InitialScreen> {
 
   int _currentStep = 0;
   bool _isLoading = false;
+  String _selectedCurrency = 'VND'; // Default currency
 
   // App colors according to Figma
   static const Color darkBlue = Color(0xFF0D1B2A);   // Header background
@@ -50,23 +54,32 @@ class _InitialScreenState extends State<InitialScreen> {
       }
     }
 
-    // Bắt lỗi bước 2 (balance input)
-    if (_currentStep == 2) {
+    // Bắt lỗi bước 2 (currency selection) - no validation needed
+
+    // Bắt lỗi bước 3 (balance input)
+    if (_currentStep == 3) {
       if (_balanceController.text.trim().isEmpty) {
         _showValidationSnackbar('Vui lòng nhập số dư');
         return;
       }
     }
 
-    if (_currentStep < 3) {
+    // Dismiss keyboard before moving to next step
+    FocusScope.of(context).unfocus();
+
+    if (_currentStep < 4) {
       setState(() {
         _currentStep++;
       });
 
-      // Dismiss keyboard when moving to step 3 (Success step)
+      // Update CurrencyFormatter when moving from currency selection step
       if (_currentStep == 3) {
-        FocusScope.of(context).unfocus();
+        // Just moved to balance input step, update currency in formatter
+        // This is only for input formatting; actual save happens in _completeSetup
+        CurrencyFormatter.setCurrency(_selectedCurrency);
+        debugPrint('💱 Updated CurrencyFormatter for balance input: $_selectedCurrency');
       }
+
 
       _pageController.animateToPage(
         _currentStep,
@@ -114,63 +127,86 @@ class _InitialScreenState extends State<InitialScreen> {
 
   /// Hàm hoàn tất thiết lập ban đầu
   Future<void> _completeSetup() async {
-    // Kiểm tra lỗi nhập liệu
-    // Mặc dù đã kiểm tra ở bước trước nhưng vẫn kiểm tra lại để chắc chắn
+    // Validate name
     if (_nameController.text.trim().isEmpty) {
       _showValidationSnackbar('Vui lòng nhập tên của bạn');
       return;
     }
 
+    // Validate balance
     if (_balanceController.text.trim().isEmpty) {
       _showValidationSnackbar('Vui lòng nhập số dư ban đầu');
       return;
     }
 
-    // Khai báo biến balance và chuyển đổi chuỗi sang double được định dạng phù hợp
-    // Nếu không chuyển đổi được thì báo lỗi
-    double balance;
-    try {
-      balance = double.parse(_balanceController.text.replaceAll('.', ''));
-    } catch (e) {
-      _showValidationSnackbar('Số dư không hợp lệ');
-      return;
-    }
-
-    // Gắn cờ isLoading để hiển thị loading indicator
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() =>
+      _isLoading = true
+    );
 
     try {
-      // Khởi tạo đối tượng User và lưu vào database
+      final currencyProvider =
+      Provider.of<CurrencyProvider>(context, listen: false);
+
+      // ================================
+      // 1️⃣ UPDATE CURRENCY TRƯỚC KHI PARSE + CONVERT (bắt buộc)
+      // ================================
+      await currencyProvider.setCurrency(_selectedCurrency);
+      CurrencyFormatter.setCurrencyProvider(currencyProvider);
+
+      debugPrint("🔄 Provider currency synced = ${currencyProvider.selectedCurrency}");
+
+      // ================================
+      // 2️⃣ PARSE THEO ĐÚNG LOẠI TIỀN
+      // ================================
+      final parsedAmount = CurrencyFormatter.parseAmount(_balanceController.text);
+
+      debugPrint("💰 Parsed amount: $parsedAmount $_selectedCurrency");
+
+      if (parsedAmount <= 0) {
+        _showValidationSnackbar("Số dư phải lớn hơn 0");
+        return;
+      }
+
+      // ================================
+      // 3️⃣ CONVERT SANG VND (luôn lưu VND trong database)
+      // ================================
+      double balanceVND;
+
+      if (_selectedCurrency == 'USD') {
+        balanceVND = currencyProvider.convertToVND(parsedAmount);
+        debugPrint("💱 Converting USD → VND: $parsedAmount USD → $balanceVND VND");
+      } else {
+        balanceVND = parsedAmount;
+        debugPrint("💰 Using VND directly: $balanceVND VND");
+      }
+
+      // ================================
+      // 4️⃣ SAVE USER
+      // ================================
       final user = User(
         name: _nameController.text.trim(),
-        balance: balance,
+        balance: balanceVND,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
+      debugPrint("💾 Saving to DB: ${user.name}, balance=${user.balance} VND");
       await DatabaseHelper().insertUser(user);
 
-      // Save isFirstRun = false
+      // Mark setup done
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isFirstRun', false); // Đánh dấu đã hoàn tất thiết lập ban đầu
+      await prefs.setBool('isFirstRun', false);
 
-      // Nếu mounted (trang vẫn còn hiển thị) thì chuyển hướng đến trang chính
+      // Done → go home
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
+
     } catch (e) {
-
-      if (mounted) {
-        _showValidationSnackbar('Có lỗi xảy ra khi lưu thông tin: $e');
-      }
+      debugPrint("❌ ERROR: $e");
+      if (mounted) _showValidationSnackbar("Có lỗi xảy ra khi lưu thông tin");
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -254,6 +290,7 @@ class _InitialScreenState extends State<InitialScreen> {
                       children: [
                         _buildWelcomeStep(),
                         _buildNameStep(),
+                        _buildCurrencyStep(),
                         _buildBalanceStep(),
                         _buildSuccessStep(),
                       ],
@@ -296,7 +333,7 @@ class _InitialScreenState extends State<InitialScreen> {
                           ),
                         )
                             : Text(
-                          _currentStep == 3 ? 'Hoàn tất' : 'Tiếp tục',
+                          _currentStep == 4 ? 'Hoàn tất' : 'Tiếp tục',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -311,7 +348,7 @@ class _InitialScreenState extends State<InitialScreen> {
                   // Dot Indicator
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
+                    children: List.generate(5, (index) {
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -340,8 +377,10 @@ class _InitialScreenState extends State<InitialScreen> {
       case 1:
         return 'Nhập tên của bạn để cá nhân hóa trải nghiệm';
       case 2:
-        return 'Nhập số dư ban đầu để bắt đầu quản lý chi tiêu';
+        return 'Chọn loại tiền tệ bạn muốn sử dụng';
       case 3:
+        return 'Nhập số dư ban đầu để bắt đầu quản lý chi tiêu';
+      case 4:
         return 'Hoàn tất thiết lập 🎉';
       default:
         return '';
@@ -462,7 +501,172 @@ class _InitialScreenState extends State<InitialScreen> {
     );
   }
 
+  Widget _buildCurrencyStep() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Currency icon illustration
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.currency_exchange,
+                size: 60,
+                color: white,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Descriptive text
+            Text(
+              'Chọn loại tiền tệ phù hợp với bạn',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // VND Option
+            _buildCurrencyOption(
+              'VND',
+              '₫',
+              'Việt Nam Đồng',
+              Icons.attach_money,
+            ),
+
+            const SizedBox(height: 16),
+
+            // USD Option
+            _buildCurrencyOption(
+              'USD',
+              '\$',
+              'US Dollar',
+              Icons.monetization_on,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrencyOption(
+    String currencyCode,
+    String symbol,
+    String name,
+    IconData icon,
+  ) {
+    final isSelected = _selectedCurrency == currencyCode;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCurrency = currencyCode;
+        });
+        CurrencyFormatter.setCurrency(currencyCode);
+
+        final provider = Provider.of<CurrencyProvider>(context, listen: false);
+        provider.setCurrency(currencyCode);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected ? white : white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? activeGreen : white.withValues(alpha: 0.3),
+            width: isSelected ? 3 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeGreen.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: isSelected ? brightBlue.withValues(alpha: 0.1) : white.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? brightBlue : white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Currency info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    currencyCode,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? brightBlue : white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected ? brightBlue.withValues(alpha: 0.7) : white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Symbol
+            Text(
+              symbol,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? brightBlue : white.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Check icon
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: activeGreen,
+                size: 28,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBalanceStep() {
+    final hintText = _selectedCurrency == 'USD'
+        ? 'Nhập số dư (USD)'
+        : 'Nhập số dư (VND)';
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -514,10 +718,8 @@ class _InitialScreenState extends State<InitialScreen> {
               ),
               child: TextField(
                 controller: _balanceController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
-                  // FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-                  FilteringTextInputFormatter.digitsOnly,
                   CurrencyInputFormatter(),
                 ],
                 style: const TextStyle(
@@ -525,12 +727,12 @@ class _InitialScreenState extends State<InitialScreen> {
                   color: Colors.black87,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Nhập số dư (VND)',
+                  hintText: hintText,
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
                   prefixIcon: Icon(Icons.attach_money, color: Colors.grey[400]),
-                  suffixText: 'VND',
+                  suffixText: _selectedCurrency,
                   suffixStyle: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
                 ),
               ),
@@ -620,7 +822,7 @@ class _InitialScreenState extends State<InitialScreen> {
                         ),
                       ),
                       Text(
-                        '${_balanceController.text} VND',
+                        '${_balanceController.text} $_selectedCurrency',
                         style: const TextStyle(
                           color: white,
                           fontSize: 16,
@@ -644,22 +846,57 @@ class CurrencyInputFormatter extends TextInputFormatter {
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
+    // Cho phép empty string
     if (newValue.text.isEmpty) {
       return newValue.copyWith(text: '');
     }
 
-    final amount = CurrencyFormatter.parseAmount(newValue.text);
+    // Get current currency from CurrencyFormatter
+    final currentCurrency = CurrencyFormatter.getCurrency();
 
-    if (amount == 0) {
-      return newValue.copyWith(text: '');
+    if (currentCurrency == 'USD') {
+      // Cho USD: chỉ cho phép digits và 1 dấu chấm
+      String filtered = newValue.text;
+
+      // Loại bỏ tất cả ký tự không hợp lệ
+      filtered = filtered.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      // Đảm bảo chỉ có 1 dấu chấm
+      final parts = filtered.split('.');
+      if (parts.length > 2) {
+        filtered = parts[0] + '.' + parts.sublist(1).join('');
+      }
+
+      // Giới hạn 3 chữ số thập phân
+      if (parts.length == 2 && parts[1].length > 3) {
+        filtered = parts[0] + '.' + parts[1].substring(0, 3);
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
+    } else {
+      // Cho VND: chỉ cho phép digits và dấu phẩy
+      String filtered = newValue.text.replaceAll(RegExp(r'[^0-9,]'), '');
+
+      // Auto-format với dấu phẩy ngăn cách hàng nghìn cho VND
+      if (filtered.isNotEmpty) {
+        final digitsOnly = filtered.replaceAll(',', '');
+        if (digitsOnly.isNotEmpty) {
+          final amount = double.tryParse(digitsOnly) ?? 0;
+          if (amount > 0) {
+            final formatter = NumberFormat('#,###', 'vi_VN');
+            filtered = formatter.format(amount);
+          }
+        }
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
     }
-
-    final formatted = CurrencyFormatter.formatForInput(amount);
-
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
   }
 }
 

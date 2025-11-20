@@ -123,11 +123,12 @@ class UserGuideScreen extends StatelessWidget {
       icon: Icons.play_circle_outline,
       iconColor: Colors.blue,
       title: '1. Khởi tạo ban đầu',
-      description: 'Khi mở ứng dụng lần đầu, bạn sẽ trải qua ba bước thiết lập nhanh:',
+      description: 'Khi mở ứng dụng lần đầu, bạn sẽ trải qua bốn bước thiết lập nhanh:',
       steps: [
         {'text': 'Nhập tên người dùng của bạn.'},
+        {'text': 'Chọn loại tiền tệ mà bạn muốn (VND, USD).'},
         {'text': 'Nhập số dư hiện tại mà bạn đang có.'},
-        {'text': 'Xác nhận lại tên và số dư. Sau khi hoàn tất, bạn có thể bắt đầu sử dụng Whales Spent.'},
+        {'text': 'Xác nhận lại tên, loại tiền và số dư. Sau khi hoàn tất, bạn có thể bắt đầu sử dụng Whales Spent.'},
       ],
       note: {
         'icon': Icons.lightbulb_outline,
