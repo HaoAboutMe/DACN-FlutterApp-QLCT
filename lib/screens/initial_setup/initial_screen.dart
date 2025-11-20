@@ -64,6 +64,9 @@ class _InitialScreenState extends State<InitialScreen> {
       }
     }
 
+    // Dismiss keyboard before moving to next step
+    FocusScope.of(context).unfocus();
+
     if (_currentStep < 4) {
       setState(() {
         _currentStep++;
@@ -77,10 +80,6 @@ class _InitialScreenState extends State<InitialScreen> {
         debugPrint('💱 Updated CurrencyFormatter for balance input: $_selectedCurrency');
       }
 
-      // Dismiss keyboard when moving to step 4 (Success step)
-      if (_currentStep == 4) {
-        FocusScope.of(context).unfocus();
-      }
 
       _pageController.animateToPage(
         _currentStep,
