@@ -57,16 +57,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     try {
       // Update currency provider (this will also update CurrencyFormatter automatically)
       await currencyProvider.setCurrency(newCurrency);
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Đã chuyển sang ${newCurrency == 'VND' ? 'VND (₫)' : 'USD (\$)'}'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
     } catch (e) {
       print('Error changing currency: $e');
       ScaffoldMessenger.of(context).showSnackBar(

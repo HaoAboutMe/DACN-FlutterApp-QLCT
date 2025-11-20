@@ -822,24 +822,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         setState(() {
           _selectedCategoryId = selectedCategory.id;
         });
-
-        // Hiển thị thông báo thành công nếu là category mới
-        if (selectedCategory.id != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text('Đã chọn danh mục "${selectedCategory.name}"'),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
       }
     }
   }
