@@ -74,13 +74,6 @@ class ProfileWidgetDialogs {
       if (!context.mounted) return;
 
       if (result == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã gửi yêu cầu. Hãy chấp nhận pop-up "Thêm widget" để hoàn tất.'),
-            backgroundColor: Color(0xFF5D5FEF),
-          ),
-        );
-
         // Poll widget status
         bool pinned = false;
         for (int i = 0; i < 5; i++) {
@@ -91,15 +84,6 @@ class ProfileWidgetDialogs {
 
         if (!context.mounted) return;
         onPinStatusChanged(pinned);
-
-        if (pinned) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Widget Whales Spent đã được thêm thành công!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
       } else {
         showManualWidgetGuide(context);
       }
