@@ -451,7 +451,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             return AllBudgetsWidget(
                               overallBudget: _overallBudgetProgress,
                               categoryBudgets: _categoryBudgets,
-                              onRefresh: _loadBudgetProgress,
+                              onRefresh: () async {
+                                await _refreshHomeData();
+                              },
                             );
                           },
                         ),
@@ -464,6 +466,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         onExpensePressed: () => _navigateToAddTransaction('expense'),
                         onLoanGivenPressed: () => _navigateToAddTransaction('loan_given'),
                         onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
+                        onTransactionAdded: _loadData, // Refresh data after adding transaction
                       ),
                       const SizedBox(height: 24),
 

@@ -51,11 +51,12 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white
       ),
       child: Image.asset(
-        'assets/images/whales-spent-logo.png',
-        fit: BoxFit.contain,
+        'assets/images/logo.png',
+        fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return Container(
             decoration: BoxDecoration(
