@@ -39,7 +39,7 @@ class ProfileCollapsedHeader extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(27.5),
             child: Image.asset(
-              'assets/images/whales-spent-logo.png',
+              'assets/images/logo.png',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return const Icon(
