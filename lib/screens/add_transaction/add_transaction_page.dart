@@ -11,10 +11,12 @@ import '../../widgets/category_picker_sheet.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final String? preselectedType;
+  final int? preselectedCategoryId;
 
   const AddTransactionPage({
     super.key,
     this.preselectedType,
+    this.preselectedCategoryId,
   });
 
   @override
@@ -48,6 +50,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   void initState() {
     super.initState();
     _selectedType = widget.preselectedType ?? 'income';
+    _selectedCategoryId = widget.preselectedCategoryId;
     _initializeAnimations();
     _loadCategories();
   }

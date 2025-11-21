@@ -51,11 +51,6 @@ class ProfileSettingsList extends StatelessWidget {
         'title': 'Về chúng tôi',
         'subtitle': 'Thông tin về đội ngũ phát triển',
       },
-      {
-        'icon': Icons.system_update_outlined,
-        'title': 'Phiên bản cập nhật',
-        'subtitle': 'Kiểm tra phiên bản mới nhất',
-      },
     ];
 
     return Container(

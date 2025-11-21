@@ -6,6 +6,7 @@ import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
 import '../../utils/currency_formatter.dart';
 import '../transaction/transaction_detail_screen.dart';
+import '../add_transaction/add_transaction_page.dart';
 import 'add_budget_screen.dart';
 
 /// Màn hình hiển thị chi tiết giao dịch theo danh mục trong khoảng thời gian ngân sách
@@ -142,6 +143,23 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
           );
         }
       }
+    }
+  }
+
+  Future<void> _addTransaction() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTransactionPage(
+          preselectedType: 'expense',
+          preselectedCategoryId: widget.categoryId,
+        ),
+      ),
+    );
+
+    // Reload transactions if a new transaction was added
+    if (result == true) {
+      await _loadTransactions();
     }
   }
 
@@ -357,7 +375,17 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
                 ),
               ],
             ),
-      )
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 40),
+          child: FloatingActionButton(
+            onPressed: _addTransaction,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            tooltip: 'Thêm giao dịch chi tiêu',
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ),
     );
   }
 
