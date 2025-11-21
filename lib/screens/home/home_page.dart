@@ -464,6 +464,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         onExpensePressed: () => _navigateToAddTransaction('expense'),
                         onLoanGivenPressed: () => _navigateToAddTransaction('loan_given'),
                         onLoanReceivedPressed: () => _navigateToAddTransaction('loan_received'),
+                        onTransactionAdded: _loadData, // Refresh data after adding transaction
                       ),
                       const SizedBox(height: 24),
 

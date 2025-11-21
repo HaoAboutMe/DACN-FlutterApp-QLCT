@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
+import '../../../models/quick_action_shortcut.dart';
+import '../../../services/quick_action_service.dart';
+import '../../../utils/icon_helper.dart';
+import '../../add_transaction/add_transaction_page.dart';
+import '../../budget/add_budget_screen.dart';
+import '../../settings/manage_shortcuts_screen.dart';
 
-class QuickActions extends StatelessWidget {
+class QuickActions extends StatefulWidget {
   final VoidCallback onIncomePressed;
   final VoidCallback onExpensePressed;
   final VoidCallback onLoanGivenPressed;
   final VoidCallback onLoanReceivedPressed;
+  final VoidCallback? onTransactionAdded; // Callback to refresh after adding transaction
 
   const QuickActions({
     super.key,
@@ -14,7 +21,83 @@ class QuickActions extends StatelessWidget {
     required this.onExpensePressed,
     required this.onLoanGivenPressed,
     required this.onLoanReceivedPressed,
+    this.onTransactionAdded,
   });
+
+  @override
+  State<QuickActions> createState() => _QuickActionsState();
+}
+
+class _QuickActionsState extends State<QuickActions> {
+  final QuickActionService _shortcutService = QuickActionService();
+  List<QuickActionShortcut> _shortcuts = [];
+  bool _isLoadingShortcuts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShortcuts();
+  }
+
+  Future<void> _loadShortcuts() async {
+    try {
+      final shortcuts = await _shortcutService.getShortcuts();
+      if (mounted) {
+        setState(() {
+          _shortcuts = shortcuts;
+          _isLoadingShortcuts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingShortcuts = false);
+      }
+    }
+  }
+
+  Future<void> _handleShortcutPress(QuickActionShortcut shortcut) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTransactionPage(
+          preselectedType: shortcut.type,
+          preselectedCategoryId: shortcut.categoryId,
+        ),
+      ),
+    );
+
+    if (result == true && widget.onTransactionAdded != null) {
+      widget.onTransactionAdded!();
+    }
+  }
+
+  Future<void> _handleBudgetPress() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddBudgetScreen(),
+      ),
+    );
+
+    // Optionally refresh if needed
+    if (result == true && widget.onTransactionAdded != null) {
+      widget.onTransactionAdded!();
+    }
+  }
+
+  Future<void> _handleAddShortcutPress() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ManageShortcutsScreen(),
+      ),
+    );
+
+    // Reload shortcuts after returning from manage shortcuts screen
+    if (result != null || mounted) {
+      await _loadShortcuts();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +130,7 @@ class QuickActions extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          // Row 1: Original 4 buttons
           Row(
             children: [
               Expanded(
@@ -54,7 +138,7 @@ class QuickActions extends StatelessWidget {
                   icon: HomeIcons.income,
                   title: 'Thu nhập',
                   color: HomeColors.income,
-                  onTap: onIncomePressed,
+                  onTap: widget.onIncomePressed,
                 ),
               ),
               const SizedBox(width: 8),
@@ -63,7 +147,7 @@ class QuickActions extends StatelessWidget {
                   icon: HomeIcons.expense,
                   title: 'Chi tiêu',
                   color: HomeColors.expense,
-                  onTap: onExpensePressed,
+                  onTap: widget.onExpensePressed,
                 ),
               ),
               const SizedBox(width: 8),
@@ -72,7 +156,7 @@ class QuickActions extends StatelessWidget {
                   icon: HomeIcons.loanGiven,
                   title: 'Cho vay',
                   color: HomeColors.loanGiven,
-                  onTap: onLoanGivenPressed,
+                  onTap: widget.onLoanGivenPressed,
                 ),
               ),
               const SizedBox(width: 8),
@@ -81,11 +165,97 @@ class QuickActions extends StatelessWidget {
                   icon: HomeIcons.loanReceived,
                   title: 'Đi vay',
                   color: HomeColors.loanReceived,
-                  onTap: onLoanReceivedPressed,
+                  onTap: widget.onLoanReceivedPressed,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          // Row 2: Budget + 3 custom shortcuts
+          _isLoadingShortcuts
+              ? const SizedBox(
+                  height: 70,
+                  child: Center(
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                )
+              : Row(
+                  children: [
+                    // Budget button
+                    Expanded(
+                      child: QuickActionCard(
+                        icon: Icons.account_balance_wallet,
+                        title: 'Ngân sách',
+                        color: Colors.purple,
+                        onTap: _handleBudgetPress,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Shortcut 1
+                    Expanded(
+                      child: _shortcuts.isNotEmpty
+                          ? QuickActionCard(
+                              icon: IconHelper.getCategoryIcon(_shortcuts[0].categoryIcon),
+                              title: _shortcuts[0].categoryName,
+                              color: _shortcuts[0].type == 'income'
+                                  ? HomeColors.income
+                                  : HomeColors.expense,
+                              onTap: () => _handleShortcutPress(_shortcuts[0]),
+                            )
+                          : QuickActionCard(
+                              icon: Icons.add,
+                              title: 'Thêm',
+                              color: Colors.grey,
+                              onTap: _handleAddShortcutPress,
+                              isPlaceholder: true,
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Shortcut 2
+                    Expanded(
+                      child: _shortcuts.length > 1
+                          ? QuickActionCard(
+                              icon: IconHelper.getCategoryIcon(_shortcuts[1].categoryIcon),
+                              title: _shortcuts[1].categoryName,
+                              color: _shortcuts[1].type == 'income'
+                                  ? HomeColors.income
+                                  : HomeColors.expense,
+                              onTap: () => _handleShortcutPress(_shortcuts[1]),
+                            )
+                          : QuickActionCard(
+                              icon: Icons.add,
+                              title: 'Thêm',
+                              color: Colors.grey,
+                              onTap: _handleAddShortcutPress,
+                              isPlaceholder: true,
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Shortcut 3
+                    Expanded(
+                      child: _shortcuts.length > 2
+                          ? QuickActionCard(
+                              icon: IconHelper.getCategoryIcon(_shortcuts[2].categoryIcon),
+                              title: _shortcuts[2].categoryName,
+                              color: _shortcuts[2].type == 'income'
+                                  ? HomeColors.income
+                                  : HomeColors.expense,
+                              onTap: () => _handleShortcutPress(_shortcuts[2]),
+                            )
+                          : QuickActionCard(
+                              icon: Icons.add,
+                              title: 'Thêm',
+                              color: Colors.grey,
+                              onTap: _handleAddShortcutPress,
+                              isPlaceholder: true,
+                            ),
+                    ),
+                  ],
+                ),
         ],
       ),
     );
@@ -97,6 +267,7 @@ class QuickActionCard extends StatelessWidget {
   final String title;
   final Color color;
   final VoidCallback onTap;
+  final bool isPlaceholder;
 
   const QuickActionCard({
     super.key,
@@ -104,6 +275,7 @@ class QuickActionCard extends StatelessWidget {
     required this.title,
     required this.color,
     required this.onTap,
+    this.isPlaceholder = false,
   });
 
   @override
@@ -112,9 +284,14 @@ class QuickActionCard extends StatelessWidget {
       height: 70,
       child: Card(
         elevation: 2,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: isPlaceholder
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: isPlaceholder
+              ? BorderSide(color: Colors.grey.shade300, width: 1, style: BorderStyle.solid)
+              : BorderSide.none,
         ),
         child: InkWell(
           onTap: onTap,
@@ -127,7 +304,7 @@ class QuickActionCard extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: color,
+                  color: isPlaceholder ? Colors.grey.shade400 : color,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -135,7 +312,9 @@ class QuickActionCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: isPlaceholder
+                        ? Colors.grey.shade400
+                        : Theme.of(context).colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,

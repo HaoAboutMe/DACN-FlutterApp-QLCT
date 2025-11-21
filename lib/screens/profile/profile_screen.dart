@@ -8,6 +8,7 @@ import '../../providers/currency_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../category/category_management_screen.dart';
 import '../budget/budget_list_screen.dart';
+import '../settings/manage_shortcuts_screen.dart';
 import 'about_screen.dart';
 import 'user_guide_screen.dart';
 import 'widgets/profile_expanded_header.dart';
@@ -409,6 +410,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
+  /// Navigate to Manage Shortcuts Screen
+  void _navigateToManageShortcuts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ManageShortcutsScreen(),
+      ),
+    );
+  }
+
   /// Xây dựng Grid các tính năng chính
   Widget _buildFeatureGrid(bool isDark) {
     return ProfileFeatureGrid(
@@ -433,6 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           onWidgetSettingTap: _handleWidgetSettingTap,
           onNavigateToAbout: _navigateToAbout,
           onNavigateToUserGuide: _navigateToUserGuide,
+          onManageShortcutsTap: _navigateToManageShortcuts,
           onShowFeatureSnackbar: _showFeatureSnackbar,
           supportsAndroidWidget: _supportsAndroidWidget,
           isWidgetPinned: _isWidgetPinned,

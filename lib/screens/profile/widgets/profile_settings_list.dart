@@ -8,6 +8,7 @@ class ProfileSettingsList extends StatelessWidget {
   final VoidCallback onWidgetSettingTap;
   final VoidCallback onNavigateToAbout;
   final VoidCallback onNavigateToUserGuide;
+  final VoidCallback onManageShortcutsTap;
   final Function(String) onShowFeatureSnackbar;
   final bool supportsAndroidWidget;
   final bool isWidgetPinned;
@@ -22,6 +23,7 @@ class ProfileSettingsList extends StatelessWidget {
     required this.onWidgetSettingTap,
     required this.onNavigateToAbout,
     required this.onNavigateToUserGuide,
+    required this.onManageShortcutsTap,
     required this.onShowFeatureSnackbar,
     required this.supportsAndroidWidget,
     required this.isWidgetPinned,
@@ -35,6 +37,11 @@ class ProfileSettingsList extends StatelessWidget {
         'icon': Icons.widgets_outlined,
         'title': 'Thêm Widget',
         'subtitle': 'Tùy chỉnh widget trên màn hình chính',
+      },
+      {
+        'icon': Icons.touch_app,
+        'title': 'Quản lý phím tắt',
+        'subtitle': 'Tùy chỉnh phím tắt nhanh',
       },
       {
         'icon': Icons.help_outline,
@@ -280,6 +287,8 @@ class ProfileSettingsList extends StatelessWidget {
           ? onNavigateToAbout
           : setting['title'] == 'Hướng dẫn sử dụng'
           ? onNavigateToUserGuide
+          : setting['title'] == 'Quản lý phím tắt'
+          ? onManageShortcutsTap
           : () => onShowFeatureSnackbar(setting['title'] as String),
     );
   }
