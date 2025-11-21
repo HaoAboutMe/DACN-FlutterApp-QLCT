@@ -56,7 +56,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       child: Image.asset(
         'assets/images/logo.png',
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return Container(
             decoration: BoxDecoration(

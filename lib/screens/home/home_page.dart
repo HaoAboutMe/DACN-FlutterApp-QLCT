@@ -451,7 +451,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             return AllBudgetsWidget(
                               overallBudget: _overallBudgetProgress,
                               categoryBudgets: _categoryBudgets,
-                              onRefresh: _loadBudgetProgress,
+                              onRefresh: () async {
+                                await _refreshHomeData();
+                              },
                             );
                           },
                         ),
