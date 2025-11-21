@@ -23,11 +23,7 @@ class ProfileCollapsedHeader extends StatelessWidget {
           height: 55,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5D5FEF), Color(0xFF00A8CC)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.white,
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF5D5FEF).withValues(alpha: 0.25),

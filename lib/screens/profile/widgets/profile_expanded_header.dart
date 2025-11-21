@@ -47,11 +47,7 @@ class ProfileExpandedHeader extends StatelessWidget {
               height: avatarSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF5D5FEF), Color(0xFF00A8CC)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF5D5FEF).withValues(alpha: 0.3 * expandRatio),
@@ -61,9 +57,9 @@ class ProfileExpandedHeader extends StatelessWidget {
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(avatarSize / 2),
+                borderRadius: BorderRadius.circular(100),
                 child: Image.asset(
-                  'assets/images/whales-spent-logo.png',
+                  'assets/images/logo.png',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
