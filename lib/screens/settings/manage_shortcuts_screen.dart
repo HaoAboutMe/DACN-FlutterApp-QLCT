@@ -59,7 +59,6 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
       if (success) {
         _hasChanges = true;
         _loadShortcuts();
-        _showSuccessSnackBar('Đã thêm phím tắt');
       } else {
         _showErrorSnackBar('Không thể thêm phím tắt');
       }
@@ -82,7 +81,6 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
       if (success) {
         _hasChanges = true;
         _loadShortcuts();
-        _showSuccessSnackBar('Đã cập nhật phím tắt');
       } else {
         _showErrorSnackBar('Không thể cập nhật phím tắt');
       }
@@ -113,7 +111,6 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
       if (success) {
         _hasChanges = true;
         _loadShortcuts();
-        _showSuccessSnackBar('Đã xóa phím tắt');
       } else {
         _showErrorSnackBar('Không thể xóa phím tắt');
       }

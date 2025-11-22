@@ -116,10 +116,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               });
             }
           }
-
-          // Loại bỏ logic tự động hiện khi ở cuối trang
-          // Người dùng phải vuốt lên để hiện lại navigation bar
-
           _lastScrollOffset = currentOffset;
         }
 
