@@ -212,8 +212,6 @@ class _InitialScreenState extends State<InitialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: darkBlue,
       resizeToAvoidBottomInset: true, // Enable automatic screen resize for keyboard
@@ -222,50 +220,51 @@ class _InitialScreenState extends State<InitialScreen> {
         child: Column(
           children: [
             // Header Section (25% of screen height)
-            Container(
-              height: screenHeight * 0.25,
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.25,
               width: double.infinity,
-              color: darkBlue,
-              child: Stack(
-                children: [
-                  // Back button (only show from step 2 onwards)
-                  if (_currentStep > 0)
-                    Positioned(
-                      left: 16,
-                      top: 16,
-                      child: IconButton(
-                        onPressed: _previousStep,
-                        icon: const Icon(
-                          Icons.arrow_back_ios,
-                          color: white,
-                          size: 24,
+              child: Container(
+                color: darkBlue,
+                child: Stack(
+                  children: [
+                    // Back button (only show from step 2 onwards)
+                    if (_currentStep > 0)
+                      Positioned(
+                        left: 16,
+                        top: 16,
+                        child: IconButton(
+                          onPressed: _previousStep,
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            color: white,
+                            size: 24,
+                          ),
                         ),
                       ),
-                    ),
 
-                  // Header text
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Text(
-                        _getHeaderText(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: white,
-                          height: 1.3,
+                    // Header text
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Text(
+                          _getHeaderText(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: white,
+                            height: 1.3,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            // Body Section (55% of screen height) - Now with proper scrolling
+            // Body Section - Tự động co giãn theo keyboard
             Expanded(
-              flex: 55,
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
@@ -275,34 +274,30 @@ class _InitialScreenState extends State<InitialScreen> {
                     topRight: Radius.circular(40),
                   ),
                 ),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
                   ),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.55 - 40, // Subtract for border radius
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildWelcomeStep(),
-                        _buildNameStep(),
-                        _buildCurrencyStep(),
-                        _buildBalanceStep(),
-                        _buildSuccessStep(),
-                      ],
-                    ),
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildWelcomeStep(),
+                      _buildNameStep(),
+                      _buildCurrencyStep(),
+                      _buildBalanceStep(),
+                      _buildSuccessStep(),
+                    ],
                   ),
                 ),
               ),
             ),
 
-            // Footer Section (20% of screen height)
-            Container(
-              height: screenHeight * 0.20,
+            // Footer Section - Tự động thu nhỏ khi keyboard mở
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: MediaQuery.of(context).viewInsets.bottom > 0 ? 70 : 140,
               color: brightBlue,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -343,24 +338,25 @@ class _InitialScreenState extends State<InitialScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
-
-                  // Dot Indicator
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: index == _currentStep ? activeGreen : white.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                      );
-                    }),
-                  ),
+                  // Dot Indicator - Ẩn khi keyboard mở để tiết kiệm không gian
+                  if (MediaQuery.of(context).viewInsets.bottom == 0) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: index == _currentStep ? activeGreen : white.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ],
               ),
             ),
