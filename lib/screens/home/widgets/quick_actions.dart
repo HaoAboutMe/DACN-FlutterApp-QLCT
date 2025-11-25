@@ -280,8 +280,8 @@ class QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 70,
+    return AspectRatio(
+      aspectRatio: 1,
       child: Card(
         elevation: 2,
         color: isPlaceholder
@@ -307,19 +307,42 @@ class QuickActionCard extends StatelessWidget {
                   color: isPlaceholder ? Colors.grey.shade400 : color,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isPlaceholder
-                        ? Colors.grey.shade400
-                        : Theme.of(context).colorScheme.onSurface,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.visible,
-                ),
+                Builder(
+                  builder: (context) {
+                    final style = TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isPlaceholder
+                          ? Colors.grey.shade400
+                          : Theme.of(context).colorScheme.onSurface,
+                    );
+
+                    // Đo width chữ hiện tại
+                    final tp = TextPainter(
+                      text: TextSpan(text: title, style: style),
+                      maxLines: 1,
+                      textDirection: TextDirection.ltr,
+                    )..layout();
+
+                    // Đo width chữ "Ngân sách"
+                    final limitTp = TextPainter(
+                      text: TextSpan(text: "Ngân sách", style: style),
+                      maxLines: 1,
+                      textDirection: TextDirection.ltr,
+                    )..layout();
+
+                    final isTooLong = tp.width > limitTp.width;
+
+                    return Text(
+                      title,
+                      style: style,
+                      maxLines: 1,
+                      overflow: isTooLong ? TextOverflow.ellipsis : TextOverflow.visible,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                )
               ],
             ),
           ),

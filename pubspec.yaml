@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^17.1.2
   timezone: ^0.9.3
   android_alarm_manager_plus: ^4.0.3
+  marquee: ^2.3.0
 
   fl_chart: ^0.68.0
 
