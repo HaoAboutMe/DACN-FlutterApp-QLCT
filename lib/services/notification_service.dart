@@ -3,7 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import '../database/database_helper.dart';
+import '../database/repositories/repositories.dart';
 import '../models/loan.dart';
 import '../models/notification_data.dart';
 
@@ -45,11 +45,12 @@ void alarmCallback() async {
 /// Background check loan reminders - được gọi từ AlarmManager
 Future<void> _backgroundCheckLoanReminders(FlutterLocalNotificationsPlugin notifications) async {
   try {
-    final dbHelper = DatabaseHelper();
+    final loanRepo = LoanRepository();
+    final notificationRepo = NotificationRepository();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final loans = await dbHelper.getActiveLoansWithReminders();
+    final loans = await loanRepo.getActiveLoansWithReminders();
     log('📋 Background checking ${loans.length} active loans');
 
     for (final loan in loans) {
@@ -70,13 +71,13 @@ Future<void> _backgroundCheckLoanReminders(FlutterLocalNotificationsPlugin notif
         }
 
         if (shouldSend) {
-          await _sendReminderNotification(loan, daysUntilDue, notifications, dbHelper);
+          await _sendReminderNotification(loan, daysUntilDue, notifications, loanRepo, notificationRepo);
         }
       }
 
       if (daysUntilDue < 0 && loan.status == 'active') {
-        await _sendOverdueNotification(loan, notifications, dbHelper);
-        await dbHelper.updateLoanStatus(loan.id!, 'overdue');
+        await _sendOverdueNotification(loan, notifications, loanRepo, notificationRepo);
+        await loanRepo.updateLoanStatus(loan.id!, 'overdue');
       }
     }
   } catch (e) {
@@ -89,7 +90,8 @@ Future<void> _sendReminderNotification(
   Loan loan,
   int daysUntilDue,
   FlutterLocalNotificationsPlugin notifications,
-  DatabaseHelper dbHelper,
+  LoanRepository loanRepo,
+  NotificationRepository notificationRepo,
 ) async {
   final now = DateTime.now();
 
@@ -118,7 +120,7 @@ Future<void> _sendReminderNotification(
     isRead: false,
   );
 
-  await dbHelper.insertNotification(notification);
+  await notificationRepo.insertNotification(notification);
 
   const androidDetails = AndroidNotificationDetails(
     'loan_reminders',
@@ -141,7 +143,7 @@ Future<void> _sendReminderNotification(
   );
 
   await notifications.show(loan.id!, title, body, details, payload: 'loan_${loan.id}');
-  await dbHelper.updateLoanLastReminderSent(loan.id!, now);
+  await loanRepo.updateLoanLastReminderSent(loan.id!, now);
 
   log('✅ Sent reminder for loan ${loan.id}');
 }
@@ -150,12 +152,13 @@ Future<void> _sendReminderNotification(
 Future<void> _sendOverdueNotification(
   Loan loan,
   FlutterLocalNotificationsPlugin notifications,
-  DatabaseHelper dbHelper,
+  LoanRepository loanRepo,
+  NotificationRepository notificationRepo,
 ) async {
   final now = DateTime.now();
   final daysOverdue = now.difference(loan.dueDate!).inDays;
 
-  final existingNotifications = await dbHelper.getNotificationsByLoanId(loan.id!);
+  final existingNotifications = await notificationRepo.getNotificationsByLoanId(loan.id!);
   final hasOverdueNotification = existingNotifications.any(
     (n) => n.type == 'overdue' && n.sentAt.isAfter(loan.dueDate!),
   );
@@ -174,7 +177,7 @@ Future<void> _sendOverdueNotification(
     isRead: false,
   );
 
-  await dbHelper.insertNotification(notification);
+  await notificationRepo.insertNotification(notification);
 
   const androidDetails = AndroidNotificationDetails(
     'loan_reminders',
@@ -503,11 +506,11 @@ class NotificationService {
   /// Được gọi khi app mở hoặc từ AlarmManager background
   Future<void> checkAndCreateLoanReminders() async {
     try {
-      final dbHelper = DatabaseHelper();
+      final loanRepo = LoanRepository();
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final loans = await dbHelper.getActiveLoansWithReminders();
+      final loans = await loanRepo.getActiveLoansWithReminders();
 
       log('📋 Checking ${loans.length} active loans with reminders');
 
@@ -538,7 +541,7 @@ class NotificationService {
 
         if (daysUntilDue < 0 && loan.status == 'active') {
           await _createOverdueNotification(loan);
-          await dbHelper.updateLoanStatus(loan.id!, 'overdue');
+          await loanRepo.updateLoanStatus(loan.id!, 'overdue');
         }
       }
 
@@ -550,7 +553,8 @@ class NotificationService {
 
   /// Tạo thông báo nhắc nhở cho một khoản vay
   Future<void> _createReminderForLoan(Loan loan, int daysUntilDue) async {
-    final dbHelper = DatabaseHelper();
+    final loanRepo = LoanRepository();
+    final notificationRepo = NotificationRepository();
     final now = DateTime.now();
 
     final lastSent = loan.lastReminderSent;
@@ -590,7 +594,7 @@ class NotificationService {
       isRead: false,
     );
 
-    await dbHelper.insertNotification(notification);
+    await notificationRepo.insertNotification(notification);
 
     await showNotification(
       id: loan.id!,
@@ -599,18 +603,19 @@ class NotificationService {
       payload: 'loan_${loan.id}',
     );
 
-    await dbHelper.updateLoanLastReminderSent(loan.id!, now);
+    await loanRepo.updateLoanLastReminderSent(loan.id!, now);
 
     log('✅ Sent reminder notification for loan ${loan.id}: $daysUntilDue days until due');
   }
 
   /// Tạo thông báo khi khoản vay quá hạn
   Future<void> _createOverdueNotification(Loan loan) async {
-    final dbHelper = DatabaseHelper();
+    final loanRepo = LoanRepository();
+    final notificationRepo = NotificationRepository();
     final now = DateTime.now();
     final daysOverdue = now.difference(loan.dueDate!).inDays;
 
-    final existingNotifications = await dbHelper.getNotificationsByLoanId(loan.id!);
+    final existingNotifications = await notificationRepo.getNotificationsByLoanId(loan.id!);
     final hasOverdueNotification = existingNotifications.any(
       (n) => n.type == 'overdue' && n.sentAt.isAfter(loan.dueDate!),
     );
@@ -629,7 +634,7 @@ class NotificationService {
       isRead: false,
     );
 
-    await dbHelper.insertNotification(notification);
+    await notificationRepo.insertNotification(notification);
 
     await showNotification(
       id: loan.id! + 10000,
@@ -641,15 +646,15 @@ class NotificationService {
 
   /// Đếm số thông báo chưa đọc
   Future<int> getUnreadNotificationCount() async {
-    final dbHelper = DatabaseHelper();
-    return await dbHelper.getUnreadNotificationCount();
+    final notificationRepo = NotificationRepository();
+    return await notificationRepo.getUnreadNotificationCount();
   }
 
   /// Đếm số khoản vay sắp đến hạn
   Future<int> getUpcomingLoansCount() async {
-    final dbHelper = DatabaseHelper();
+    final loanRepo = LoanRepository();
     final now = DateTime.now();
-    final loans = await dbHelper.getActiveLoansWithReminders();
+    final loans = await loanRepo.getActiveLoansWithReminders();
 
     return loans.where((loan) {
       if (loan.dueDate == null || loan.reminderDays == null) return false;

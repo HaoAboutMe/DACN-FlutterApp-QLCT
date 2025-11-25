@@ -6,13 +6,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 
-import '../database/database_helper.dart';
+import '../database/repositories/repositories.dart';
 import '../utils/icon_helper.dart';
 
 /// Service quản lý Android Home Screen Widget
 /// Tính toán và gửi dữ liệu từ SQLite sang Android native widget
 class WidgetService {
-  static final DatabaseHelper _databaseHelper = DatabaseHelper();
+  static final TransactionRepository _transactionRepo = TransactionRepository();
+  static final UserRepository _userRepo = UserRepository();
+  static final LoanRepository _loanRepo = LoanRepository();
+  static final CategoryRepository _categoryRepo = CategoryRepository();
 
   /// Cập nhật toàn bộ dữ liệu widget
   /// Gọi hàm này khi:
@@ -30,7 +33,7 @@ class WidgetService {
       final endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
       // 2. Lấy tất cả transactions trong tháng
-      final allTransactions = await _databaseHelper.getAllTransactions();
+      final allTransactions = await _transactionRepo.getAllTransactions();
       final monthTransactions = allTransactions.where((trans) {
         return trans.date.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
             trans.date.isBefore(endDate.add(const Duration(seconds: 1)));
@@ -59,12 +62,11 @@ class WidgetService {
       }
 
       // 4. Lấy số dư hiện tại của user
-      final currentUserId = await _databaseHelper.getCurrentUserId();
-      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      final currentUser = await _userRepo.getCurrentUser();
       final currentBalance = currentUser?.balance ?? 0;
 
       // 5. Lấy thống kê khoản vay (active loans only)
-      final loans = await _databaseHelper.getAllLoans();
+      final loans = await _loanRepo.getAllLoans();
       double totalLoanGiven = 0;
       double totalLoanTaken = 0;
 
@@ -87,7 +89,7 @@ class WidgetService {
         for (int i = 0; i < min(3, sortedCategories.length); i++) {
           final categoryId = sortedCategories[i].key;
           final amount = sortedCategories[i].value;
-          final category = await _databaseHelper.getCategoryById(categoryId);
+          final category = await _categoryRepo.getCategoryById(categoryId);
 
           if (category != null) {
             final percent = totalExpense > 0

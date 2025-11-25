@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/quick_action_shortcut.dart';
 import '../../models/category.dart';
 import '../../services/quick_action_service.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../utils/icon_helper.dart';
 
 class ManageShortcutsScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class ManageShortcutsScreen extends StatefulWidget {
 
 class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
   final QuickActionService _shortcutService = QuickActionService();
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final CategoryRepository _categoryRepository = CategoryRepository();
 
   List<QuickActionShortcut> _shortcuts = [];
   bool _isLoading = true;
@@ -128,7 +128,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
 
     // Load categories
     try {
-      categories = await _databaseHelper.getAllCategories();
+      categories = await _categoryRepository.getAllCategories();
       filteredCategories = categories.where((c) => c.type == selectedType).toList();
     } catch (e) {
       _showErrorSnackBar('Không thể tải danh mục');

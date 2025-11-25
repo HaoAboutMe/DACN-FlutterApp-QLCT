@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
@@ -35,7 +35,8 @@ class BudgetCategoryTransactionScreen extends StatefulWidget {
 }
 
 class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransactionScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final BudgetRepository _budgetRepository = BudgetRepository();
+  final TransactionRepository _transactionRepository = TransactionRepository();
   bool _isLoading = true;
   List<transaction_model.Transaction> _transactions = [];
   double _totalSpent = 0;
@@ -78,7 +79,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
     if (result == true) {
       // Reload budget info from database
       if (widget.budgetId != null) {
-        final updatedBudget = await _databaseHelper.getBudgetById(widget.budgetId!);
+        final updatedBudget = await _budgetRepository.getBudgetById(widget.budgetId!);
         if (updatedBudget != null) {
           // Check if category changed
           if (updatedBudget.categoryId != widget.categoryId) {
@@ -129,7 +130,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
 
     if (confirmed == true) {
       try {
-        await _databaseHelper.deleteBudget(widget.budgetId!);
+        await _budgetRepository.deleteBudget(widget.budgetId!);
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -168,7 +169,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
 
     try {
       // Lấy tất cả giao dịch trong khoảng thời gian (use current dates)
-      final allTransactions = await _databaseHelper.getTransactionsByDateRange(
+      final allTransactions = await _transactionRepository.getTransactionsByDateRange(
         _currentStartDate,
         _currentEndDate,
       );

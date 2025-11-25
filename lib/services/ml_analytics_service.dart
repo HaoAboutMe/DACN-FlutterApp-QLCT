@@ -1,12 +1,14 @@
 import 'dart:developer';
 import 'dart:math' as math;
-import '../database/database_helper.dart';
+import '../database/repositories/repositories.dart';
 import '../models/transaction.dart';
 import '../models/ml_prediction.dart';
 
 /// Service xử lý các thuật toán Machine Learning nhẹ cho phân tích chi tiêu
 class MLAnalyticsService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepo = TransactionRepository();
+  final CategoryRepository _categoryRepo = CategoryRepository();
+  final BudgetRepository _budgetRepo = BudgetRepository();
 
   // ==================== DỰ ĐOÁN CHI TIÊU ====================
 
@@ -164,7 +166,7 @@ class MLAnalyticsService {
       final startDate = DateTime(targetMonth.year, targetMonth.month, 1);
       final endDate = DateTime(targetMonth.year, targetMonth.month + 1, 0, 23, 59, 59);
 
-      final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+      final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
 
       // Tính tổng chi tiêu (chỉ expense)
       final totalExpense = transactions
@@ -190,7 +192,7 @@ class MLAnalyticsService {
     final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
     final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0, 23, 59, 59);
 
-    final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+    final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
     final expenses = transactions.where((t) => t.type == 'expense').toList();
 
     if (expenses.isEmpty) {
@@ -253,7 +255,7 @@ class MLAnalyticsService {
       for (var entry in sortedCategories) {
         if (count >= 3 && entry.value < minThreshold) break; // Tối đa 3, trừ khi có nhiều hơn đạt 10%
 
-        final category = await _dbHelper.getCategoryById(entry.key);
+        final category = await _categoryRepo.getCategoryById(entry.key);
         if (category != null) {
           final percentage = (entry.value / totalSpending) * 100;
 
@@ -336,7 +338,7 @@ class MLAnalyticsService {
 
     // ===== 1. KIỂM TRA NGÂN SÁCH TỔNG (Overall Budget) =====
     try {
-      final overallProgress = await _dbHelper.getOverallBudgetProgress();
+      final overallProgress = await _budgetRepo.getOverallBudgetProgress();
       log('📊 Overall Budget Progress: $overallProgress');
 
       if (overallProgress != null) {
@@ -413,7 +415,7 @@ class MLAnalyticsService {
 
     // ===== 2. KIỂM TRA NGÂN SÁCH THEO DANH MỤC =====
     try {
-      final budgetProgress = await _dbHelper.getBudgetProgress();
+      final budgetProgress = await _budgetRepo.getBudgetProgress();
 
       for (var item in budgetProgress) {
         final budgetAmount = (item['budgetAmount'] as num).toDouble();
@@ -495,7 +497,7 @@ class MLAnalyticsService {
 
     // ===== KIỂM TRA HẠN MỨC TỪ CATEGORIES (Backup) =====
     try {
-      final categories = await _dbHelper.getAllCategories();
+      final categories = await _categoryRepo.getAllCategories();
       final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
       final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0, 23, 59, 59);
 
@@ -514,7 +516,7 @@ class MLAnalyticsService {
         if (existingAlert) continue; // Skip nếu đã có từ budgets
 
         // Lấy chi tiêu của danh mục này trong tháng
-        final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+        final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
         final categorySpending = transactions
             .where((t) => t.type == 'expense' && t.categoryId == category.id)
             .fold(0.0, (sum, t) => sum + t.amount);
@@ -578,7 +580,7 @@ class MLAnalyticsService {
   }) async {
     final suggestions = <BudgetSuggestion>[];
 
-    final categories = await _dbHelper.getAllCategories();
+    final categories = await _categoryRepo.getAllCategories();
 
     for (var category in categories) {
       if (category.type != 'expense') continue;
@@ -591,7 +593,7 @@ class MLAnalyticsService {
         final startDate = DateTime(targetMonth.year, targetMonth.month, 1);
         final endDate = DateTime(targetMonth.year, targetMonth.month + 1, 0, 23, 59, 59);
 
-        final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+        final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
         final spending = transactions
             .where((t) => t.type == 'expense' && t.categoryId == category.id)
             .fold(0.0, (sum, t) => sum + t.amount);
@@ -647,7 +649,7 @@ class MLAnalyticsService {
       final startDate = DateTime(targetMonth.year, targetMonth.month, 1);
       final endDate = DateTime(targetMonth.year, targetMonth.month + 1, 0, 23, 59, 59);
 
-      final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+      final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
       final totalExpense = transactions
           .where((t) => t.type == 'expense')
           .fold(0.0, (sum, t) => sum + t.amount);
@@ -662,7 +664,7 @@ class MLAnalyticsService {
     // Thêm tháng hiện tại
     final currentStartDate = DateTime(currentMonth.year, currentMonth.month, 1);
     final currentEndDate = DateTime(currentMonth.year, currentMonth.month + 1, 0, 23, 59, 59);
-    final currentTransactions = await _dbHelper.getTransactionsByDateRange(currentStartDate, currentEndDate);
+    final currentTransactions = await _transactionRepo.getTransactionsByDateRange(currentStartDate, currentEndDate);
     final currentExpense = currentTransactions
         .where((t) => t.type == 'expense')
         .fold(0.0, (sum, t) => sum + t.amount);
@@ -696,7 +698,7 @@ class MLAnalyticsService {
     final startDate = DateTime(currentMonth.year, currentMonth.month, 1);
     final endDate = DateTime(currentMonth.year, currentMonth.month + 1, 0, 23, 59, 59);
 
-    final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+    final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
     final expenses = transactions.where((t) => t.type == 'expense').toList();
 
     if (expenses.isEmpty) {
@@ -830,7 +832,7 @@ class MLAnalyticsService {
       final startDate = DateTime(targetMonth.year, targetMonth.month, 1);
       final endDate = DateTime(targetMonth.year, targetMonth.month + 1, 0, 23, 59, 59);
 
-      final transactions = await _dbHelper.getTransactionsByDateRange(startDate, endDate);
+      final transactions = await _transactionRepo.getTransactionsByDateRange(startDate, endDate);
 
       final totalExpense = transactions
           .where((t) => t.type == 'expense')

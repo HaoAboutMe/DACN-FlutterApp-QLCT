@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../database/database_helper.dart';
+import '../database/repositories/category_repository.dart';
 import '../models/category.dart';
 import '../models/icon_group.dart';
 
@@ -19,7 +19,7 @@ class CategoryPickerSheet extends StatefulWidget {
 }
 
 class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final CategoryRepository _categoryRepository = CategoryRepository();
   final TextEditingController _timKiemController = TextEditingController();
   final TextEditingController _tenDanhMucController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -136,7 +136,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       }
 
       // Get all categories first, then filter with Vietnamese diacritics support
-      final allCategories = await _databaseHelper.searchCategories(
+      final allCategories = await _categoryRepository.searchCategories(
         type: _loaiDanhMucDangChon,
         keyword: null, // Don't filter at database level
         iconList: danhSachIcon,
@@ -234,7 +234,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
     // Kiểm tra trùng lặp
     try {
-      final exists = await _databaseHelper.existsCategoryByNameIcon(
+      final exists = await _categoryRepository.existsCategoryByNameIcon(
         tenDanhMuc,
         _loaiDanhMucDangChon,
         _iconDangChon!.codePoint.toString(),
@@ -272,7 +272,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
         createdAt: DateTime.now(),
       );
 
-      await _databaseHelper.insertCategory(danhMucMoi);
+      await _categoryRepository.insertCategory(danhMucMoi);
 
       // Trả về danh mục vừa tạo
       if (mounted) {

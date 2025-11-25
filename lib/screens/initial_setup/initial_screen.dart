@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/user.dart';
 import '../../utils/currency_formatter.dart';
 import '../../providers/currency_provider.dart';
@@ -191,7 +191,7 @@ class _InitialScreenState extends State<InitialScreen> {
       );
 
       debugPrint("💾 Saving to DB: ${user.name}, balance=${user.balance} VND");
-      await DatabaseHelper().insertUser(user);
+      await UserRepository().insertUser(user);
 
       // Mark setup done
       final prefs = await SharedPreferences.getInstance();

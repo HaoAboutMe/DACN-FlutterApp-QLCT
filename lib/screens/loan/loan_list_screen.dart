@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/loan.dart';
 import '../../models/loan_filters.dart';
 import '../../models/transaction.dart' as transaction_model;
@@ -27,7 +27,8 @@ class LoanListScreen extends StatefulWidget {
 }
 
 class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObserver {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final LoanRepository _loanRepository = LoanRepository();
+  final TransactionRepository _transactionRepository = TransactionRepository();
 
   List<Loan> _loans = [];
   List<Loan> _filteredLoans = [];
@@ -67,7 +68,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         _isLoading = true;
       });
 
-      final loans = await _databaseHelper.getAllLoans();
+      final loans = await _loanRepository.getAllLoans();
 
       if (!mounted) return;
 
@@ -98,7 +99,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         _isLoading = true;
       });
 
-      final loans = await _databaseHelper.getAllLoans();
+      final loans = await _loanRepository.getAllLoans();
 
       if (!mounted) return;
 
@@ -384,7 +385,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
         // Delete each selected loan
         for (int id in _selectedIds) {
           try {
-            await _databaseHelper.deleteLoan(id);
+            await _loanRepository.deleteLoan(id);
             successCount++;
             deletedIds.add(id);
           } catch (e) {
@@ -749,7 +750,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       );
 
       // Mark loan as paid
-      await _databaseHelper.markLoanAsPaid(
+      await _loanRepository.markLoanAsPaid(
         loanId: loan.id!,
         paymentTransaction: paymentTransaction,
       );

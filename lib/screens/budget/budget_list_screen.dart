@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
 import '../../utils/currency_formatter.dart';
@@ -17,7 +17,8 @@ class BudgetListScreen extends StatefulWidget {
 }
 
 class _BudgetListScreenState extends State<BudgetListScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final BudgetRepository _budgetRepository = BudgetRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
   bool _isLoading = true;
   List<Map<String, dynamic>> _budgetProgress = [];
   Map<String, dynamic>? _overallBudgetProgress;
@@ -33,10 +34,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
     try {
       // Lấy tiến độ ngân sách tổng
-      final overallProgress = await _databaseHelper.getOverallBudgetProgress();
+      final overallProgress = await _budgetRepository.getOverallBudgetProgress();
 
       // Lấy tiến độ ngân sách theo danh mục
-      final categoryProgress = await _databaseHelper.getBudgetProgress();
+      final categoryProgress = await _budgetRepository.getBudgetProgress();
 
       setState(() {
         _overallBudgetProgress = overallProgress;
@@ -51,7 +52,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
 
   Future<void> _deleteBudget(int budgetId) async {
     try {
-      await _databaseHelper.deleteBudget(budgetId);
+      await _budgetRepository.deleteBudget(budgetId);
       _loadBudgetData();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

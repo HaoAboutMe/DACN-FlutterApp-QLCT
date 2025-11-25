@@ -9,7 +9,7 @@ import 'providers/notification_provider.dart';
 import 'providers/currency_provider.dart';
 import 'services/notification_service.dart';
 import 'services/widget_service.dart';
-import 'database/database_helper.dart';
+import 'database/repositories/repositories.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
 import 'utils/currency_formatter.dart';
@@ -37,8 +37,8 @@ void main() async {
 
   // Initialize default categories if database is empty
   try {
-    final databaseHelper = DatabaseHelper();
-    await databaseHelper.insertDefaultCategoriesIfNeeded();
+    final categoryRepo = CategoryRepository();
+    await categoryRepo.insertDefaultCategoriesIfNeeded();
   } catch (e) {
     debugPrint('Error initializing default categories: $e');
   }

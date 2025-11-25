@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../models/notification_data.dart';
 import '../loan/loan_detail_screen.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 
 class NotificationListScreen extends StatefulWidget {
   const NotificationListScreen({super.key});
@@ -233,7 +233,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
 
           // Điều hướng đến chi tiết loan nếu có
           if (notification.loanId != null && mounted) {
-            final loan = await DatabaseHelper().getLoanById(notification.loanId!);
+            final loan = await LoanRepository().getLoanById(notification.loanId!);
             if (loan != null && mounted) {
               Navigator.push(
                 context,

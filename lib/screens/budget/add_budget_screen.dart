@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/budget.dart';
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
@@ -19,7 +19,9 @@ class AddBudgetScreen extends StatefulWidget {
 }
 
 class _AddBudgetScreenState extends State<AddBudgetScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final BudgetRepository _budgetRepository = BudgetRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
 
@@ -92,7 +94,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   Future<void> _loadCategories() async {
     setState(() => _isLoading = true);
     try {
-      final categories = await _databaseHelper.getCategoriesByType('expense');
+      final categories = await _categoryRepository.getCategoriesByType('expense');
       setState(() {
         _expenseCategories = categories;
         _isLoading = false;
@@ -180,9 +182,9 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       );
 
       if (widget.budget == null) {
-        await _databaseHelper.insertBudget(budget);
+        await _budgetRepository.insertBudget(budget);
       } else {
-        await _databaseHelper.updateBudget(budget);
+        await _budgetRepository.updateBudget(budget);
       }
 
       if (!mounted) return;

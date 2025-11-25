@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
@@ -25,7 +25,9 @@ class AddTransactionPage extends StatefulWidget {
 
 class _AddTransactionPageState extends State<AddTransactionPage>
     with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+  final UserRepository _userRepository = UserRepository();
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
@@ -81,7 +83,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await _databaseHelper.getAllCategories();
+      final categories = await _categoryRepository.getAllCategories();
       setState(() {
         _categories = categories;
         _filterCategoriesByType();
@@ -188,16 +190,36 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       debugPrint('Transaction amount: ${transaction.amount}');
       debugPrint('Transaction type: ${transaction.type}');
 
-      await _databaseHelper.insertTransaction(transaction);
+      await _transactionRepository.insertTransaction(transaction);
 
       // Update user balance dynamically using current user ID
       debugPrint('=== DEBUG BALANCE UPDATE (UPDATED) ===');
       debugPrint('Calling updateUserBalanceAfterTransaction with amount: $amountInVND, type: $_selectedType');
 
-      await _databaseHelper.updateUserBalanceAfterTransaction(
-        amount: amountInVND,
-        transactionType: _selectedType,
-      );
+      // Update user balance
+      try {
+        final currentUserId = await _userRepository.getCurrentUserId();
+        final currentUser = await _userRepository.getUserById(currentUserId);
+
+        if (currentUser != null) {
+          double balanceChange = 0;
+          if (_selectedType == 'income') {
+            balanceChange = amountInVND;
+          } else if (_selectedType == 'expense') {
+            balanceChange = -amountInVND;
+          }
+
+          if (balanceChange != 0) {
+            final newBalance = currentUser.balance + balanceChange;
+            final updatedUser = currentUser.copyWith(balance: newBalance);
+            await _userRepository.updateUser(updatedUser);
+            debugPrint('Updated balance from ${currentUser.balance} to $newBalance');
+          }
+        }
+      } catch (e) {
+        debugPrint('Error updating user balance: $e');
+        rethrow;
+      }
 
       // Check if widget is still mounted before using context
       if (!mounted) return;

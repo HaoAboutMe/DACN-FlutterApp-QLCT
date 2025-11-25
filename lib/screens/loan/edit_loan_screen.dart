@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/loan.dart';
 import '../../utils/currency_formatter.dart';
 import '../../providers/notification_provider.dart';
@@ -22,7 +22,7 @@ class EditLoanScreen extends StatefulWidget {
 
 class _EditLoanScreenState extends State<EditLoanScreen>
     with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final LoanRepository _loanRepository = LoanRepository();
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
@@ -206,7 +206,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         updatedAt: DateTime.now(),
       );
 
-      await _databaseHelper.updateLoan(updatedLoan);
+      await _loanRepository.updateLoan(updatedLoan);
 
       debugPrint('✅ Loan updated successfully: ${updatedLoan.id}');
 
