@@ -22,7 +22,18 @@ void main() async {
 
   // Initialize notification helpers
   await NotificationHelper.initialize();
-  await NotificationService().initialize();
+
+  // ✅ KHỞI TẠO NOTIFICATION SERVICE VỚI WORKMANAGER
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // ✅ CHECK LOAN REMINDERS KHI APP MỞ
+  try {
+    await notificationService.checkAndCreateLoanReminders();
+    debugPrint('✅ Loan reminders checked on startup');
+  } catch (e) {
+    debugPrint('❌ Error checking loan reminders: $e');
+  }
 
   // Initialize default categories if database is empty
   try {
