@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
@@ -23,7 +23,9 @@ class EditTransactionScreen extends StatefulWidget {
 
 class _EditTransactionScreenState extends State<EditTransactionScreen>
     with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+  final UserRepository _userRepository = UserRepository();
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
@@ -93,7 +95,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await _databaseHelper.getAllCategories();
+      final categories = await _categoryRepository.getAllCategories();
       setState(() {
         _categories = categories;
         _filterCategoriesByType();
@@ -204,7 +206,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
       debugPrint('Transaction amount: ${updatedTransaction.amount}');
       debugPrint('Transaction type: ${updatedTransaction.type}');
 
-      await _databaseHelper.updateTransaction(updatedTransaction);
+      await _transactionRepository.updateTransaction(updatedTransaction);
 
       // Update user balance dynamically using current user ID
       debugPrint('=== DEBUG BALANCE UPDATE (UPDATED) ===');
@@ -263,16 +265,19 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
 
     // Update balance with net change
     if (balanceAdjustment != 0) {
-      if (balanceAdjustment > 0) {
-        await _databaseHelper.updateUserBalanceAfterTransaction(
-          amount: balanceAdjustment,
-          transactionType: 'income',
-        );
-      } else {
-        await _databaseHelper.updateUserBalanceAfterTransaction(
-          amount: -balanceAdjustment,
-          transactionType: 'expense',
-        );
+      try {
+        final currentUserId = await _userRepository.getCurrentUserId();
+        final currentUser = await _userRepository.getUserById(currentUserId);
+
+        if (currentUser != null) {
+          final newBalance = currentUser.balance + balanceAdjustment;
+          final updatedUser = currentUser.copyWith(balance: newBalance);
+          await _userRepository.updateUser(updatedUser);
+          debugPrint('Updated balance from ${currentUser.balance} to $newBalance');
+        }
+      } catch (e) {
+        debugPrint('Error updating user balance: $e');
+        rethrow;
       }
     }
   }

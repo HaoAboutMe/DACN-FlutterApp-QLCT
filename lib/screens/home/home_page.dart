@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/user.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
@@ -29,7 +29,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+  final UserRepository _userRepository = UserRepository();
+  final BudgetRepository _budgetRepository = BudgetRepository();
+  final LoanRepository _loanRepository = LoanRepository();
 
   User? _currentUser;
   List<transaction_model.Transaction> _recentTransactions = [];
@@ -107,24 +111,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
 
       // Get current user ID from SharedPreferences and load user data
-      final currentUserId = await _databaseHelper.getCurrentUserId();
-      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      final currentUserId = await _userRepository.getCurrentUserId();
+      final currentUser = await _userRepository.getUserById(currentUserId);
 
       if (currentUser != null) {
         _currentUser = currentUser;
       } else {
         // If user not found, get the first available user (fallback)
-        final users = await _databaseHelper.getAllUsers();
+        final users = await _userRepository.getAllUsers();
         if (users.isNotEmpty) {
           _currentUser = users.first;
         }
       }
 
       // Load recent transactions
-      _recentTransactions = await _databaseHelper.getRecentTransactions(limit: 10);
+      _recentTransactions = await _transactionRepository.getRecentTransactions(limit: 10);
 
       // Load categories mapping
-      final categories = await _databaseHelper.getAllCategories();
+      final categories = await _categoryRepository.getAllCategories();
       _categoriesMap = {for (var category in categories) category.id!: category};
 
       // Calculate overview statistics and current balance
@@ -147,10 +151,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _loadBudgetProgress() async {
     try {
       // Lấy tiến độ ngân sách tổng
-      final budgetProgress = await _databaseHelper.getOverallBudgetProgress();
+      final budgetProgress = await _budgetRepository.getOverallBudgetProgress();
 
       // Lấy danh sách ngân sách theo danh mục
-      final categoryBudgets = await _databaseHelper.getBudgetProgress();
+      final categoryBudgets = await _budgetRepository.getBudgetProgress();
 
       setState(() {
         _overallBudgetProgress = budgetProgress;
@@ -213,7 +217,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _calculateOverviewStats() async {
     try {
-      final allTransactions = await _databaseHelper.getAllTransactions();
+      final allTransactions = await _transactionRepository.getAllTransactions();
 
       _totalIncome = 0;
       _totalExpense = 0;
@@ -282,7 +286,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// This includes both old debts (isOldDebt = 1) and new loans (isOldDebt = 0)
   Future<void> _calculateLoanStats() async {
     try {
-      final allLoans = await _databaseHelper.getAllLoans();
+      final allLoans = await _loanRepository.getAllLoans();
 
       _totalLent = 0;
       _totalBorrowed = 0;
@@ -307,10 +311,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _updateCurrentBalance() async {
     try {
       // Get current user ID from SharedPreferences
-      final currentUserId = await _databaseHelper.getCurrentUserId();
+      final currentUserId = await _userRepository.getCurrentUserId();
 
       // Lấy số dư hiện tại từ database (đã được cập nhật chính xác)
-      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      final currentUser = await _userRepository.getUserById(currentUserId);
       if (currentUser != null) {
         // Chỉ cập nhật UI state, không modify database
         setState(() {

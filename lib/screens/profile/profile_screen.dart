@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/user.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/currency_provider.dart';
@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   String _userName = 'Người dùng Whales Spent';
   bool _isEditingName = false;
   final TextEditingController _nameController = TextEditingController();
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final UserRepository _userRepo = UserRepository();
   final ScrollController _scrollController = ScrollController();
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
@@ -92,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   Future<void> _loadCurrentUser() async {
     try {
       // Lấy danh sách tất cả users (giả sử user đầu tiên là user hiện tại)
-      final users = await _databaseHelper.getAllUsers();
+      final users = await _userRepo.getAllUsers();
 
       if (users.isNotEmpty) {
         final user = users.first;
@@ -125,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         updatedAt: DateTime.now(),
       );
 
-      final userId = await _databaseHelper.insertUser(defaultUser);
+      final userId = await _userRepo.insertUser(defaultUser);
       final createdUser = defaultUser.copyWith(id: userId);
 
       setState(() {
@@ -168,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
     try {
       // ✅ FIX: Lấy thông tin user mới nhất từ database để có số dư chính xác
-      final latestUser = await _databaseHelper.getUserById(_currentUser!.id!);
+      final latestUser = await _userRepo.getUserById(_currentUser!.id!);
 
       if (latestUser == null) {
         throw Exception('Không tìm thấy thông tin người dùng');
@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         updatedAt: DateTime.now(),
       );
 
-      await _databaseHelper.updateUser(updatedUser);
+      await _userRepo.updateUser(updatedUser);
 
       setState(() {
         _currentUser = updatedUser;

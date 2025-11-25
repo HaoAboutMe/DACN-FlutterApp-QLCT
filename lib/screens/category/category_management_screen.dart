@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/category.dart';
 import '../../screens/category/category_card.dart';
 import '../../screens/category/category_edit_sheet.dart';
@@ -14,7 +14,7 @@ class CategoryManagementScreen extends StatefulWidget {
 }
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final CategoryRepository _categoryRepository = CategoryRepository();
   late TabController _tabController;
 
   // Raw data from database (not filtered)
@@ -71,8 +71,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
     });
 
     try {
-      final incomeCategories = await _databaseHelper.getCategoriesByType('income');
-      final expenseCategories = await _databaseHelper.getCategoriesByType('expense');
+      final incomeCategories = await _categoryRepository.getCategoriesByType('income');
+      final expenseCategories = await _categoryRepository.getCategoriesByType('expense');
 
       setState(() {
         _allIncomeCategories = incomeCategories;
@@ -201,7 +201,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         // Delete all selected categories
         for (var categoryId in _selectedCategoryIds) {
           try {
-            await _databaseHelper.deleteCategory(categoryId);
+            await _categoryRepository.deleteCategory(categoryId);
             successCount++;
           } catch (e) {
             failCount++;
@@ -312,7 +312,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
 
     if (confirmed == true && category.id != null) {
       try {
-        await _databaseHelper.deleteCategory(category.id!);
+        await _categoryRepository.deleteCategory(category.id!);
         _loadCategories();
       } catch (e) {
         if (mounted) {

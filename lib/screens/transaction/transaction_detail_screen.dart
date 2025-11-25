@@ -3,7 +3,7 @@ import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
 import '../home/home_icons.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import 'edit_transaction_screen.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
@@ -23,7 +23,10 @@ class TransactionDetailScreen extends StatefulWidget {
 }
 
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+  final UserRepository _userRepository = UserRepository();
+
   Category? _category;
   bool _isLoading = true;
   late transaction_model.Transaction _currentTransaction;
@@ -43,7 +46,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     // Reload transaction from database to get latest data
     try {
-      final transaction = await _databaseHelper.getTransactionById(_currentTransaction.id!);
+      final transaction = await _transactionRepository.getTransactionById(_currentTransaction.id!);
       if (transaction != null) {
         _currentTransaction = transaction;
       }
@@ -61,7 +64,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   Future<void> _loadCategory() async {
     if (_currentTransaction.categoryId != null) {
       try {
-        final categories = await _databaseHelper.getAllCategories();
+        final categories = await _categoryRepository.getAllCategories();
         final category = categories.firstWhere(
           (cat) => cat.id == _currentTransaction.categoryId,
           orElse: () => Category(
@@ -201,7 +204,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await _databaseHelper.deleteTransaction(_currentTransaction.id!);
+        await _transactionRepository.deleteTransaction(_currentTransaction.id!);
 
         // Update user balance after deletion
         await _updateUserBalanceAfterDelete();
@@ -237,8 +240,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         return;
       }
 
-      final currentUserId = await _databaseHelper.getCurrentUserId();
-      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      final currentUserId = await _userRepository.getCurrentUserId();
+      final currentUser = await _userRepository.getUserById(currentUserId);
 
       if (currentUser == null) return;
 
@@ -268,7 +271,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       // Update user balance
       final newBalance = currentUser.balance + balanceChange;
       final updatedUser = currentUser.copyWith(balance: newBalance);
-      await _databaseHelper.updateUser(updatedUser);
+      await _userRepository.updateUser(updatedUser);
 
       debugPrint('✅ Đã cập nhật số dư: ${currentUser.balance} → $newBalance (${balanceChange > 0 ? '+' : ''}$balanceChange)');
     } catch (e) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
@@ -22,7 +22,9 @@ class TransactionsScreen extends StatefulWidget {
 enum TypeFilter { all, income, expense,  loan_given, loan_received, debt_paid, debt_collected }
 
 class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBindingObserver {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
+  final UserRepository _userRepository = UserRepository();
 
   List<transaction_model.Transaction> _transactions = [];
   List<transaction_model.Transaction> _selectedTransactions = [];
@@ -69,7 +71,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   }
 
   Future<void> _loadCategories() async {
-    final categories = await _databaseHelper.getAllCategories();
+    final categories = await _categoryRepository.getAllCategories();
     setState(() {
       _categoriesMap = {for (var category in categories) category.id!: category};
     });
@@ -82,7 +84,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     final start = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final end = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1).subtract(const Duration(days: 1));
 
-    List<transaction_model.Transaction> all = await _databaseHelper.getAllTransactions();
+    List<transaction_model.Transaction> all = await _transactionRepository.getAllTransactions();
     _transactions = all.where((t) =>
     (t.type == 'income' || t.type == 'expense' || t.type == 'loan_given' || t.type == 'loan_received' || t.type == "debt_paid" || t.type == "debt_collected") &&
         t.date.isAfter(start.subtract(const Duration(days: 1))) &&
@@ -217,8 +219,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   Future<void> _updateUserBalanceAfterDelete(List<transaction_model.Transaction> deletedTransactions) async {
     try {
       // Lấy thông tin user hiện tại
-      final currentUserId = await _databaseHelper.getCurrentUserId();
-      final currentUser = await _databaseHelper.getUserById(currentUserId);
+      final currentUserId = await _userRepository.getCurrentUserId();
+      final currentUser = await _userRepository.getUserById(currentUserId);
 
       if (currentUser == null) return;
 
@@ -263,7 +265,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
       if (balanceChange != 0) {
         final newBalance = currentUser.balance + balanceChange;
         final updatedUser = currentUser.copyWith(balance: newBalance);
-        await _databaseHelper.updateUser(updatedUser);
+        await _userRepository.updateUser(updatedUser);
         debugPrint('✅ Updated user balance from ${currentUser.balance} to $newBalance (total change: $balanceChange)');
       } else {
         debugPrint('✅ No balance change needed (all transactions were loan-related)');
@@ -325,7 +327,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     if (confirmed == true) {
       try {
         for (var transaction in _selectedTransactions) {
-          await _databaseHelper.deleteTransaction(transaction.id!);
+          await _transactionRepository.deleteTransaction(transaction.id!);
         }
 
         // Cập nhật số dư người dùng sau khi xóa giao dịch

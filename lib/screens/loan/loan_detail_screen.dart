@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../providers/notification_provider.dart';
 import 'edit_loan_screen.dart';
 import '../main_navigation_wrapper.dart';
@@ -25,7 +25,7 @@ class LoanDetailScreen extends StatefulWidget {
 }
 
 class _LoanDetailScreenState extends State<LoanDetailScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final LoanRepository _loanRepository = LoanRepository();
   Loan? _loan;
   bool _isLoading = true;
   bool _dataWasModified = false; // Track if loan was edited/deleted
@@ -49,7 +49,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         loadedLoan = widget.loan;
       } else if (widget.loanId > 0) {
         // Load from database using loanId
-        loadedLoan = await _databaseHelper.getLoanById(widget.loanId);
+        loadedLoan = await _loanRepository.getLoanById(widget.loanId);
       }
 
       setState(() {
@@ -252,7 +252,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     );
 
     try {
-      await _databaseHelper.deleteLoan(_loan!.id!);
+      await _loanRepository.deleteLoan(_loan!.id!);
 
       debugPrint('✅ Loan deleted successfully');
 
@@ -448,7 +448,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       );
 
       // Mark loan as paid
-      await _databaseHelper.markLoanAsPaid(
+      await _loanRepository.markLoanAsPaid(
         loanId: _loan!.id!,
         paymentTransaction: paymentTransaction,
       );

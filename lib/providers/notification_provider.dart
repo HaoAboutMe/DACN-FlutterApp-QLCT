@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../database/database_helper.dart';
+import '../database/repositories/repositories.dart';
 import '../models/notification_data.dart';
 import '../services/notification_service.dart';
 
 /// Provider quản lý trạng thái thông báo
 class NotificationProvider extends ChangeNotifier {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final NotificationRepository _notificationRepository = NotificationRepository();
+  final LoanRepository _loanRepository = LoanRepository();
   final NotificationService _notificationService = NotificationService();
 
   List<NotificationData> _notifications = [];
@@ -31,7 +32,7 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _notifications = await _dbHelper.getAllNotificationsPaginated(limit: 100);
+      _notifications = await _notificationRepository.getAllNotificationsPaginated(limit: 100);
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     }
@@ -65,7 +66,7 @@ class NotificationProvider extends ChangeNotifier {
   /// Đánh dấu notification là đã đọc
   Future<void> markAsRead(int notificationId) async {
     try {
-      await _dbHelper.markNotificationAsRead(notificationId);
+      await _notificationRepository.markNotificationAsRead(notificationId);
 
       // Cập nhật local state
       final index = _notifications.indexWhere((n) => n.id == notificationId);
@@ -83,7 +84,7 @@ class NotificationProvider extends ChangeNotifier {
   /// Đánh dấu tất cả là đã đọc
   Future<void> markAllAsRead() async {
     try {
-      await _dbHelper.markAllNotificationsAsRead();
+      await _notificationRepository.markAllNotificationsAsRead();
 
       // Cập nhật local state
       _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
@@ -98,7 +99,7 @@ class NotificationProvider extends ChangeNotifier {
   /// Xóa một notification
   Future<void> deleteNotification(int notificationId) async {
     try {
-      await _dbHelper.deleteNotificationById(notificationId);
+      await _notificationRepository.deleteNotificationById(notificationId);
       _notifications.removeWhere((n) => n.id == notificationId);
       await updateBadgeCounts();
       notifyListeners();
@@ -110,7 +111,7 @@ class NotificationProvider extends ChangeNotifier {
   /// Xóa tất cả notifications
   Future<void> deleteAllNotifications() async {
     try {
-      await _dbHelper.deleteAllNotifications();
+      await _notificationRepository.deleteAllNotifications();
       _notifications.clear();
       await updateBadgeCounts();
       notifyListeners();
@@ -136,7 +137,7 @@ class NotificationProvider extends ChangeNotifier {
       debugPrint('🔔 NotificationProvider: Processing loan $loanId');
 
       // Lấy thông tin loan từ database
-      final loan = await _dbHelper.getLoanById(loanId);
+      final loan = await _loanRepository.getLoanById(loanId);
       if (loan == null) {
         debugPrint('⚠️ Loan $loanId not found');
         return;
@@ -171,10 +172,10 @@ class NotificationProvider extends ChangeNotifier {
       await _notificationService.cancelLoanReminders(loanId);
 
       // Xóa các notification trong database liên quan đến loan này
-      final notifications = await _dbHelper.getNotificationsByLoanId(loanId);
+      final notifications = await _notificationRepository.getNotificationsByLoanId(loanId);
       for (final notification in notifications) {
         if (notification.id != null) {
-          await _dbHelper.deleteNotificationById(notification.id!);
+          await _notificationRepository.deleteNotificationById(notification.id!);
         }
       }
 

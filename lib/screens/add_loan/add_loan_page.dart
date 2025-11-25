@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/loan.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../utils/currency_formatter.dart';
@@ -23,7 +23,7 @@ class AddLoanPage extends StatefulWidget {
 
 class _AddLoanPageState extends State<AddLoanPage>
     with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final LoanRepository _loanRepository = LoanRepository();
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
@@ -191,7 +191,7 @@ class _AddLoanPageState extends State<AddLoanPage>
       int createdLoanId;
       if (_isOldDebt) {
         // Khoản vay cũ: chỉ thêm loan, không tạo transaction, không ảnh hưởng số dư
-        createdLoanId = await _databaseHelper.insertLoan(loan);
+        createdLoanId = await _loanRepository.insertLoan(loan);
         debugPrint('Inserted old loan with ID: $createdLoanId');
       } else {
         // Khoản vay mới: tạo loan + transaction tương ứng
@@ -206,7 +206,7 @@ class _AddLoanPageState extends State<AddLoanPage>
           updatedAt: DateTime.now(),
         );
 
-        final result = await _databaseHelper.createLoanWithTransaction(
+        final result = await _loanRepository.createLoanWithTransaction(
           loan: loan,
           transaction: transaction,
         );

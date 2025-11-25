@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../database/database_helper.dart';
+import '../../database/repositories/repositories.dart';
 import '../../models/category.dart';
 import '../../models/icon_group.dart';
 
@@ -19,7 +19,7 @@ class CategoryEditSheet extends StatefulWidget {
 }
 
 class _CategoryEditSheetState extends State<CategoryEditSheet> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final CategoryRepository _categoryRepository = CategoryRepository();
   final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -114,7 +114,7 @@ class _CategoryEditSheetState extends State<CategoryEditSheet> {
     // Check for duplicates (skip if editing the same category)
     try {
       final iconString = _selectedIcon!.codePoint.toString();
-      final exists = await _databaseHelper.existsCategoryByNameIcon(
+      final exists = await _categoryRepository.existsCategoryByNameIcon(
         name,
         _selectedType,
         iconString,
@@ -175,10 +175,10 @@ class _CategoryEditSheetState extends State<CategoryEditSheet> {
 
       if (widget.category == null) {
         // Add new category
-        await _databaseHelper.insertCategory(categoryData);
+        await _categoryRepository.insertCategory(categoryData);
       } else {
         // Update existing category
-        await _databaseHelper.updateCategory(categoryData);
+        await _categoryRepository.updateCategory(categoryData);
       }
 
       if (mounted) {
