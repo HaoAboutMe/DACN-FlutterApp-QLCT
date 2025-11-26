@@ -18,6 +18,9 @@ import 'widgets/profile_footer.dart';
 import 'widgets/profile_settings_list.dart';
 import 'widgets/profile_reminder_dialog.dart';
 import 'widgets/profile_widget_dialogs.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'dart:io';
+
 
 
 /// Màn hình Cá nhân - Lấy cảm hứng từ TPBank Mobile
@@ -509,6 +512,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> _openExactAlarmSettings() async {
+    if (!Platform.isAndroid) return;
+
+    const intent = AndroidIntent(
+      action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+    );
+
+    await intent.launch();
+  }
+
   void _showReminderDialog() {
     ProfileReminderDialog.show(
       context: context,
@@ -521,9 +534,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         });
         _saveReminderSettings();
       },
-      onRequestPermission: () {
-        ProfileWidgetDialogs.showExactAlarmPermissionDialog(context);
-      },
+      onRequestPermission: _openExactAlarmSettings,
     );
   }
 }

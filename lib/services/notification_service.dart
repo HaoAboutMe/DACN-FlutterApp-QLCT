@@ -11,6 +11,12 @@ import '../models/notification_data.dart';
 @pragma('vm:entry-point')
 void alarmCallback() async {
   try {
+    final hour = DateTime.now().hour;
+    if (hour != 9) {
+      log("⏳ Bỏ qua callback vì không phải 9h sáng (giờ hiện tại: $hour)");
+      return;
+    }
+
     log('🔔 AlarmManager callback started');
 
     // Khởi tạo timezone
