@@ -93,6 +93,8 @@ class _InitialScreenState extends State<InitialScreen> {
 
   /// Hàm quay lại bước trước
   void _previousStep() {
+    FocusScope.of(context).unfocus();
+
     if (_currentStep > 0) {
       setState(() {
         _currentStep--;
@@ -434,19 +436,20 @@ class _InitialScreenState extends State<InitialScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // User icon illustration
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+            if (MediaQuery.of(context).viewInsets.bottom == 0)
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  size: 60,
+                  color: white,
+                ),
               ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 60,
-                color: white,
-              ),
-            ),
 
             const SizedBox(height: 20),
 
@@ -670,19 +673,20 @@ class _InitialScreenState extends State<InitialScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Money icon illustration
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+            if (MediaQuery.of(context).viewInsets.bottom == 0)
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 60,
+                  color: white,
+                ),
               ),
-              child: const Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 60,
-                color: white,
-              ),
-            ),
 
             const SizedBox(height: 20),
 
