@@ -137,7 +137,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   Future<void> _selectDueDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? _loanDate.add(const Duration(days: 30)),
+      initialDate: _dueDate ?? _loanDate,
       firstDate: _loanDate,
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       builder: (context, child) {

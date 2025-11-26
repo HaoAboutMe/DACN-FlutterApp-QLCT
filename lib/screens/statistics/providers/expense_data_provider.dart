@@ -222,7 +222,7 @@ class ExpenseDataProvider extends ChangeNotifier {
 
     // Tạo danh mục "Các danh mục khác"
     final otherCategory = ExpenseCategory(
-      name: 'Các danh mục khác',
+      name: 'Các mục < 1%',
       amount: totalSmallAmount,
       icon: Icons.leaderboard_sharp,
       color: Colors.grey,
