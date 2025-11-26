@@ -9,11 +9,13 @@ import '../home_icons.dart';
 class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
   final User? currentUser;
   final VoidCallback onNotificationPressed;
+  final VoidCallback? onScanPressed;
 
   const GreetingAppBar({
     super.key,
     this.currentUser,
     required this.onNotificationPressed,
+    this.onScanPressed,
   });
 
   @override
@@ -38,6 +40,10 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
               _buildAppLogo(context),
               const SizedBox(width: 12),
               _buildGreetingText(),
+              if (onScanPressed != null) ...[
+                _buildScanButton(context),
+                const SizedBox(width: 8),
+              ],
               _buildNotificationButton(context),
             ],
           ),
@@ -130,6 +136,27 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildScanButton(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        icon: const Icon(
+          Icons.document_scanner_rounded,
+          color: Colors.white,
+          size: 22,
+        ),
+        onPressed: onScanPressed,
+        tooltip: 'Quét hóa đơn',
+      ),
     );
   }
 }
