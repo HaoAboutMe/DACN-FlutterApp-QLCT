@@ -58,9 +58,21 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quét hóa đơn'),
+        title: const Text(
+            'Quét hóa đơn',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+        ),
+        backgroundColor: isDark ? theme.scaffoldBackgroundColor : colorScheme.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
