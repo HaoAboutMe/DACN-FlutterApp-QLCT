@@ -31,6 +31,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   Map<int, Category> _categoriesMap = {};
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   TypeFilter _typeFilter = TypeFilter.all;
+  int? _selectedCategoryId; // null means "All categories"
   bool _isLoading = true;
   bool _isMultiSelectMode = false;
 
@@ -124,6 +125,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
         break;
     }
 
+    // Apply category filter
+    if (_selectedCategoryId != null) {
+      _transactions = _transactions.where((t) => t.categoryId == _selectedCategoryId).toList();
+    }
+
     // Sort by date, newest first
     _transactions.sort((a, b) => b.date.compareTo(a.date));
 
@@ -143,6 +149,340 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
   void _onTypeFilterChanged(TypeFilter filter) {
     setState(() => _typeFilter = filter);
     _fetchTransactions();
+  }
+
+  Future<void> _showCategoryFilterBottomSheet() async {
+    final allCategories = _categoriesMap.values.toList();
+    final incomeCategories = allCategories.where((c) => c.type == 'income').toList();
+    final expenseCategories = allCategories.where((c) => c.type == 'expense').toList();
+
+    incomeCategories.sort((a, b) => a.name.compareTo(b.name));
+    expenseCategories.sort((a, b) => a.name.compareTo(b.name));
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Lọc theo danh mục',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  if (_selectedCategoryId != null)
+                    TextButton(
+                      onPressed: () {
+                        setState(() => _selectedCategoryId = null);
+                        _fetchTransactions();
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Xóa bộ lọc',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            Divider(height: 1, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.2)),
+
+            // "All categories" option
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: InkWell(
+                onTap: () {
+                  setState(() => _selectedCategoryId = null);
+                  _fetchTransactions();
+                  Navigator.pop(context);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _selectedCategoryId == null
+                        ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: _selectedCategoryId == null
+                        ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.category,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Tất cả danh mục',
+                          style: TextStyle(
+                            fontWeight: _selectedCategoryId == null ? FontWeight.bold : FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      if (_selectedCategoryId == null)
+                        Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Divider(height: 1, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.2)),
+
+            // Two column layout for categories
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Income categories column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Income header
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: HomeColors.income.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.arrow_upward, color: HomeColors.income, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Thu nhập',
+                                  style: TextStyle(
+                                    color: HomeColors.income,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Income categories list
+                          ...incomeCategories.map((category) {
+                            final isSelected = _selectedCategoryId == category.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() => _selectedCategoryId = category.id);
+                                  _fetchTransactions();
+                                  Navigator.pop(context);
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? HomeColors.income.withValues(alpha: 0.15)
+                                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: isSelected
+                                        ? Border.all(color: HomeColors.income, width: 2)
+                                        : null,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              color: HomeColors.getTransactionIconBackground(HomeColors.income),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              HomeIcons.getIconFromString(category.icon),
+                                              color: HomeColors.income,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              category.name,
+                                              style: TextStyle(
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            Icon(Icons.check_circle, color: HomeColors.income, size: 18),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Expense categories column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Expense header
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: HomeColors.expense.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.arrow_downward, color: HomeColors.expense, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Chi tiêu',
+                                  style: TextStyle(
+                                    color: HomeColors.expense,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Expense categories list
+                          ...expenseCategories.map((category) {
+                            final isSelected = _selectedCategoryId == category.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() => _selectedCategoryId = category.id);
+                                  _fetchTransactions();
+                                  Navigator.pop(context);
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? HomeColors.expense.withValues(alpha: 0.15)
+                                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: isSelected
+                                        ? Border.all(color: HomeColors.expense, width: 2)
+                                        : null,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              color: HomeColors.getTransactionIconBackground(HomeColors.expense),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              HomeIcons.getIconFromString(category.icon),
+                                              color: HomeColors.expense,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              category.name,
+                                              style: TextStyle(
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            Icon(Icons.check_circle, color: HomeColors.expense, size: 18),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onPreviousMonth() {
@@ -558,12 +898,40 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
               onPressed: _deleteSelectedTransactions,
               tooltip: 'Xóa giao dịch đã chọn',
             )
-          else
+          else ...[
+            // Filter by category button with badge indicator
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.filter_list, color: Colors.white),
+                  onPressed: _showCategoryFilterBottomSheet,
+                  tooltip: 'Lọc theo danh mục',
+                ),
+                if (_selectedCategoryId != null)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: HomeColors.expense,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: _navigateToAddTransaction,
               tooltip: 'Thêm giao dịch mới',
             ),
+          ],
         ],
       ),
       body: Column(
