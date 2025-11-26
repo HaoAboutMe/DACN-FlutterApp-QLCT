@@ -50,6 +50,8 @@ dependencies:
 
   fl_chart: ^0.68.0
 
+  android_intent_plus: ^6.0.0
+
   # HTTP requests for exchange rates
   http: ^1.1.0
   home_widget: ^0.8.0
