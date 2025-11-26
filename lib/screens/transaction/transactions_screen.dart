@@ -95,16 +95,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
     switch (_typeFilter) {
       case TypeFilter.income:
         _transactions = _transactions.where((t) =>
-        t.type == 'income' ||
-            t.type == 'loan_received' ||
-            t.type == 'debt_collected').toList();
+          t.type == 'income').toList();
         break;
 
       case TypeFilter.expense:
         _transactions = _transactions.where((t) =>
-        t.type == 'expense' ||
-            t.type == 'loan_given' ||
-            t.type == 'debt_paid').toList();
+          t.type == 'expense').toList();
         break;
       case TypeFilter.loan_given:
         _transactions = _transactions.where((t) => t.type == 'loan_given').toList();
@@ -136,16 +132,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
 
   double get _totalIncome => _transactions
       .where((t) =>
-  t.type == 'income' ||
-      t.type == 'loan_received' ||
-      t.type == 'debt_collected')
+  t.type == 'income')
       .fold(0, (sum, t) => sum + t.amount);
 
   double get _totalExpense => _transactions
       .where((t) =>
-  t.type == 'expense' ||
-      t.type == 'loan_given' ||
-      t.type == 'debt_paid')
+  t.type == 'expense')
       .fold(0, (sum, t) => sum + t.amount);
 
   void _onTypeFilterChanged(TypeFilter filter) {
@@ -703,13 +695,73 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Thu nhập',
-                                  style: TextStyle(
-                                    color: HomeColors.income,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Thu nhập',
+                                      style: TextStyle(
+                                        color: HomeColors.income,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor: Theme.of(context).colorScheme.surface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            title: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.info_outline,
+                                                  color: HomeColors.income,
+                                                  size: 24,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Thông tin',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            content: Text(
+                                              'Các giao dịch đi vay, thu nợ không được tính là thu nhập.',
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx),
+                                                child: Text(
+                                                  'Đã hiểu',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                      child: Icon(
+                                        Icons.info_outline,
+                                        color: HomeColors.income.withValues(alpha: 0.7),
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -725,13 +777,73 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  'Chi tiêu',
-                                  style: TextStyle(
-                                    color: HomeColors.expense,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor: Theme.of(context).colorScheme.surface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            title: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.info_outline,
+                                                  color: HomeColors.expense,
+                                                  size: 24,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Thông tin',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            content: Text(
+                                              'Các giao dịch cho vay, trả nợ không được tính là chi tiêu.',
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx),
+                                                child: Text(
+                                                  'Đã hiểu',
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                      child: Icon(
+                                        Icons.info_outline,
+                                        color: HomeColors.expense.withValues(alpha: 0.7),
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Chi tiêu',
+                                      style: TextStyle(
+                                        color: HomeColors.expense,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(

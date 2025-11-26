@@ -264,11 +264,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           if (isInRange) {
             switch (transaction.type) {
               case 'income':
-              case 'debt_collected':
                 _totalIncome += transaction.amount;
                 break;
               case 'expense':
-              case 'debt_paid':
                 _totalExpense += transaction.amount;
                 break;
             }
