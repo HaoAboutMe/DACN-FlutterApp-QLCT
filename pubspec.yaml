@@ -52,6 +52,11 @@ dependencies:
 
   android_intent_plus: ^6.0.0
 
+  #OCR Function
+  google_mlkit_text_recognition: ^0.13.0  # hoặc version mới nhất
+  image_picker: ^1.1.0
+  camera: ^0.11.0
+
   # HTTP requests for exchange rates
   http: ^1.1.0
   home_widget: ^0.8.0

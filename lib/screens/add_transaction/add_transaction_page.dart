@@ -12,11 +12,13 @@ import '../../widgets/category_picker_sheet.dart';
 class AddTransactionPage extends StatefulWidget {
   final String? preselectedType;
   final int? preselectedCategoryId;
+  final double? initialAmount;
 
   const AddTransactionPage({
     super.key,
     this.preselectedType,
     this.preselectedCategoryId,
+    this.initialAmount,
   });
 
   @override
@@ -53,6 +55,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     super.initState();
     _selectedType = widget.preselectedType ?? 'income';
     _selectedCategoryId = widget.preselectedCategoryId;
+
+    // Nếu có initialAmount từ OCR, tự động điền vào amount controller
+    if (widget.initialAmount != null) {
+      _amountController.text = widget.initialAmount!.toStringAsFixed(0);
+    }
+
     _initializeAnimations();
     _loadCategories();
   }

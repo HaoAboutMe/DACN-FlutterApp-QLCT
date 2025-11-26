@@ -14,6 +14,7 @@ import 'widgets/recent_transactions.dart';
 import 'widgets/all_budgets_widget.dart';
 import '../add_transaction/add_transaction_page.dart';
 import '../add_loan/add_loan_page.dart';
+import '../receipt_scan/receipt_scan_screen.dart';
 import '../budget/budget_list_screen.dart';
 import '../transaction/transaction_detail_screen.dart';
 import '../notification/notification_list_screen.dart';
@@ -335,6 +336,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  /// Mở màn hình quét hóa đơn OCR
+  Future<void> _openOcrScanner() async {
+    final amount = await Navigator.push<double?>(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptScanScreen()),
+    );
+
+    if (amount != null && mounted) {
+      _goToAddTransaction(amount);
+    }
+  }
+
+  /// Chuyển đến màn hình thêm giao dịch với số tiền từ OCR
+  Future<void> _goToAddTransaction(double amount) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AddTransactionPage(
+          preselectedType: 'expense', // Mặc định là chi tiêu khi quét hóa đơn
+          initialAmount: amount,
+        ),
+      ),
+    );
+
+    // Refresh data if transaction was successfully added
+    if (result == true && mounted) {
+      debugPrint('🔄 HomePage: Transaction added from OCR, refreshing data...');
+      await _refreshHomeData();
+    }
+  }
+
   Future<void> _navigateToAddTransaction(String transactionType) async {
     Widget targetPage;
 
@@ -397,6 +428,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       appBar: GreetingAppBar(
         currentUser: _currentUser,
         onNotificationPressed: _handleNotificationPressed,
+        onScanPressed: _openOcrScanner,
       ),
       body: _isLoading
           ? Center(
