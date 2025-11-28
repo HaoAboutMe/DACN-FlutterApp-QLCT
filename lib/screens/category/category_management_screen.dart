@@ -4,6 +4,7 @@ import '../../database/repositories/repositories.dart';
 import '../../models/category.dart';
 import '../../screens/category/category_card.dart';
 import '../../screens/category/category_edit_sheet.dart';
+import '../../services/quick_action_service.dart';
 
 /// Màn hình quản lý danh mục - CRUD Categories
 class CategoryManagementScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class CategoryManagementScreen extends StatefulWidget {
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> with SingleTickerProviderStateMixin {
   final CategoryRepository _categoryRepository = CategoryRepository();
+  final QuickActionService _quickActionService = QuickActionService();
   late TabController _tabController;
 
   // Raw data from database (not filtered)
@@ -202,6 +204,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
         for (var categoryId in _selectedCategoryIds) {
           try {
             await _categoryRepository.deleteCategory(categoryId);
+            // Also remove any shortcuts associated with this category
+            await _quickActionService.removeShortcutsWithCategory(categoryId);
             successCount++;
           } catch (e) {
             failCount++;
@@ -312,7 +316,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
 
     if (confirmed == true && category.id != null) {
       try {
+        // Delete the category
         await _categoryRepository.deleteCategory(category.id!);
+
+        // Also remove any shortcuts associated with this category
+        await _quickActionService.removeShortcutsWithCategory(category.id!);
+
         _loadCategories();
       } catch (e) {
         if (mounted) {
