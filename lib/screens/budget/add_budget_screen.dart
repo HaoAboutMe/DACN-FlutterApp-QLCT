@@ -5,6 +5,7 @@ import '../../database/repositories/repositories.dart';
 import '../../models/budget.dart';
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/icon_helper.dart';
 import '../../providers/currency_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -512,8 +513,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                 itemCount: _expenseCategories.length,
                 itemBuilder: (context, index) {
                   final category = _expenseCategories[index];
-                  // Parse icon từ String sang IconData
-                  final iconCode = int.tryParse(category.icon);
 
                   return ListTile(
                     leading: Container(
@@ -550,41 +549,11 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   }
 
   Widget _buildCategoryIcon(Category category) {
-    try {
-      // Nếu icon là dạng số (codePoint)
-      final int? code = int.tryParse(category.icon);
-      if (code != null) {
-        return Icon(
-          IconData(code, fontFamily: 'MaterialIcons'),
-          color: Colors.red,
-          size: 24,
-        );
-      }
-
-      // Nếu icon là dạng text như "movie" hoặc "more_horiz"
-      // => ánh xạ tạm sang MaterialIcons theo tên
-      final Map<String, IconData> fallbackIcons = {
-        'movie': Icons.movie,
-        'more_horiz': Icons.more_horiz,
-        'shopping_bag': Icons.shopping_bag,
-        'medical_services': Icons.medical_services,
-        'restaurant': Icons.restaurant,
-        'directions_car': Icons.directions_car,
-      };
-
-      if (fallbackIcons.containsKey(category.icon)) {
-        return Icon(
-          fallbackIcons[category.icon]!,
-          color: Colors.red,
-          size: 24,
-        );
-      }
-
-      return const Icon(Icons.category, color: Colors.red, size: 24);
-    } catch (e) {
-      // Nếu parse thất bại hoàn toàn
-      return const Icon(Icons.category, color: Colors.grey, size: 24);
-    }
+    return Icon(
+      IconHelper.getCategoryIcon(category.icon),
+      color: Colors.red,
+      size: 24,
+    );
   }
 }
 
