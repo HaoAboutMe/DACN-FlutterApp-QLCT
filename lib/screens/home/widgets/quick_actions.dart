@@ -62,6 +62,7 @@ class _QuickActionsState extends State<QuickActions> {
         builder: (context) => AddTransactionPage(
           preselectedType: shortcut.type,
           preselectedCategoryId: shortcut.categoryId,
+          preselectedDescription: shortcut.description,
         ),
       ),
     );

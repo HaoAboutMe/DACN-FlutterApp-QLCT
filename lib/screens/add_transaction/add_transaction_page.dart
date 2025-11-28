@@ -13,12 +13,14 @@ class AddTransactionPage extends StatefulWidget {
   final String? preselectedType;
   final int? preselectedCategoryId;
   final double? initialAmount;
+  final String? preselectedDescription;
 
   const AddTransactionPage({
     super.key,
     this.preselectedType,
     this.preselectedCategoryId,
     this.initialAmount,
+    this.preselectedDescription,
   });
 
   @override
@@ -59,6 +61,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     // Nếu có initialAmount từ OCR, tự động điền vào amount controller
     if (widget.initialAmount != null) {
       _amountController.text = widget.initialAmount!.toStringAsFixed(0);
+    }
+
+    // Nếu có preselectedDescription từ shortcut, tự động điền vào description controller
+    if (widget.preselectedDescription != null) {
+      _descriptionController.text = widget.preselectedDescription!;
     }
 
     _initializeAnimations();
