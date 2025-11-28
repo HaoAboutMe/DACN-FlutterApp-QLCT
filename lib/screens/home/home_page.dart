@@ -336,30 +336,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Mở màn hình quét hóa đơn OCR
   Future<void> _openOcrScanner() async {
-    final amount = await Navigator.push<double?>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const ReceiptScanScreen()),
     );
 
-    if (amount != null && mounted) {
-      _goToAddTransaction(amount);
-    }
-  }
-
-  /// Chuyển đến màn hình thêm giao dịch với số tiền từ OCR
-  Future<void> _goToAddTransaction(double amount) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => AddTransactionPage(
-          preselectedType: 'expense', // Mặc định là chi tiêu khi quét hóa đơn
-          initialAmount: amount,
-        ),
-      ),
-    );
-
-    // Refresh data if transaction was successfully added
+    // Nếu transaction được thêm thành công, refresh data
     if (result == true && mounted) {
-      debugPrint('🔄 HomePage: Transaction added from OCR, refreshing data...');
+      debugPrint('🔄 HomePage: Transaction added from Receipt Scan, refreshing data...');
       await _refreshHomeData();
     }
   }
