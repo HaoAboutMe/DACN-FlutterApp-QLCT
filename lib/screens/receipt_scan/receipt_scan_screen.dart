@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_qlct/services/receipt_ocr_service.dart';
+import 'package:app_qlct/database/repositories/repositories.dart';
+import 'package:app_qlct/screens/add_transaction/add_transaction_page.dart';
 
 class ReceiptScanScreen extends StatefulWidget {
   const ReceiptScanScreen({super.key});
@@ -13,6 +15,7 @@ class ReceiptScanScreen extends StatefulWidget {
 class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   final ImagePicker _picker = ImagePicker();
   final ReceiptOcrService _ocrService = ReceiptOcrService();
+  final CategoryRepository _categoryRepository = CategoryRepository();
 
   File? _imageFile;
   double? _amount;
@@ -48,6 +51,58 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       _amount = result.totalAmount;
       _debugText = result.rawText;
     });
+  }
+
+  Future<void> _useDetectedAmount() async {
+    if (_amount == null) return;
+
+    try {
+      // Hiển thị loading bằng setState thay vì dialog
+      setState(() => _isLoading = true);
+
+      // Tìm hoặc tạo danh mục "Hóa đơn"
+      final receiptCategory = await _categoryRepository.findOrCreateReceiptCategory();
+
+      // Tắt loading
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      // Đợi một chút để setState hoàn thành và widget rebuild xong
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!mounted) return;
+
+      // Mở AddTransactionPage với dữ liệu đã điền sẵn
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddTransactionPage(
+            preselectedType: 'expense',
+            preselectedCategoryId: receiptCategory.id,
+            initialAmount: _amount,
+            preselectedDescription: 'Hóa đơn',
+          ),
+        ),
+      );
+
+      // Nếu transaction được thêm thành công, quay về Home và báo cần reload
+      if (result == true && mounted) {
+        // Pop về màn hình trước (Home) với signal để reload
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      // Tắt loading và hiển thị lỗi
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -115,11 +170,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                           ),
                           const SizedBox(height: 8),
                           FilledButton(
-                            onPressed: () {
-                              // TODO: truyền _amount vào AddTransactionPage
-                              Navigator.pop(context, _amount);
-                            },
-                            child: const Text('Dùng số tiền này'),
+                            onPressed: _isLoading ? null : _useDetectedAmount,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Text('Dùng số tiền này'),
                           ),
                         ],
                       )

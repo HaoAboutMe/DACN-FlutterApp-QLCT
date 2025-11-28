@@ -5,6 +5,7 @@ class QuickActionShortcut {
   final int categoryId;
   final String categoryName;
   final String categoryIcon;
+  final String? description; // Mô tả tự động điền
 
   QuickActionShortcut({
     this.id,
@@ -12,6 +13,7 @@ class QuickActionShortcut {
     required this.categoryId,
     required this.categoryName,
     required this.categoryIcon,
+    this.description,
   });
 
   // Convert to JSON for SharedPreferences
@@ -22,6 +24,7 @@ class QuickActionShortcut {
       'categoryId': categoryId,
       'categoryName': categoryName,
       'categoryIcon': categoryIcon,
+      'description': description,
     };
   }
 
@@ -33,6 +36,7 @@ class QuickActionShortcut {
       categoryId: json['categoryId'] as int,
       categoryName: json['categoryName'] as String,
       categoryIcon: json['categoryIcon'] as String,
+      description: json['description'] as String?,
     );
   }
 
@@ -42,6 +46,7 @@ class QuickActionShortcut {
     int? categoryId,
     String? categoryName,
     String? categoryIcon,
+    String? description,
   }) {
     return QuickActionShortcut(
       id: id ?? this.id,
@@ -49,6 +54,7 @@ class QuickActionShortcut {
       categoryId: categoryId ?? this.categoryId,
       categoryName: categoryName ?? this.categoryName,
       categoryIcon: categoryIcon ?? this.categoryIcon,
+      description: description ?? this.description,
     );
   }
 }

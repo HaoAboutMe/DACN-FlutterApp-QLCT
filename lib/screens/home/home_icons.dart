@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/icon_helper.dart';
 
 /// Icon constants and utilities used in the HomePage
 class HomeIcons {
@@ -24,53 +25,9 @@ class HomeIcons {
   // Empty state icon
   static const IconData receiptLong = Icons.receipt_long_outlined;
 
-  // Category icons mapping
-  static const Map<String, IconData> categoryIcons = {
-    'restaurant': Icons.restaurant,
-    'food': Icons.restaurant,
-    'transport': Icons.directions_car,
-    'directions_car': Icons.directions_car,
-    'shopping_cart': Icons.shopping_cart,
-    'shopping_bag': Icons.shopping_bag,
-    'shopping': Icons.shopping_cart,
-    'home': Icons.home,
-    'medical_services': Icons.medical_services,
-    'health': Icons.medical_services,
-    'school': Icons.school,
-    'education': Icons.school,
-    'work': Icons.work,
-    'business': Icons.work,
-    'savings': Icons.savings,
-    'entertainment': Icons.movie,
-    'movie': Icons.movie,
-    'travel': Icons.flight,
-    'flight': Icons.flight,
-    'utilities': Icons.electrical_services,
-    'electrical_services': Icons.electrical_services,
-    'attach_money': Icons.attach_money,
-    'card_giftcard': Icons.card_giftcard,
-    'trending_up': Icons.trending_up,
-    'fitness_center': Icons.fitness_center,
-    'more_horiz': Icons.more_horiz,
-    'other': Icons.category,
-    'category': Icons.category,
-  };
-
   /// Get icon from string name or codePoint with fallback
   static IconData getIconFromString(String iconName) {
-    // Handle empty or null icon names
-    if (iconName.isEmpty) {
-      return Icons.category;
-    }
-
-    // Try to parse as codePoint first (for newer categories created via category picker)
-    final codePoint = int.tryParse(iconName);
-    if (codePoint != null) {
-      return IconData(codePoint, fontFamily: 'MaterialIcons');
-    }
-
-    // If not a codePoint, use string mapping (for default categories)
-    return categoryIcons[iconName.toLowerCase()] ?? Icons.category;
+    return IconHelper.getCategoryIcon(iconName);
   }
 
   /// Get transaction type icon based on type

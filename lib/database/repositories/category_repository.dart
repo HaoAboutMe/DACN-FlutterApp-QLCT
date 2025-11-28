@@ -261,5 +261,51 @@ class CategoryRepository {
       rethrow;
     }
   }
+
+  /// Tìm hoặc tạo danh mục "Hóa đơn" cho tính năng quét hóa đơn
+  Future<Category> findOrCreateReceiptCategory() async {
+    try {
+      final db = await _db.database;
+
+      // Tìm danh mục có tên "Hóa đơn"
+      final maps = await db.query(
+        'categories',
+        where: 'LOWER(TRIM(name)) = ? AND type = ?',
+        whereArgs: ['hóa đơn', 'expense'],
+        limit: 1,
+      );
+
+      if (maps.isNotEmpty) {
+        log('Đã tìm thấy danh mục Hóa đơn');
+
+        final existing = Category.fromMap(maps.first);
+
+        // Nếu icon cũ sai → cập nhật lại icon chuẩn
+        if (existing.icon != 'receipt_long') {
+          final updated = existing.copyWith(icon: 'receipt_long');
+          await updateCategory(updated);
+          log('Đã cập nhật icon Hóa đơn → receipt_long');
+          return updated;
+        }
+
+        return existing;
+      }
+
+      // Nếu chưa có, tạo mới danh mục "Hóa đơn"
+      log('Chưa có danh mục Hóa đơn, đang tạo mới...');
+      final newCategory = Category(
+        name: 'Hóa đơn',
+        icon: 'receipt_long',
+        type: 'expense',
+        createdAt: DateTime.now(),
+      );
+
+      final id = await insertCategory(newCategory);
+      return newCategory.copyWith(id: id);
+    } catch (e) {
+      log('Lỗi tìm/tạo danh mục Hóa đơn: $e');
+      rethrow;
+    }
+  }
 }
 

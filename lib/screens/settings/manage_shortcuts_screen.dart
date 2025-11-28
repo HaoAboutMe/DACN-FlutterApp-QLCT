@@ -122,6 +122,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
     int? selectedCategoryId = shortcut?.categoryId;
     String? selectedCategoryName = shortcut?.categoryName;
     String? selectedCategoryIcon = shortcut?.categoryIcon;
+    String selectedDescription = shortcut?.description ?? shortcut?.categoryName ?? '';
 
     List<Category> categories = [];
     List<Category> filteredCategories = [];
@@ -207,6 +208,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                     selectedCategoryId = null;
                                     selectedCategoryName = null;
                                     selectedCategoryIcon = null;
+                                    selectedDescription = '';
                                   });
                                 },
                               ),
@@ -226,6 +228,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                     selectedCategoryId = null;
                                     selectedCategoryName = null;
                                     selectedCategoryIcon = null;
+                                    selectedDescription = '';
                                   });
                                 },
                               ),
@@ -289,6 +292,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                           selectedCategoryId = category.id;
                                           selectedCategoryName = category.name;
                                           selectedCategoryIcon = category.icon;
+                                          selectedDescription = category.name; // Tự động điền mô tả theo tên danh mục
                                         });
                                       },
                                       child: ClipRRect(
@@ -414,6 +418,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                         categoryId: selectedCategoryId!,
                                         categoryName: selectedCategoryName!,
                                         categoryIcon: selectedCategoryIcon!,
+                                        description: selectedDescription.isNotEmpty ? selectedDescription : null,
                                       ),
                                     );
                                   },

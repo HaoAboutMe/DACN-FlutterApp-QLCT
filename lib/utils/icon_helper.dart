@@ -35,6 +35,8 @@ class IconHelper {
     'work': Icons.work,
     'savings': Icons.savings,
     'electrical_services': Icons.electrical_services,
+    'receipt': Icons.receipt,
+    'receipt_long': Icons.receipt_long,
     'category': Icons.category,
     'other': Icons.category,
 
@@ -43,6 +45,9 @@ class IconHelper {
     'call_received': Icons.call_received, // Đi vay
     'payment': Icons.payment, // Trả nợ
     'account_balance_wallet': Icons.account_balance_wallet, // Thu nợ
+
+    // ✅ Bổ sung icon cho hóa đơn
+
   };
 
   /// Build icon từ categoryIcon string

@@ -6,6 +6,7 @@ import '../../database/repositories/repositories.dart';
 import '../../models/transaction.dart' as transaction_model;
 import '../../models/category.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/icon_helper.dart';
 import '../../providers/currency_provider.dart';
 import '../../widgets/category_picker_sheet.dart';
 
@@ -13,12 +14,14 @@ class AddTransactionPage extends StatefulWidget {
   final String? preselectedType;
   final int? preselectedCategoryId;
   final double? initialAmount;
+  final String? preselectedDescription;
 
   const AddTransactionPage({
     super.key,
     this.preselectedType,
     this.preselectedCategoryId,
     this.initialAmount,
+    this.preselectedDescription,
   });
 
   @override
@@ -59,6 +62,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     // Nếu có initialAmount từ OCR, tự động điền vào amount controller
     if (widget.initialAmount != null) {
       _amountController.text = widget.initialAmount!.toStringAsFixed(0);
+    }
+
+    // Nếu có preselectedDescription từ shortcut, tự động điền vào description controller
+    if (widget.preselectedDescription != null) {
+      _descriptionController.text = widget.preselectedDescription!;
     }
 
     _initializeAnimations();
@@ -292,50 +300,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   IconData _getCategoryIcon(String iconName) {
-    // Handle empty or null icon names
-    if (iconName.isEmpty) {
-      return Icons.category;
-    }
-
-    // Try to parse as codePoint (for newer categories created via category picker)
-    final codePoint = int.tryParse(iconName);
-    if (codePoint != null) {
-      return IconData(codePoint, fontFamily: 'MaterialIcons');
-    }
-
-    // If not a codePoint, map string to Flutter icon (for default categories)
-    const categoryIcons = {
-      'restaurant': Icons.restaurant,
-      'food': Icons.restaurant,
-      'transport': Icons.directions_car,
-      'directions_car': Icons.directions_car,
-      'shopping_cart': Icons.shopping_cart,
-      'shopping_bag': Icons.shopping_bag,
-      'shopping': Icons.shopping_cart,
-      'home': Icons.home,
-      'medical_services': Icons.medical_services,
-      'health': Icons.medical_services,
-      'school': Icons.school,
-      'education': Icons.school,
-      'work': Icons.work,
-      'business': Icons.work,
-      'savings': Icons.savings,
-      'entertainment': Icons.movie,
-      'movie': Icons.movie,
-      'travel': Icons.flight,
-      'flight': Icons.flight,
-      'utilities': Icons.electrical_services,
-      'electrical_services': Icons.electrical_services,
-      'attach_money': Icons.attach_money,
-      'card_giftcard': Icons.card_giftcard,
-      'trending_up': Icons.trending_up,
-      'fitness_center': Icons.fitness_center,
-      'more_horiz': Icons.more_horiz,
-      'other': Icons.category,
-      'category': Icons.category,
-    };
-
-    return categoryIcons[iconName.toLowerCase()] ?? Icons.category;
+    return IconHelper.getCategoryIcon(iconName);
   }
 
   @override

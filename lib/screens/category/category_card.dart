@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/category.dart';
+import '../../utils/icon_helper.dart';
 
 /// Widget hiển thị card cho mỗi category với menu context
 class CategoryCard extends StatelessWidget {
@@ -24,45 +25,7 @@ class CategoryCard extends StatelessWidget {
 
   /// Parse icon from category icon string (supports both codePoint and string name)
   IconData _getCategoryIcon() {
-    // Try to parse as codePoint (for newer categories)
-    final codePoint = int.tryParse(category.icon);
-    if (codePoint != null) {
-      return IconData(codePoint, fontFamily: 'MaterialIcons');
-    }
-
-    // Fallback to default icon mapping (for legacy categories)
-    const categoryIcons = {
-      'restaurant': Icons.restaurant,
-      'food': Icons.restaurant,
-      'transport': Icons.directions_car,
-      'directions_car': Icons.directions_car,
-      'shopping_cart': Icons.shopping_cart,
-      'shopping_bag': Icons.shopping_bag,
-      'shopping': Icons.shopping_cart,
-      'home': Icons.home,
-      'medical_services': Icons.medical_services,
-      'health': Icons.medical_services,
-      'school': Icons.school,
-      'education': Icons.school,
-      'work': Icons.work,
-      'business': Icons.work,
-      'savings': Icons.savings,
-      'entertainment': Icons.movie,
-      'movie': Icons.movie,
-      'travel': Icons.flight,
-      'flight': Icons.flight,
-      'utilities': Icons.electrical_services,
-      'electrical_services': Icons.electrical_services,
-      'attach_money': Icons.attach_money,
-      'card_giftcard': Icons.card_giftcard,
-      'trending_up': Icons.trending_up,
-      'fitness_center': Icons.fitness_center,
-      'more_horiz': Icons.more_horiz,
-      'other': Icons.category,
-      'category': Icons.category,
-    };
-
-    return categoryIcons[category.icon.toLowerCase()] ?? Icons.category;
+    return IconHelper.getCategoryIcon(category.icon);
   }
 
   /// Get color based on category type

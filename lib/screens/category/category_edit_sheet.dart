@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../database/repositories/repositories.dart';
 import '../../models/category.dart';
 import '../../models/icon_group.dart';
+import '../../utils/icon_helper.dart';
 
 /// Bottom sheet for adding/editing category
 class CategoryEditSheet extends StatefulWidget {
@@ -50,47 +51,7 @@ class _CategoryEditSheetState extends State<CategoryEditSheet> {
 
   /// Parse icon from string (supports both codePoint and string name)
   IconData _getCategoryIcon(String iconName) {
-    if (iconName.isEmpty) {
-      return Icons.category;
-    }
-
-    final codePoint = int.tryParse(iconName);
-    if (codePoint != null) {
-      return IconData(codePoint, fontFamily: 'MaterialIcons');
-    }
-
-    const categoryIcons = {
-      'restaurant': Icons.restaurant,
-      'food': Icons.restaurant,
-      'transport': Icons.directions_car,
-      'directions_car': Icons.directions_car,
-      'shopping_cart': Icons.shopping_cart,
-      'shopping_bag': Icons.shopping_bag,
-      'shopping': Icons.shopping_cart,
-      'home': Icons.home,
-      'medical_services': Icons.medical_services,
-      'health': Icons.medical_services,
-      'school': Icons.school,
-      'education': Icons.school,
-      'work': Icons.work,
-      'business': Icons.work,
-      'savings': Icons.savings,
-      'entertainment': Icons.movie,
-      'movie': Icons.movie,
-      'travel': Icons.flight,
-      'flight': Icons.flight,
-      'utilities': Icons.electrical_services,
-      'electrical_services': Icons.electrical_services,
-      'attach_money': Icons.attach_money,
-      'card_giftcard': Icons.card_giftcard,
-      'trending_up': Icons.trending_up,
-      'fitness_center': Icons.fitness_center,
-      'more_horiz': Icons.more_horiz,
-      'other': Icons.category,
-      'category': Icons.category,
-    };
-
-    return categoryIcons[iconName.toLowerCase()] ?? Icons.category;
+    return IconHelper.getCategoryIcon(iconName);
   }
 
   /// Validate input and check duplicates
