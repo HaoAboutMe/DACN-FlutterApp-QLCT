@@ -601,6 +601,111 @@ class LoanRepository {
     }
   }
 
+  /// Thực hiện thanh toán từng phần cho khoản vay
+  /// Returns: true nếu khoản vay đã được thanh toán đầy đủ
+  Future<bool> makePartialPayment({
+    required int loanId,
+    required double paymentAmount,
+    String? description,
+    int? userId,
+  }) async {
+    final db = await _db.database;
+
+    try {
+      final currentUserId = userId ?? await _getCurrentUserId();
+      log('=== Partial Payment START ===');
+      log('Loan ID: $loanId, Amount: $paymentAmount, User ID: $currentUserId');
+
+      bool isFullyPaid = false;
+
+      await db.transaction((txn) async {
+        // 1. Lấy thông tin khoản vay hiện tại
+        final loanMaps = await txn.query(
+          'loans',
+          where: 'id = ?',
+          whereArgs: [loanId],
+        );
+
+        if (loanMaps.isEmpty) {
+          throw Exception('Không tìm thấy khoản vay với ID: $loanId');
+        }
+
+        final currentLoan = Loan.fromMap(loanMaps.first);
+        log('Current loan: ${currentLoan.personName}, amount: ${currentLoan.amount}, paid: ${currentLoan.amountPaid}');
+
+        // 2. Kiểm tra điều kiện
+        if (currentLoan.status == 'paid') {
+          throw Exception('Khoản vay này đã được thanh toán đầy đủ');
+        }
+
+        if (paymentAmount <= 0) {
+          throw Exception('Số tiền thanh toán phải lớn hơn 0');
+        }
+
+        final remainingAmount = currentLoan.remainingAmount;
+        if (paymentAmount > remainingAmount) {
+          throw Exception('Số tiền thanh toán ($paymentAmount) vượt quá số tiền còn lại ($remainingAmount)');
+        }
+
+        // 3. Cập nhật số tiền đã trả
+        final newAmountPaid = currentLoan.amountPaid + paymentAmount;
+        isFullyPaid = newAmountPaid >= currentLoan.amount;
+
+        log('New amount paid: $newAmountPaid, Fully paid: $isFullyPaid');
+
+        final updatedLoan = currentLoan.copyWith(
+          amountPaid: newAmountPaid,
+          status: isFullyPaid ? 'paid' : currentLoan.status,
+          paidDate: isFullyPaid ? DateTime.now() : null,
+          updatedAt: DateTime.now(),
+        );
+
+        await txn.update(
+          'loans',
+          updatedLoan.toMap(),
+          where: 'id = ?',
+          whereArgs: [loanId],
+        );
+
+        log('Cập nhật loan: amountPaid = $newAmountPaid, status = ${updatedLoan.status}');
+
+        // 4. Tạo transaction thanh toán
+        final transactionType = currentLoan.loanType == 'lend' ? 'debt_collected' : 'debt_paid';
+        final defaultDescription = currentLoan.loanType == 'lend'
+            ? 'Thu nợ từ ${currentLoan.personName} (${isFullyPaid ? 'Hoàn tất' : 'Trả một phần'})'
+            : 'Trả nợ cho ${currentLoan.personName} (${isFullyPaid ? 'Hoàn tất' : 'Trả một phần'})';
+
+        final paymentTransaction = transaction_model.Transaction(
+          amount: paymentAmount,
+          description: description ?? defaultDescription,
+          date: DateTime.now(),
+          categoryId: null,
+          loanId: loanId,
+          type: transactionType,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await txn.insert('transactions', paymentTransaction.toMap());
+        log('Tạo transaction thanh toán: type = $transactionType, amount = $paymentAmount');
+
+        // 5. Cập nhật số dư người dùng
+        await _updateUserBalanceInTransaction(
+          txn,
+          currentUserId,
+          paymentAmount,
+          transactionType,
+        );
+      });
+
+      log('=== Partial Payment END: Success (Fully paid: $isFullyPaid) ===');
+      return isFullyPaid;
+    } catch (e) {
+      log('❌ Lỗi thanh toán từng phần: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Loan>> getActiveLoansWithReminders() async {
     try {
       final db = await _db.database;

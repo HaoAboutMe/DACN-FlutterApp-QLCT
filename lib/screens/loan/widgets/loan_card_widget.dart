@@ -141,6 +141,34 @@ class LoanCardWidget extends StatelessWidget {
                           ),
                         ],
                       ),
+                      // Show payment progress if there's any payment
+                      if (loan.amountPaid > 0 && loan.status != 'completed' && loan.status != 'paid') ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: loan.paymentProgress / 100,
+                                  minHeight: 4,
+                                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(loanColor),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${loan.paymentProgress.toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: loanColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -167,9 +195,9 @@ class LoanCardWidget extends StatelessWidget {
                         ),
                       ),
                     ],
-                    if (!isSelectionMode) ...[
+                      if (!isSelectionMode) ...[
                       const SizedBox(height: 8),
-                      // Mark as Paid button (only show if not paid)
+                      // Partial payment button (only show if not paid)
                       if (loan.status != 'completed' && loan.status != 'paid')
                         InkWell(
                           onTap: onMarkAsPaid,
@@ -187,13 +215,13 @@ class LoanCardWidget extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.check_circle,
+                                  Icons.payments,
                                   size: 14,
                                   color: HomeColors.income,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  loan.loanType == 'lend' ? 'Thu nợ' : 'Trả nợ',
+                                  'Trả 1 phần',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: HomeColors.income,
@@ -206,8 +234,8 @@ class LoanCardWidget extends StatelessWidget {
                         ),
                       if (loan.status != 'completed' && loan.status != 'paid')
                         const SizedBox(height: 4),
-                      // Edit button (only show if not paid) or Lock icon (if paid)
-                      if (loan.status != 'completed' && loan.status != 'paid')
+                      // Edit button (only show if not paid and no partial payment) or Lock icon (if paid or has partial payment)
+                      if (loan.status != 'completed' && loan.status != 'paid' && loan.amountPaid == 0)
                         InkWell(
                           onTap: onEdit,
                           borderRadius: BorderRadius.circular(8),
@@ -241,10 +269,12 @@ class LoanCardWidget extends StatelessWidget {
                             ),
                           ),
                         ),
-                      // Lock icon for paid loans
-                      if (loan.status == 'completed' || loan.status == 'paid')
+                      // Lock icon for paid loans or loans with partial payment
+                      if (loan.status == 'completed' || loan.status == 'paid' || loan.amountPaid > 0)
                         Tooltip(
-                          message: 'Không thể chỉnh sửa khoản vay đã thanh toán',
+                          message: loan.status == 'completed' || loan.status == 'paid'
+                              ? 'Không thể chỉnh sửa khoản vay đã thanh toán'
+                              : 'Không thể chỉnh sửa khoản vay đã có thanh toán một phần',
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
