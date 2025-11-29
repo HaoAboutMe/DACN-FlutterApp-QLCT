@@ -283,6 +283,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Calculate loan statistics directly from loans table
   /// This includes both old debts (isOldDebt = 1) and new loans (isOldDebt = 0)
+  /// Now accounts for partial payments using amountPaid field
   Future<void> _calculateLoanStats() async {
     try {
       final allLoans = await _loanRepository.getAllLoans();
@@ -293,10 +294,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       for (final loan in allLoans) {
         // Only count active loans (not paid/completed)
         if (loan.status == 'active') {
+          // Calculate remaining amount after partial payments
+          final remainingAmount = loan.amount - loan.amountPaid;
+
           if (loan.loanType == 'lend') {
-            _totalLent += loan.amount;
+            _totalLent += remainingAmount;
           } else if (loan.loanType == 'borrow') {
-            _totalBorrowed += loan.amount;
+            _totalBorrowed += remainingAmount;
           }
         }
       }
