@@ -179,6 +179,40 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       debugPrint('Converted to VND: $amountInVND VND');
       debugPrint('==================================');
 
+      // Validate balance for new "lend" loans
+      // Only validate if this is a new loan (not old debt)
+      if (!_isOldDebt && _selectedType == 'lend') {
+        final userRepository = UserRepository();
+        final currentUserId = await userRepository.getCurrentUserId();
+        final currentUser = await userRepository.getUserById(currentUserId);
+
+        if (currentUser != null) {
+          // Calculate the projected balance after this edit
+          double projectedBalance = currentUser.balance;
+
+          // Reverse the old loan's effect on balance (only if it was also a new loan)
+          final oldLoan = widget.loan;
+          if (oldLoan.isOldDebt == 0) {
+            if (oldLoan.loanType == 'lend') {
+              // Old loan was "lend", add back the old amount
+              projectedBalance += oldLoan.amount;
+            } else if (oldLoan.loanType == 'borrow') {
+              // Old loan was "borrow", subtract the old amount
+              projectedBalance -= oldLoan.amount;
+            }
+          }
+
+          // Check if new lend amount would exceed projected balance
+          if (amountInVND > projectedBalance) {
+            setState(() {
+              _isLoading = false;
+            });
+            _showErrorSnackBar('Số tiền cho vay vượt quá số dư khả dụng (${CurrencyFormatter.formatAmount(projectedBalance)})');
+            return;
+          }
+        }
+      }
+
       final personName = _personNameController.text.trim();
       final personPhone = _personPhoneController.text.trim().isEmpty
           ? null
@@ -239,7 +273,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       ),
     );
   }
