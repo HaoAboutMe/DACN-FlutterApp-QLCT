@@ -186,11 +186,39 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
         return;
       }
 
-      final description = _descriptionController.text.trim();
-
       // Calculate balance difference for update
       final oldAmount = widget.transaction.amount;
       final oldType = widget.transaction.type;
+
+      // Validate balance for expense transactions
+      // Calculate what the new balance would be after this edit
+      if (_selectedType == 'expense') {
+        final currentUserId = await _userRepository.getCurrentUserId();
+        final currentUser = await _userRepository.getUserById(currentUserId);
+
+        if (currentUser != null) {
+          // Calculate the balance after reversing old transaction
+          double projectedBalance = currentUser.balance;
+
+          // Reverse old transaction effect
+          if (oldType == 'income') {
+            projectedBalance -= oldAmount;
+          } else if (oldType == 'expense') {
+            projectedBalance += oldAmount;
+          }
+
+          // Check if new expense would exceed available balance
+          if (amountInVND > projectedBalance) {
+            setState(() {
+              _isLoading = false;
+            });
+            _showErrorSnackBar('Số tiền chi tiêu vượt quá số dư hiện tại (${CurrencyFormatter.formatAmount(projectedBalance)})');
+            return;
+          }
+        }
+      }
+
+      final description = _descriptionController.text.trim();
 
       // Create updated transaction
       final updatedTransaction = widget.transaction.copyWith(
@@ -289,7 +317,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       ),
     );
   }

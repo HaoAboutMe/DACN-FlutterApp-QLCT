@@ -1,9 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/quick_action_shortcut.dart';
 import '../../models/category.dart';
 import '../../services/quick_action_service.dart';
 import '../../database/repositories/repositories.dart';
 import '../../utils/icon_helper.dart';
+import '../../utils/currency_formatter.dart';
+import '../../providers/currency_provider.dart';
+
+/// Custom TextInputFormatter for currency input (same as add_transaction)
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    // Cho phép empty string
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // Get current currency from CurrencyFormatter
+    final currentCurrency = CurrencyFormatter.getCurrency();
+
+    if (currentCurrency == 'USD') {
+      // Cho USD: chỉ cho phép digits và 1 dấu chấm
+      String filtered = newValue.text;
+
+      // Loại bỏ tất cả ký tự không hợp lệ
+      filtered = filtered.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      // Đảm bảo chỉ có 1 dấu chấm
+      final parts = filtered.split('.');
+      if (parts.length > 2) {
+        filtered = parts[0] + '.' + parts.sublist(1).join('');
+      }
+
+      // Giới hạn 3 chữ số thập phân
+      if (parts.length == 2 && parts[1].length > 3) {
+        filtered = parts[0] + '.' + parts[1].substring(0, 3);
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
+    } else {
+      // Cho VND: chỉ cho phép digits và dấu phẩy
+      String filtered = newValue.text.replaceAll(RegExp(r'[^0-9,]'), '');
+
+      // Auto-format với dấu phẩy ngăn cách hàng nghìn cho VND
+      if (filtered.isNotEmpty) {
+        final digitsOnly = filtered.replaceAll(',', '');
+        if (digitsOnly.isNotEmpty) {
+          final amount = double.tryParse(digitsOnly) ?? 0;
+          if (amount > 0) {
+            final formatter = NumberFormat('#,###', 'vi_VN');
+            filtered = formatter.format(amount);
+          }
+        }
+      }
+
+      return newValue.copyWith(
+        text: filtered,
+        selection: TextSelection.collapsed(offset: filtered.length),
+      );
+    }
+  }
+}
 
 class ManageShortcutsScreen extends StatefulWidget {
   const ManageShortcutsScreen({super.key});
@@ -118,11 +184,32 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
   }
 
   Future<QuickActionShortcut?> _showShortcutDialog({QuickActionShortcut? shortcut}) async {
+    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+    CurrencyFormatter.setCurrencyProvider(currencyProvider);
+
     String selectedType = shortcut?.type ?? 'expense';
     int? selectedCategoryId = shortcut?.categoryId;
     String? selectedCategoryName = shortcut?.categoryName;
     String? selectedCategoryIcon = shortcut?.categoryIcon;
-    String selectedDescription = shortcut?.description ?? shortcut?.categoryName ?? '';
+
+    // Controllers for text input
+    final descriptionController = TextEditingController(text: shortcut?.description ?? '');
+
+    // Initialize amount controller with proper currency conversion
+    String initialAmount = '';
+    if (shortcut?.amount != null) {
+      // When editing existing shortcut, convert stored VND amount to current currency
+      if (currencyProvider.selectedCurrency == 'USD') {
+        // Convert VND to USD for display
+        final usdAmount = currencyProvider.convertFromVND(shortcut!.amount!);
+        initialAmount = usdAmount.toStringAsFixed(2);
+      } else {
+        // VND - show as is
+        initialAmount = shortcut!.amount!.toStringAsFixed(0);
+      }
+    }
+    // For new shortcuts, leave empty - user will input in current currency
+    final amountController = TextEditingController(text: initialAmount);
 
     List<Category> categories = [];
     List<Category> filteredCategories = [];
@@ -144,16 +231,17 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
         builder: (context, setSheetState) {
           final theme = Theme.of(context);
           final screenHeight = MediaQuery.of(context).size.height;
-          return Container(
-            height: screenHeight * 0.75, // Fixed 90% height
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SingleChildScrollView(
+          final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardHeight),
+            child: Container(
+              height: screenHeight * 0.85,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Handle bar
                   Center(
@@ -169,7 +257,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                   ),
                   // Title
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                     child: Text(
                       shortcut == null ? 'Thêm phím tắt' : 'Chỉnh sửa phím tắt',
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -177,12 +265,15 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                       ),
                     ),
                   ),
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                         Text(
                           'Loại giao dịch',
                           style: TextStyle(
@@ -208,7 +299,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                     selectedCategoryId = null;
                                     selectedCategoryName = null;
                                     selectedCategoryIcon = null;
-                                    selectedDescription = '';
+                                    descriptionController.clear();
                                   });
                                 },
                               ),
@@ -228,7 +319,7 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                     selectedCategoryId = null;
                                     selectedCategoryName = null;
                                     selectedCategoryIcon = null;
-                                    selectedDescription = '';
+                                    descriptionController.clear();
                                   });
                                 },
                               ),
@@ -292,7 +383,8 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                           selectedCategoryId = category.id;
                                           selectedCategoryName = category.name;
                                           selectedCategoryIcon = category.icon;
-                                          selectedDescription = category.name; // Tự động điền mô tả theo tên danh mục
+                                          // Auto-fill description with category name
+                                          descriptionController.text = category.name;
                                         });
                                       },
                                       child: ClipRRect(
@@ -385,11 +477,138 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                                   },
                                 ),
                         ),
-                      ],
+                        // Mô tả tùy chỉnh
+                        const SizedBox(height: 24),
+                        Text(
+                          'Mô tả tùy chỉnh (tùy chọn)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Để trống sẽ sử dụng tên danh mục',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descriptionController,
+                          decoration: InputDecoration(
+                            hintText: 'Ví dụ: Tiền điện tháng 12',
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHighest,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Số tiền
+                        const SizedBox(height: 24),
+                        Text(
+                          'Số tiền (tùy chọn)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Để trống: Dẫn đến trang thêm giao dịch\nĐiền số tiền: Thêm trực tiếp không cần màn hình trung gian',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Consumer<CurrencyProvider>(
+                          builder: (context, currencyProvider, child) {
+                            final currencySymbol = currencyProvider.currencySymbol;
+                            final isUsd = currencyProvider.selectedCurrency == 'USD';
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextField(
+                                  controller: amountController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    CurrencyInputFormatter(),
+                                  ],
+                                  decoration: InputDecoration(
+                                    hintText: isUsd ? 'Ví dụ: 20.00' : 'Ví dụ: 500.000',
+                                    prefixIcon: Icon(Icons.attach_money, color: theme.colorScheme.primary),
+                                    suffixText: currencySymbol,
+                                    suffixStyle: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    filled: true,
+                                    fillColor: theme.colorScheme.surfaceContainerHighest,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: theme.colorScheme.primary,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Helper text for USD
+                                if (isUsd) ...[
+                                  const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 12),
+                                    child: Text(
+                                      'Sẽ được chuyển đổi thành VND khi lưu (tỷ giá: 1 USD = ${currencyProvider.exchangeRate.toStringAsFixed(0)} VND)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  // Actions
-                  Padding(
+                  // Actions - Fixed at bottom
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
                     padding: const EdgeInsets.all(24),
                     child: Row(
                       children: [
@@ -411,17 +630,33 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
                             onPressed: selectedCategoryId == null
                                 ? null
                                 : () {
-                                    Navigator.pop(
-                                      context,
-                                      QuickActionShortcut(
-                                        type: selectedType,
-                                        categoryId: selectedCategoryId!,
-                                        categoryName: selectedCategoryName!,
-                                        categoryIcon: selectedCategoryIcon!,
-                                        description: selectedDescription.isNotEmpty ? selectedDescription : null,
-                                      ),
-                                    );
-                                  },
+                              double? parsedAmount;
+
+                              if (amountController.text.isNotEmpty) {
+                                // 1. Parse amount theo currency hiện tại (USD hoặc VND)
+                                final rawAmount = CurrencyFormatter.parseAmount(amountController.text);
+
+                                if (rawAmount > 0) {
+                                  // 2. Convert về VND để lưu vào DB (giống AddTransaction)
+                                  final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+                                  parsedAmount = currencyProvider.convertToVND(rawAmount);
+                                }
+                              }
+
+                              final description = descriptionController.text.trim();
+
+                              Navigator.pop(
+                                context,
+                                QuickActionShortcut(
+                                  type: selectedType,
+                                  categoryId: selectedCategoryId!,
+                                  categoryName: selectedCategoryName!,
+                                  categoryIcon: selectedCategoryIcon!,
+                                  description: description.isNotEmpty ? description : null,
+                                  amount: parsedAmount, // luôn là VND
+                                ),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: theme.colorScheme.primary,
@@ -600,38 +835,171 @@ class _ManageShortcutsScreenState extends State<ManageShortcutsScreen> {
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    IconHelper.getCategoryIcon(shortcut.categoryIcon),
-                                    color: color,
-                                  ),
-                                ),
-                                title: Text(
-                                  shortcut.categoryName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text(
-                                  shortcut.type == 'income' ? 'Thu nhập' : 'Chi tiêu',
-                                  style: TextStyle(color: color, fontSize: 12),
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      onPressed: () => _editShortcut(shortcut),
-                                      color: Colors.blue,
+                                    // Icon
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        IconHelper.getCategoryIcon(shortcut.categoryIcon),
+                                        color: color,
+                                        size: 28,
+                                      ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, size: 20),
-                                      onPressed: () => _deleteShortcut(shortcut),
-                                      color: Colors.red,
+                                    const SizedBox(width: 16),
+                                    // Info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Category name
+                                          Text(
+                                            shortcut.categoryName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Type
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: color.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  shortcut.type == 'income' ? 'Thu nhập' : 'Chi tiêu',
+                                                  style: TextStyle(
+                                                    color: color,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              // Mode badge
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: shortcut.isQuickAddMode
+                                                      ? Colors.blue.withValues(alpha: 0.1)
+                                                      : Colors.orange.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      shortcut.isQuickAddMode
+                                                          ? Icons.flash_on
+                                                          : Icons.edit_note,
+                                                      size: 12,
+                                                      color: shortcut.isQuickAddMode
+                                                          ? Colors.blue.shade700
+                                                          : Colors.orange.shade700,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      shortcut.isQuickAddMode ? 'Quick Add' : 'Template',
+                                                      style: TextStyle(
+                                                        color: shortcut.isQuickAddMode
+                                                            ? Colors.blue.shade700
+                                                            : Colors.orange.shade700,
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          // Custom description (if different from category name)
+                                          if (shortcut.description != null &&
+                                              shortcut.description!.isNotEmpty &&
+                                              shortcut.description != shortcut.categoryName) ...[
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.description,
+                                                  size: 14,
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    shortcut.description!,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: theme.colorScheme.onSurfaceVariant,
+                                                      fontStyle: FontStyle.italic,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          // Amount (if in Quick Add mode)
+                                          if (shortcut.isQuickAddMode) ...[
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.attach_money,
+                                                  size: 14,
+                                                  color: color,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  CurrencyFormatter.formatAmount(shortcut.amount!),
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: color,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    // Actions
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, size: 20),
+                                          onPressed: () => _editShortcut(shortcut),
+                                          color: Colors.blue,
+                                          tooltip: 'Chỉnh sửa',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, size: 20),
+                                          onPressed: () => _deleteShortcut(shortcut),
+                                          color: Colors.red,
+                                          tooltip: 'Xóa',
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

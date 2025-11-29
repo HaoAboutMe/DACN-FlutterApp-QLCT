@@ -162,6 +162,21 @@ class _AddLoanPageState extends State<AddLoanPage>
       debugPrint('Converted to VND: $amountInVND VND');
       debugPrint('===================================');
 
+      // Validate balance for new "lend" loans (only affects balance)
+      if (!_isOldDebt && _selectedType == 'lend') {
+        final userRepository = UserRepository();
+        final currentUserId = await userRepository.getCurrentUserId();
+        final currentUser = await userRepository.getUserById(currentUserId);
+
+        if (currentUser != null && amountInVND > currentUser.balance) {
+          setState(() {
+            _isLoading = false;
+          });
+          _showErrorSnackBar('Số tiền cho vay vượt quá số dư hiện tại (${CurrencyFormatter.formatAmount(currentUser.balance)})');
+          return;
+        }
+      }
+
       final personName = _personNameController.text.trim();
       final personPhone = _personPhoneController.text.trim().isEmpty
           ? null
@@ -243,7 +258,7 @@ class _AddLoanPageState extends State<AddLoanPage>
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       ),
     );
   }

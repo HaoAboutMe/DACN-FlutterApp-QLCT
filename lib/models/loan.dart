@@ -46,6 +46,9 @@ class Loan {
   /// 1 = khoản vay/nợ cũ (chỉ ghi nhận, không tạo transaction ban đầu)
   final int isOldDebt;
 
+  /// Tổng số tiền đã trả (dùng cho partial payment)
+  final double amountPaid;
+
   /// Thời gian tạo bản ghi
   final DateTime createdAt;
 
@@ -67,6 +70,7 @@ class Loan {
     this.reminderDays,
     this.lastReminderSent,
     this.isOldDebt = 0,
+    this.amountPaid = 0.0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -88,6 +92,7 @@ class Loan {
       reminderDays: map['reminderDays'] as int?,
       lastReminderSent: map['lastReminderSent'] != null ? DateTime.parse(map['lastReminderSent'] as String) : null,
       isOldDebt: (map['isOldDebt'] as int?) ?? 0,
+      amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
     );
@@ -110,6 +115,7 @@ class Loan {
       reminderDays: json['reminderDays'] as int?,
       lastReminderSent: json['lastReminderSent'] != null ? DateTime.tryParse(json['lastReminderSent']) : null,
       isOldDebt: json['isOldDebt'] ?? 0,
+      amountPaid: (json['amountPaid'] as num?)?.toDouble() ?? 0.0,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.parse(json['createdAt']),
     );
@@ -132,6 +138,7 @@ class Loan {
       'reminderDays': reminderDays,
       'lastReminderSent': lastReminderSent?.toIso8601String(),
       'isOldDebt': isOldDebt,
+      'amountPaid': amountPaid,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -153,6 +160,7 @@ class Loan {
     int? reminderDays,
     DateTime? lastReminderSent,
     int? isOldDebt,
+    double? amountPaid,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -171,6 +179,7 @@ class Loan {
       reminderDays: reminderDays ?? this.reminderDays,
       lastReminderSent: lastReminderSent ?? this.lastReminderSent,
       isOldDebt: isOldDebt ?? this.isOldDebt,
+      amountPaid: amountPaid ?? this.amountPaid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -190,6 +199,18 @@ class Loan {
 
   /// Kiểm tra xem khoản vay có bị quá hạn không
   bool get isOverdue => status == 'overdue';
+
+  /// Số tiền còn lại cần trả
+  double get remainingAmount => amount - amountPaid;
+
+  /// Phần trăm đã trả (0-100)
+  double get paymentProgress => amount > 0 ? (amountPaid / amount * 100) : 0;
+
+  /// Kiểm tra xem đã trả một phần chưa
+  bool get hasPartialPayment => amountPaid > 0 && amountPaid < amount;
+
+  /// Kiểm tra xem đã trả đủ chưa
+  bool get isFullyPaid => amountPaid >= amount;
 
   /// Kiểm tra xem khoản vay có quá hạn theo ngày không (tính toán thời gian thực)
   bool get isOverdueByDate {

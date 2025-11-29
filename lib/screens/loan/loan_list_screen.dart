@@ -13,6 +13,7 @@ import '../home/home_colors.dart';
 import '../add_loan/add_loan_page.dart';
 import 'loan_detail_screen.dart';
 import 'edit_loan_screen.dart';
+import 'partial_payment_screen.dart';
 import '../main_navigation_wrapper.dart';
 import 'widgets/loan_summary_card.dart';
 import 'widgets/loan_card_widget.dart';
@@ -563,6 +564,24 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
   }
 
   Future<void> _navigateToEditLoan(Loan loan) async {
+    // Check if loan is already paid
+    if (loan.status == 'completed' || loan.status == 'paid') {
+      return;
+    }
+
+    // Check if loan has any partial payment
+    if (loan.amountPaid > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('🔒 Không thể chỉnh sửa khoản vay đã có thanh toán một phần'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+        ),
+      );
+      return;
+    }
+
     debugPrint('🚀 Navigating to EditLoanScreen for loan: ${loan.id}');
 
     final result = await Navigator.push<bool>(
@@ -595,7 +614,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
     if (loan.status == 'completed' || loan.status == 'paid') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚠️ Khoản vay này đã được thanh toán rồi!'),
+          content: const Text('⚠️ Khoản vay này đã được thanh toán đầy đủ!'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -604,193 +623,32 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
       return;
     }
 
-    // Show confirmation dialog
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    // Navigate to partial payment screen
+    debugPrint('🚀 Navigating to PartialPaymentScreen for loan ${loan.id}...');
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          '💰 Xác nhận thanh toán',
-          style: TextStyle(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              loan.loanType == 'lend'
-                  ? 'Xác nhận rằng ${loan.personName} đã trả nợ?'
-                  : 'Xác nhận rằng bạn đã trả nợ cho ${loan.personName}?',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _getLoanColor(loan).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.attach_money,
-                    color: _getLoanColor(loan),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Số tiền: ${CurrencyFormatter.formatAmount(loan.amount)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: _getLoanColor(loan),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              loan.loanType == 'lend'
-                  ? '✅ Số dư sẽ được cộng thêm ${CurrencyFormatter.formatAmount(loan.amount)}'
-                  : '⚠️ Số dư sẽ bị trừ ${CurrencyFormatter.formatAmount(loan.amount)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Hủy',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50), // Green for success
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Xác nhận',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PartialPaymentScreen(loan: loan),
       ),
     );
 
-    if (confirmed != true) return;
+    debugPrint('🔄 Returned from PartialPaymentScreen with result: $result');
 
-    // Show loading
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Center(
-        child: Card(
-          color: colorScheme.surfaceContainerHighest,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Đang xử lý...',
-                  style: TextStyle(color: colorScheme.onSurface),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      // Create payment transaction
-      final transactionType = loan.loanType == 'lend' ? 'debt_collected' : 'debt_paid';
-      final description = loan.loanType == 'lend'
-          ? 'Thu hồi nợ từ ${loan.personName}'
-          : 'Trả nợ cho ${loan.personName}';
-
-      final paymentTransaction = transaction_model.Transaction(
-        amount: loan.amount,
-        description: description,
-        date: DateTime.now(),
-        categoryId: null,
-        loanId: loan.id,
-        type: transactionType,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Mark loan as paid
-      await _loanRepository.markLoanAsPaid(
-        loanId: loan.id!,
-        paymentTransaction: paymentTransaction,
-      );
-
-      debugPrint('✅ Loan ${loan.id} marked as paid successfully');
-
-      // ✅ REALTIME: Notify provider to cancel reminders and update badge
-      if (mounted) {
-        final notificationProvider = context.read<NotificationProvider>();
-        debugPrint('🔔 Notifying provider about paid loan: ${loan.id}');
-        await notificationProvider.onLoanPaid(loan.id!);
-      }
-
-      // Reload loan list
+    // ✅ REALTIME: Reload loan list if payment was made
+    if (result == true) {
       await _loadLoans();
 
-      // Trigger HomePage reload
+      // ✅ REALTIME: Trigger HomePage reload to update balance
       mainNavigationKey.currentState?.refreshHomePage();
 
-      if (!mounted) return;
-
-      // Close loading dialog
-      Navigator.of(context).pop();
-    } catch (e) {
-      debugPrint('❌ Error marking loan as paid: $e');
-
-      if (!mounted) return;
-
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Lỗi: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      // Check if loan is now fully paid and handle notifications
+      final updatedLoan = await _loanRepository.getLoanById(loan.id!);
+      if (updatedLoan?.status == 'paid') {
+        final notificationProvider = context.read<NotificationProvider>();
+        debugPrint('🔔 Notifying provider about fully paid loan: ${loan.id}');
+        await notificationProvider.onLoanPaid(loan.id!);
+      }
     }
   }
 

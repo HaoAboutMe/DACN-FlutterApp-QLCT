@@ -6,6 +6,7 @@ import '../../utils/currency_formatter.dart';
 import '../../database/repositories/repositories.dart';
 import '../../providers/notification_provider.dart';
 import 'edit_loan_screen.dart';
+import 'partial_payment_screen.dart';
 import '../main_navigation_wrapper.dart';
 
 /// LoanDetailScreen - Màn hình chi tiết khoản vay/đi vay
@@ -118,6 +119,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         ),
       );
+      return;
+    }
+
+    // Check if loan has any partial payment
+    if (_loan!.amountPaid > 0) {
       return;
     }
 
@@ -495,6 +501,50 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     }
   }
 
+  Future<void> _navigateToPartialPayment() async {
+    if (_loan == null) return;
+
+    // Check if loan is already paid
+    if (_loan!.status == 'completed' || _loan!.status == 'paid') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Khoản vay này đã được thanh toán đầy đủ!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
+    debugPrint('🚀 Navigating to PartialPaymentScreen...');
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PartialPaymentScreen(loan: _loan!),
+      ),
+    );
+
+    debugPrint('🔄 Returned from PartialPaymentScreen with result: $result');
+
+    // ✅ REALTIME: Reload loan data if payment was made
+    if (result == true) {
+      await _loadLoanData();
+      _dataWasModified = true; // Mark that data was modified
+
+      // ✅ REALTIME: Trigger HomePage reload to update balance
+      mainNavigationKey.currentState?.refreshHomePage();
+
+      // Check if loan is now fully paid and handle notifications
+      if (_loan?.status == 'paid') {
+        final notificationProvider = context.read<NotificationProvider>();
+        debugPrint('🔔 Notifying provider about fully paid loan: ${_loan!.id}');
+        await notificationProvider.onLoanPaid(_loan!.id!);
+      }
+    }
+  }
+
   Widget _buildInfoRow({
     required IconData icon,
     required String label,
@@ -632,7 +682,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              (_loan?.status == 'completed' || _loan?.status == 'paid')
+              (_loan?.status == 'completed' || _loan?.status == 'paid' || (_loan?.amountPaid ?? 0) > 0)
                 ? Icons.lock
                 : Icons.edit,
               color: colorScheme.onSurface,
@@ -640,7 +690,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             onPressed: _navigateToEditLoan,
             tooltip: (_loan?.status == 'completed' || _loan?.status == 'paid')
                 ? 'Không thể chỉnh sửa khoản vay đã thanh toán'
-                : 'Chỉnh sửa',
+                : (_loan?.amountPaid ?? 0) > 0
+                    ? 'Không thể chỉnh sửa khoản vay đã có thanh toán một phần'
+                    : 'Chỉnh sửa',
           ),
           IconButton(
             icon: Icon(Icons.delete, color: colorScheme.onSurface),
@@ -843,6 +895,70 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                               color: _getLoanColor(),
                             ),
                           ),
+                          // Show partial payment progress if there's any payment
+                          if (_loan!.amountPaid > 0) ...[
+                            const SizedBox(height: 12),
+                            _buildInfoRow(
+                              icon: Icons.payments,
+                              label: 'Đã trả',
+                              value: CurrencyFormatter.formatAmount(_loan!.amountPaid),
+                              valueStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildInfoRow(
+                              icon: Icons.pending_actions,
+                              label: 'Còn lại',
+                              value: CurrencyFormatter.formatAmount(_loan!.remainingAmount),
+                              valueStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Progress bar
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Tiến độ thanh toán',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${_loan!.paymentProgress.toStringAsFixed(1)}%',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: _getLoanColor(),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: _loan!.paymentProgress / 100,
+                                    minHeight: 8,
+                                    backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                                    valueColor: AlwaysStoppedAnimation<Color>(_getLoanColor()),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 12),
                           _buildInfoRow(
                             icon: Icons.calendar_today,
                             label: 'Ngày cho vay',
@@ -902,18 +1018,26 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   ),
                 ),
       floatingActionButton: _loan != null && _loan!.status != 'completed' && _loan!.status != 'paid'
-          ? FloatingActionButton.extended(
-              onPressed: _markLoanAsPaid,
-              backgroundColor: const Color(0xFF4CAF50), // Green for success
-              heroTag: 'markPaid',
-              icon: const Icon(Icons.check_circle, color: Colors.white),
-              label: Text(
-                _loan!.loanType == 'lend' ? 'Đã thu nợ' : 'Đã trả nợ',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Partial payment button
+                FloatingActionButton.extended(
+                  onPressed: _navigateToPartialPayment,
+                  backgroundColor: _getLoanColor(),
+                  heroTag: 'partialPayment',
+                  icon: const Icon(Icons.payments, color: Colors.white),
+                  label: const Text(
+                    'Trả 1 phần',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
             )
           : null,
       ), // Close PopScope

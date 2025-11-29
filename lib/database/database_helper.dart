@@ -33,7 +33,7 @@ class DatabaseHelper {
 
   // Thông tin database
   static const String _databaseName = 'expense_tracker.db';
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 5;
 
   // Tên các bảng
   static const String _tableUsers = 'users';
@@ -84,6 +84,7 @@ class DatabaseHelper {
   static const String _colLoanReminderDays = 'reminderDays';
   static const String _colLoanLastReminderSent = 'lastReminderSent';
   static const String _colLoanIsOldDebt = 'isOldDebt';
+  static const String _colLoanAmountPaid = 'amountPaid';
   static const String _colLoanCreatedAt = 'createdAt';
   static const String _colLoanUpdatedAt = 'updatedAt';
 
@@ -179,6 +180,7 @@ class DatabaseHelper {
           $_colLoanReminderDays INTEGER,
           $_colLoanLastReminderSent TEXT,
           $_colLoanIsOldDebt INTEGER NOT NULL DEFAULT 0 CHECK ($_colLoanIsOldDebt IN (0, 1)),
+          $_colLoanAmountPaid REAL NOT NULL DEFAULT 0 CHECK ($_colLoanAmountPaid >= 0),
           $_colLoanCreatedAt TEXT NOT NULL,
           $_colLoanUpdatedAt TEXT NOT NULL
         )
@@ -352,7 +354,15 @@ class DatabaseHelper {
         }
       }
 
-      log('Nâng cấp database hoàn tất');
+      if (oldVersion < 5) {
+        await db.execute('''
+          ALTER TABLE $_tableLoans 
+          ADD COLUMN $_colLoanAmountPaid REAL NOT NULL DEFAULT 0 CHECK ($_colLoanAmountPaid >= 0)
+        ''');
+        log('Đã thêm cột amountPaid vào bảng loans để hỗ trợ partial payment');
+      }
+
+      log('Nâng cấp database thành công đến phiên bản $newVersion');
     } catch (e) {
       log('Lỗi nâng cấp database: $e');
       rethrow;

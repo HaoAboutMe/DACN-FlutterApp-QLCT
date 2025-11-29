@@ -189,6 +189,20 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         return;
       }
 
+      // Validate balance for expense transactions
+      if (_selectedType == 'expense') {
+        final currentUserId = await _userRepository.getCurrentUserId();
+        final currentUser = await _userRepository.getUserById(currentUserId);
+
+        if (currentUser != null && amountInVND > currentUser.balance) {
+          setState(() {
+            _isLoading = false;
+          });
+          _showErrorSnackBar('Số tiền chi tiêu vượt quá số dư hiện tại (${CurrencyFormatter.formatAmount(currentUser.balance)})');
+          return;
+        }
+      }
+
       final description = _descriptionController.text.trim();
 
       final transaction = transaction_model.Transaction(
@@ -261,7 +275,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       ),
     );
   }
