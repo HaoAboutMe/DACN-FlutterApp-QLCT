@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../home_colors.dart';
 import '../home_icons.dart';
 import '../../../models/quick_action_shortcut.dart';
+import '../../../models/transaction.dart' as transaction_model;
 import '../../../services/quick_action_service.dart';
+import '../../../database/repositories/repositories.dart';
 import '../../../utils/icon_helper.dart';
 import '../../add_transaction/add_transaction_page.dart';
 import '../../budget/add_budget_screen.dart';
@@ -56,19 +58,101 @@ class _QuickActionsState extends State<QuickActions> {
   }
 
   Future<void> _handleShortcutPress(QuickActionShortcut shortcut) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddTransactionPage(
-          preselectedType: shortcut.type,
-          preselectedCategoryId: shortcut.categoryId,
-          preselectedDescription: shortcut.description,
+    // Chế độ 1: Template Mode - Dẫn đến Add Transaction với thông tin đã điền sẵn
+    if (shortcut.isTemplateMode) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddTransactionPage(
+            preselectedType: shortcut.type,
+            preselectedCategoryId: shortcut.categoryId,
+            preselectedDescription: shortcut.displayDescription,
+          ),
         ),
-      ),
-    );
+      );
 
-    if (result == true && widget.onTransactionAdded != null) {
-      widget.onTransactionAdded!();
+      if (result == true && widget.onTransactionAdded != null) {
+        widget.onTransactionAdded!();
+      }
+    }
+    // Chế độ 2: Quick Add Mode - Thêm trực tiếp transaction không qua màn hình trung gian
+    else if (shortcut.isQuickAddMode) {
+      try {
+        // Create transaction
+        final transaction = transaction_model.Transaction(
+          amount: shortcut.amount!,
+          description: shortcut.displayDescription,
+          date: DateTime.now(),
+          categoryId: shortcut.categoryId,
+          type: shortcut.type,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        // Insert transaction vào database
+        final transactionRepository = TransactionRepository();
+        await transactionRepository.insertTransaction(transaction);
+
+        debugPrint('✅ Quick Add: Transaction inserted successfully');
+
+        // ⚠️ QUAN TRỌNG: Cập nhật balance của user
+        final userRepository = UserRepository();
+        final currentUserId = await userRepository.getCurrentUserId();
+        final currentUser = await userRepository.getUserById(currentUserId);
+
+        if (currentUser != null) {
+          double balanceChange = 0;
+          if (shortcut.type == 'income') {
+            balanceChange = shortcut.amount!;
+          } else if (shortcut.type == 'expense') {
+            balanceChange = -shortcut.amount!;
+          }
+
+          if (balanceChange != 0) {
+            final newBalance = currentUser.balance + balanceChange;
+            final updatedUser = currentUser.copyWith(balance: newBalance);
+            await userRepository.updateUser(updatedUser);
+            debugPrint('✅ Quick Add: Updated balance from ${currentUser.balance} to $newBalance');
+          }
+        }
+
+        debugPrint('✅ Quick Add transaction successful: ${shortcut.displayDescription} - ${shortcut.amount}');
+
+        // Hiển thị thông báo thành công
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Đã thêm ${shortcut.type == "income" ? "thu nhập" : "chi tiêu"}: ${shortcut.displayDescription}',
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+            ),
+          );
+
+          // Gọi callback để refresh trang chủ
+          if (widget.onTransactionAdded != null) {
+            widget.onTransactionAdded!();
+            debugPrint('🔄 Quick Add: Called onTransactionAdded callback to refresh home page');
+          } else {
+            debugPrint('⚠️ Quick Add: onTransactionAdded callback is null!');
+          }
+        }
+      } catch (e) {
+        debugPrint('❌ Error adding quick transaction: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Lỗi: Không thể thêm giao dịch - $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -201,7 +285,7 @@ class _QuickActionsState extends State<QuickActions> {
                       child: _shortcuts.isNotEmpty
                           ? QuickActionCard(
                               icon: IconHelper.getCategoryIcon(_shortcuts[0].categoryIcon),
-                              title: _shortcuts[0].categoryName,
+                              title: _shortcuts[0].displayDescription,
                               color: _shortcuts[0].type == 'income'
                                   ? HomeColors.income
                                   : HomeColors.expense,
@@ -221,7 +305,7 @@ class _QuickActionsState extends State<QuickActions> {
                       child: _shortcuts.length > 1
                           ? QuickActionCard(
                               icon: IconHelper.getCategoryIcon(_shortcuts[1].categoryIcon),
-                              title: _shortcuts[1].categoryName,
+                              title: _shortcuts[1].displayDescription,
                               color: _shortcuts[1].type == 'income'
                                   ? HomeColors.income
                                   : HomeColors.expense,
@@ -241,7 +325,7 @@ class _QuickActionsState extends State<QuickActions> {
                       child: _shortcuts.length > 2
                           ? QuickActionCard(
                               icon: IconHelper.getCategoryIcon(_shortcuts[2].categoryIcon),
-                              title: _shortcuts[2].categoryName,
+                              title: _shortcuts[2].displayDescription,
                               color: _shortcuts[2].type == 'income'
                                   ? HomeColors.income
                                   : HomeColors.expense,

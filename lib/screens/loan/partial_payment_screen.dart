@@ -107,16 +107,17 @@ class _PartialPaymentScreenState extends State<PartialPaymentScreen> {
 
   void _onAmountChanged(String value) {
     if (value.isEmpty) {
-      setState(() {
-        _paymentAmount = null;
-      });
+      setState(() => _paymentAmount = null);
       return;
     }
 
-    // Use CurrencyFormatter.parseAmount for consistency with add_transaction
-    final amount = CurrencyFormatter.parseAmount(value);
+    final raw = CurrencyFormatter.parseAmount(value);
+    final currencyProvider = context.read<CurrencyProvider>();
+
+    final amountVND = currencyProvider.convertToVND(raw);
+
     setState(() {
-      _paymentAmount = amount > 0 ? amount : null;
+      _paymentAmount = amountVND > 0 ? amountVND : null;
     });
   }
 
