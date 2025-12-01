@@ -147,9 +147,45 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       },
     );
 
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null) {
       setState(() {
-        _selectedDate = picked;
+        // Preserve the time component when changing date
+        _selectedDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDate.hour,
+          _selectedDate.minute,
+        );
+      });
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDate),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          picked.hour,
+          picked.minute,
+        );
       });
     }
   }
@@ -740,7 +776,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ngày giao dịch',
+            'Ngày và giờ giao dịch',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -748,31 +784,70 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             ),
           ),
           const SizedBox(height: 12),
-          InkWell(
-            onTap: _selectDate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
-                borderRadius: BorderRadius.circular(12),
-                color: colorScheme.surface,
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_today, color: colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: colorScheme.onSurface,
+          Row(
+            children: [
+              // Date picker
+              Expanded(
+                child: InkWell(
+                  onTap: _selectDate,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+                      borderRadius: BorderRadius.circular(12),
+                      color: colorScheme.surface,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today, color: colorScheme.onSurfaceVariant, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              // Time picker
+              Expanded(
+                child: InkWell(
+                  onTap: _selectTime,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+                      borderRadius: BorderRadius.circular(12),
+                      color: colorScheme.surface,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.access_time, color: colorScheme.onSurfaceVariant, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
