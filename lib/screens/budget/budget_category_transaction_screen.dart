@@ -154,6 +154,7 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
         builder: (context) => AddTransactionPage(
           preselectedType: 'expense',
           preselectedCategoryId: widget.categoryId,
+          preselectedDescription: widget.categoryName,
         ),
       ),
     );
