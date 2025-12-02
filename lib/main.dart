@@ -12,6 +12,7 @@ import 'services/widget_service.dart';
 import 'database/repositories/repositories.dart';
 import 'screens/initial_setup/initial_screen.dart';
 import 'screens/main_navigation_wrapper.dart';
+import 'screens/backup/backup_restore_screen.dart';
 import 'utils/currency_formatter.dart';
 
 void main() async {
@@ -131,6 +132,7 @@ class MyApp extends StatelessWidget {
               initialIndex: pendingWidgetTabNotifier.value ?? 0,
             ),
             '/initial': (context) => const InitialScreen(),
+            '/backup-restore': (context) => const BackupRestoreScreen(),
           },
           debugShowCheckedModeBanner: false, // Remove debug banner
         );
