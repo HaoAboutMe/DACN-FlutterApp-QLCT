@@ -89,10 +89,12 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
           Text(
             'Xin chào, ${currentUser?.name ?? 'bạn'}!',
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 1),
           Text(
@@ -102,6 +104,8 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
               fontWeight: FontWeight.normal,
               color: Colors.white70,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

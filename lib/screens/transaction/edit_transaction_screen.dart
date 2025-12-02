@@ -256,10 +256,15 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
 
       final description = _descriptionController.text.trim();
 
+      // Auto-fill description with category name if empty
+      final finalDescription = description.isEmpty && _selectedCategoryId != null
+          ? _filteredCategories.firstWhere((c) => c.id == _selectedCategoryId).name
+          : description;
+
       // Create updated transaction
       final updatedTransaction = widget.transaction.copyWith(
         amount: amountInVND, // Sử dụng amount đã chuyển đổi về VND
-        description: description,
+        description: finalDescription,
         date: _selectedDate,
         categoryId: _selectedCategoryId,
         type: _selectedType,
@@ -681,9 +686,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
             ),
             style: TextStyle(color: colorScheme.onSurface),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Vui lòng nhập mô tả';
-              }
               return null;
             },
           ),
@@ -818,6 +820,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
             children: [
               // Date picker
               Expanded(
+                flex: 3,
                 child: InkWell(
                   onTap: _selectDate,
                   child: Container(
@@ -833,7 +836,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                            '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                             style: TextStyle(
                               fontSize: 16,
                               color: colorScheme.onSurface,
@@ -849,6 +852,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
               const SizedBox(width: 12),
               // Time picker
               Expanded(
+                flex: 2,
                 child: InkWell(
                   onTap: _selectTime,
                   child: Container(
