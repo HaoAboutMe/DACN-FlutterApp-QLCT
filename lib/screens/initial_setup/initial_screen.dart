@@ -481,6 +481,7 @@ class _InitialScreenState extends State<InitialScreen> {
               ),
               child: TextField(
                 controller: _nameController,
+                maxLength: 30,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
@@ -491,6 +492,7 @@ class _InitialScreenState extends State<InitialScreen> {
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
                   prefixIcon: Icon(Icons.person_outline, color: Colors.grey[400]),
+                  counterText: '',
                 ),
               ),
             ),

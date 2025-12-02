@@ -84,6 +84,7 @@ class ProfileExpandedHeader extends StatelessWidget {
                   controller: nameController,
                   textAlign: TextAlign.center,
                   autofocus: true,
+                  maxLength: 30,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -93,6 +94,7 @@ class ProfileExpandedHeader extends StatelessWidget {
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
                     isDense: true,
+                    counterText: '',
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
