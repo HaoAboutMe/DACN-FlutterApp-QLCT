@@ -9,6 +9,7 @@ class ProfileSettingsList extends StatelessWidget {
   final VoidCallback onNavigateToAbout;
   final VoidCallback onNavigateToUserGuide;
   final VoidCallback onManageShortcutsTap;
+  final VoidCallback onNavigateToBackupRestore;
   final Function(String) onShowFeatureSnackbar;
   final bool supportsAndroidWidget;
   final bool isWidgetPinned;
@@ -24,6 +25,7 @@ class ProfileSettingsList extends StatelessWidget {
     required this.onNavigateToAbout,
     required this.onNavigateToUserGuide,
     required this.onManageShortcutsTap,
+    required this.onNavigateToBackupRestore,
     required this.onShowFeatureSnackbar,
     required this.supportsAndroidWidget,
     required this.isWidgetPinned,
@@ -37,6 +39,11 @@ class ProfileSettingsList extends StatelessWidget {
         'icon': Icons.widgets_outlined,
         'title': 'Thêm Widget',
         'subtitle': 'Tùy chỉnh widget trên màn hình chính',
+      },
+      {
+        'icon': Icons.cloud_sync_outlined,
+        'title': 'Sao lưu & Khôi phục',
+        'subtitle': 'Xuất dữ liệu hoặc khôi phục từ bản sao lưu',
       },
       {
         'icon': Icons.touch_app,
@@ -289,6 +296,8 @@ class ProfileSettingsList extends StatelessWidget {
           ? onNavigateToUserGuide
           : setting['title'] == 'Quản lý phím tắt'
           ? onManageShortcutsTap
+          : setting['title'] == 'Sao lưu & Khôi phục'
+          ? onNavigateToBackupRestore
           : () => onShowFeatureSnackbar(setting['title'] as String),
     );
   }
