@@ -95,6 +95,7 @@ class _StatisticsContentState extends State<_StatisticsContent> with AutomaticKe
         ),
         centerTitle: true,
         backgroundColor: isDark ? theme.scaffoldBackgroundColor : colorScheme.primary,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(
           color: Theme.of(context).colorScheme.onPrimary,

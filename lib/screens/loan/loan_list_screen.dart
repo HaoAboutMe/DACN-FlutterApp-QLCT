@@ -762,6 +762,7 @@ class _LoanListScreenState extends State<LoanListScreen> with WidgetsBindingObse
           ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
           : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: _isSelectionMode

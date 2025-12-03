@@ -677,6 +677,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           ),
           backgroundColor: theme.scaffoldBackgroundColor,
           foregroundColor: colorScheme.onSurface,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [

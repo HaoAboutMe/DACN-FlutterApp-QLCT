@@ -337,8 +337,18 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sao lưu & Khôi phục'),
+        title: const Text('Sao lưu & Khôi phục',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white
+            )
+        ),
+        backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Theme.of(context).colorScheme.primary,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: _isLoading
           ? const Center(
