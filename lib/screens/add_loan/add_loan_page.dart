@@ -795,10 +795,12 @@ class _AddLoanPageState extends State<AddLoanPage>
           TextFormField(
             controller: _descriptionController,
             maxLines: 3,
+            maxLength: 80,
             decoration: InputDecoration(
               hintText: 'Nhập mô tả cho khoản vay/nợ...',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(Icons.description, color: colorScheme.onSurfaceVariant),
+              counterText: '',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),

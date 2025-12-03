@@ -1418,6 +1418,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
