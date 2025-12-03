@@ -669,10 +669,12 @@ class _EditTransactionScreenState extends State<EditTransactionScreen>
           TextFormField(
             controller: _descriptionController,
             maxLines: 3,
+            maxLength: 70,
             decoration: InputDecoration(
               hintText: 'Nhập mô tả cho giao dịch...',
               hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
               prefixIcon: Icon(Icons.description, color: colorScheme.onSurfaceVariant),
+              counterText: '',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),

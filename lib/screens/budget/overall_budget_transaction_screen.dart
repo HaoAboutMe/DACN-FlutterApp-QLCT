@@ -458,6 +458,8 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
         title: Text(
           transaction.description,
           style: const TextStyle(fontWeight: FontWeight.w600),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

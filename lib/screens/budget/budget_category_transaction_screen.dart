@@ -419,6 +419,8 @@ class _BudgetCategoryTransactionScreenState extends State<BudgetCategoryTransact
         title: Text(
           transaction.description,
           style: const TextStyle(fontWeight: FontWeight.w600),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           dateFormat.format(transaction.date),
