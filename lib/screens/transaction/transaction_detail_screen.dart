@@ -310,6 +310,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         ),
         backgroundColor: theme.scaffoldBackgroundColor,
         foregroundColor: colorScheme.onSurface,
+          surfaceTintColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [

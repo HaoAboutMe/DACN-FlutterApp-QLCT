@@ -256,6 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       pinned: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       foregroundColor: Theme.of(context).scaffoldBackgroundColor,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       stretch: true,
       collapsedHeight: 90.0,

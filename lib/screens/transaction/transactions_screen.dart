@@ -882,6 +882,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> with WidgetsBin
             ? Theme.of(context).scaffoldBackgroundColor // Dark: Màu cá voi sát thủ
             : Theme.of(context).colorScheme.primary, // Light: Xanh biển
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         // Chỉ hiện leading khi ở chế độ multi-select
         automaticallyImplyLeading: false,

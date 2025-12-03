@@ -30,6 +30,7 @@ class GreetingAppBar extends StatelessWidget implements PreferredSizeWidget {
         ? const Color(0xFF2d3a4a) // Dark: Màu cá voi sát thủ
         : Theme.of(context).colorScheme.primary, // Light: Xanh biển
       elevation: 0,
+      surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: false,
       toolbarHeight: 60,
       flexibleSpace: SafeArea(
