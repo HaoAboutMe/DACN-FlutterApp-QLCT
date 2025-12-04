@@ -642,6 +642,7 @@ class _PartialPaymentScreenState extends State<PartialPaymentScreen> {
         TextFormField(
           controller: _descriptionController,
           maxLines: 3,
+          maxLength: 80,
           decoration: InputDecoration(
             hintText: 'Nhập ghi chú...',
             filled: true,
@@ -657,6 +658,7 @@ class _PartialPaymentScreenState extends State<PartialPaymentScreen> {
                 width: 2,
               ),
             ),
+            counterText: ''
           ),
         ),
       ],
