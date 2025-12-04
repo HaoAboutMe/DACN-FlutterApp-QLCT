@@ -452,12 +452,12 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
           child: Icon(
             IconHelper.getCategoryIcon(categoryIcon),
             color: iconColor,
-            size: 24,
+            size: 27,
           ),
         ),
         title: Text(
           transaction.description,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -468,7 +468,7 @@ class _OverallBudgetTransactionScreenState extends State<OverallBudgetTransactio
               categoryName,
               style: TextStyle(
                 color: Colors.grey[600],
-                fontSize: 12,
+                fontSize: 14,
               ),
             ),
             Text(

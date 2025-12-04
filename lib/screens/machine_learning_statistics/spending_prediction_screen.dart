@@ -84,6 +84,7 @@ class _SpendingPredictionScreenState extends State<SpendingPredictionScreen> {
         centerTitle: true,
         elevation: 0,
         backgroundColor: isDark ? theme.scaffoldBackgroundColor : colorScheme.primary,
+        surfaceTintColor: Colors.transparent,
         iconTheme: IconThemeData(
           color: colorScheme.onPrimary,
         ),
