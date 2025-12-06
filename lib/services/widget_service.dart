@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../database/repositories/repositories.dart';
+import '../models/quick_action_shortcut.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/icon_helper.dart';
+import 'quick_action_service.dart';
 
 /// Service quản lý Android Home Screen Widget
 /// Tính toán và gửi dữ liệu từ SQLite sang Android native widget
@@ -16,6 +19,7 @@ class WidgetService {
   static final UserRepository _userRepo = UserRepository();
   static final LoanRepository _loanRepo = LoanRepository();
   static final CategoryRepository _categoryRepo = CategoryRepository();
+  static final QuickActionService _widgetShortcutService = const QuickActionService.widget();
 
   /// Cập nhật toàn bộ dữ liệu widget
   /// Gọi hàm này khi:
@@ -31,6 +35,7 @@ class WidgetService {
       final now = DateTime.now();
       final startDate = DateTime(now.year, now.month, 1);
       final endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      final monthYear = '${now.month}/${now.year}';
 
       // 2. Lấy tất cả transactions trong tháng
       final allTransactions = await _transactionRepo.getAllTransactions();
@@ -104,6 +109,7 @@ class WidgetService {
               'category_id': category.id ?? 0,
               'type': category.type,
               'icon_image': iconImage,
+              'formatted_amount': CurrencyFormatter.formatAmount(amount),
             });
           }
         }
@@ -112,11 +118,20 @@ class WidgetService {
       debugPrint('💰 Thu nhập: $totalIncome, Chi tiêu: $totalExpense, Số dư: $currentBalance');
       debugPrint('📈 Top categories: ${topCategories.length}');
 
+      final formattedTotalExpense = CurrencyFormatter.formatAmount(totalExpense);
+      final totalExpenseLabel = 'Chi tiêu $monthYear';
+      final quickActionsJson = await _buildQuickActionsPayload();
+      final currencyCode = CurrencyFormatter.getCurrency();
+
       // 7. Lưu dữ liệu vào SharedPreferences (qua home_widget plugin)
       await HomeWidget.saveWidgetData<String>(
           'total_income', totalIncome.toStringAsFixed(0));
       await HomeWidget.saveWidgetData<String>(
           'total_expense', totalExpense.toStringAsFixed(0));
+        await HomeWidget.saveWidgetData<String>(
+          'total_expense_formatted', formattedTotalExpense);
+        await HomeWidget.saveWidgetData<String>(
+          'total_expense_label', totalExpenseLabel);
       await HomeWidget.saveWidgetData<String>(
           'current_balance', currentBalance.toStringAsFixed(0));
       await HomeWidget.saveWidgetData<String>(
@@ -124,13 +139,18 @@ class WidgetService {
       await HomeWidget.saveWidgetData<String>(
           'total_loan_taken', totalLoanTaken.toStringAsFixed(0));
       await HomeWidget.saveWidgetData<String>(
-          'month_year', '${now.month}/${now.year}');
+          'month_year', monthYear);
       await HomeWidget.saveWidgetData<String>(
           'last_update', now.toIso8601String());
+        await HomeWidget.saveWidgetData<String>(
+          'currency_code', currencyCode);
 
       // Top categories dạng JSON string
       await HomeWidget.saveWidgetData<String>(
           'top_categories', jsonEncode(topCategories));
+
+        await HomeWidget.saveWidgetData<String>(
+          'widget_quick_actions', quickActionsJson);
 
       // 8. Trigger cập nhật widget Android
       await HomeWidget.updateWidget(
@@ -168,12 +188,16 @@ class WidgetService {
     try {
       await HomeWidget.saveWidgetData<String>('total_income', null);
       await HomeWidget.saveWidgetData<String>('total_expense', null);
+      await HomeWidget.saveWidgetData<String>('total_expense_formatted', null);
+      await HomeWidget.saveWidgetData<String>('total_expense_label', null);
       await HomeWidget.saveWidgetData<String>('current_balance', null);
       await HomeWidget.saveWidgetData<String>('total_loan_given', null);
       await HomeWidget.saveWidgetData<String>('total_loan_taken', null);
       await HomeWidget.saveWidgetData<String>('month_year', null);
       await HomeWidget.saveWidgetData<String>('last_update', null);
       await HomeWidget.saveWidgetData<String>('top_categories', null);
+      await HomeWidget.saveWidgetData<String>('widget_quick_actions', null);
+      await HomeWidget.saveWidgetData<String>('currency_code', null);
 
       await HomeWidget.updateWidget(
         name: 'SpendingWidgetProvider',
@@ -184,6 +208,47 @@ class WidgetService {
     } catch (e) {
       debugPrint('❌ Error clearing widget data: $e');
     }
+  }
+
+  static Future<String> _buildQuickActionsPayload() async {
+    try {
+      final shortcuts = await _widgetShortcutService.getShortcuts();
+      if (shortcuts.isEmpty) {
+        return '[]';
+      }
+
+      final payload = <Map<String, dynamic>>[];
+      for (int i = 0; i < shortcuts.length; i++) {
+        payload.add(await _serializeShortcut(shortcuts[i], i));
+      }
+      return jsonEncode(payload);
+    } catch (e, stack) {
+      debugPrint('Không thể xây dựng dữ liệu quick action cho widget: $e');
+      debugPrint(stack.toString());
+      return '[]';
+    }
+  }
+
+  static Future<Map<String, dynamic>> _serializeShortcut(
+    QuickActionShortcut shortcut,
+    int fallbackSlot,
+  ) async {
+    final slot = shortcut.id ?? fallbackSlot;
+    final iconImage = await _generateCategoryIconBitmap(shortcut.categoryIcon);
+    return {
+      'slot': slot,
+      'id': slot,
+      'label': shortcut.displayDescription,
+      'type': shortcut.type,
+      'shortcut_type': shortcut.shortcutType,
+      'feature_id': shortcut.featureId,
+      'category_id': shortcut.categoryId ?? -1,
+      'category_name': shortcut.categoryName,
+      'icon': shortcut.categoryIcon,
+      'icon_image': iconImage,
+      'amount': shortcut.amount,
+      'is_quick_add': shortcut.isQuickAddMode,
+    };
   }
 
   static Future<String?> _generateCategoryIconBitmap(String iconName) async {

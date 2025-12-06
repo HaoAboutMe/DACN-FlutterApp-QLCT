@@ -43,15 +43,41 @@ class MainActivity : FlutterActivity() {
         intent?.let {
             if (it.hasExtra("open_tab")) {
                 val tabIndex = it.getIntExtra("open_tab", 0)
+                invokeWidgetMethod("openTab", tabIndex)
+                it.removeExtra("open_tab")
+            }
 
-                // Gửi message cho Flutter để chuyển tab
-                if (widgetChannel != null) {
-                    widgetChannel?.invokeMethod("openTab", tabIndex)
-                } else {
-                    flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                        MethodChannel(messenger, CHANNEL).invokeMethod("openTab", tabIndex)
-                    }
-                }
+            if (it.getBooleanExtra("open_widget_quick_actions", false)) {
+                invokeWidgetMethod("openWidgetShortcutManager", null)
+                it.removeExtra("open_widget_quick_actions")
+            }
+
+            if (it.getBooleanExtra("open_quick_action", false)) {
+                val payload = hashMapOf(
+                    "type" to it.getStringExtra("quick_action_type"),
+                    "shortcut_type" to it.getStringExtra("quick_action_shortcut_type"),
+                    "category_id" to it.getIntExtra("quick_action_category_id", -1),
+                    "category_name" to it.getStringExtra("quick_action_category_name"),
+                    "icon" to it.getStringExtra("quick_action_category_icon"),
+                    "label" to it.getStringExtra("quick_action_label"),
+                    "amount" to it.getDoubleExtra("quick_action_amount", 0.0),
+                    "is_quick_add" to it.getBooleanExtra("quick_action_is_quick_add", false),
+                    "feature_id" to it.getStringExtra("quick_action_feature_id"),
+                    "slot" to it.getIntExtra("quick_action_slot", -1)
+                )
+
+                invokeWidgetMethod("handleQuickAction", payload)
+                it.removeExtra("open_quick_action")
+            }
+        }
+    }
+
+    private fun invokeWidgetMethod(method: String, arguments: Any?) {
+        if (widgetChannel != null) {
+            widgetChannel?.invokeMethod(method, arguments)
+        } else {
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, CHANNEL).invokeMethod(method, arguments)
             }
         }
     }

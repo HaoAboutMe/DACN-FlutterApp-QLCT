@@ -425,6 +425,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
+  void _navigateToWidgetShortcuts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManageShortcutsScreen.widget(),
+      ),
+    );
+  }
+
   /// Navigate to Backup & Restore Screen
   void _navigateToBackupRestore() {
     Navigator.push(
@@ -460,6 +469,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           onNavigateToAbout: _navigateToAbout,
           onNavigateToUserGuide: _navigateToUserGuide,
           onManageShortcutsTap: _navigateToManageShortcuts,
+          onManageWidgetShortcutsTap: _navigateToWidgetShortcuts,
           onNavigateToBackupRestore: _navigateToBackupRestore,
           onShowFeatureSnackbar: _showFeatureSnackbar,
           supportsAndroidWidget: _supportsAndroidWidget,
