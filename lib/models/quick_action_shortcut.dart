@@ -5,31 +5,39 @@
 /// 2. Quick Add Mode (amount != null): Thêm trực tiếp transaction không cần màn hình trung gian
 class QuickActionShortcut {
   final int? id; // Local ID (0, 1, 2)
-  final String type; // 'income' hoặc 'expense'
-  final int categoryId;
+  final String type; // 'income', 'expense' hoặc 'feature'
+  final int? categoryId;
   final String categoryName;
   final String categoryIcon;
   final String? description; // Mô tả tùy chỉnh (nếu null, dùng categoryName)
   final double? amount; // Số tiền (nếu null = Template Mode, nếu có giá trị = Quick Add Mode)
+  final String shortcutType; // 'category' hoặc 'feature'
+  final String? featureId;
 
   QuickActionShortcut({
     this.id,
     required this.type,
-    required this.categoryId,
     required this.categoryName,
     required this.categoryIcon,
     this.description,
     this.amount,
+    this.categoryId,
+    this.shortcutType = 'category',
+    this.featureId,
   });
 
   /// Lấy mô tả hiển thị: Ưu tiên description tùy chỉnh, không có thì dùng categoryName
   String get displayDescription => description?.isNotEmpty == true ? description! : categoryName;
 
   /// Kiểm tra có phải Quick Add Mode (có số tiền) hay không
-  bool get isQuickAddMode => amount != null && amount! > 0;
+  bool get isQuickAddMode => isCategoryShortcut && amount != null && amount! > 0;
 
   /// Kiểm tra có phải Template Mode (không có số tiền) hay không
-  bool get isTemplateMode => !isQuickAddMode;
+  bool get isTemplateMode => isCategoryShortcut && !isQuickAddMode;
+
+  bool get isFeatureShortcut => shortcutType == 'feature';
+
+  bool get isCategoryShortcut => shortcutType != 'feature';
 
   // Convert to JSON for SharedPreferences
   Map<String, dynamic> toJson() {
@@ -41,6 +49,8 @@ class QuickActionShortcut {
       'categoryIcon': categoryIcon,
       'description': description,
       'amount': amount,
+      'shortcutType': shortcutType,
+      'featureId': featureId,
     };
   }
 
@@ -49,11 +59,13 @@ class QuickActionShortcut {
     return QuickActionShortcut(
       id: json['id'] as int?,
       type: json['type'] as String,
-      categoryId: json['categoryId'] as int,
+      categoryId: json['categoryId'] as int?,
       categoryName: json['categoryName'] as String,
       categoryIcon: json['categoryIcon'] as String,
       description: json['description'] as String?,
       amount: json['amount'] != null ? (json['amount'] as num).toDouble() : null,
+      shortcutType: (json['shortcutType'] as String?) ?? 'category',
+      featureId: json['featureId'] as String?,
     );
   }
 
@@ -66,6 +78,8 @@ class QuickActionShortcut {
     String? description,
     double? amount,
     bool clearAmount = false, // Flag để clear amount về null
+    String? shortcutType,
+    String? featureId,
   }) {
     return QuickActionShortcut(
       id: id ?? this.id,
@@ -75,6 +89,8 @@ class QuickActionShortcut {
       categoryIcon: categoryIcon ?? this.categoryIcon,
       description: description ?? this.description,
       amount: clearAmount ? null : (amount ?? this.amount),
+      shortcutType: shortcutType ?? this.shortcutType,
+      featureId: featureId ?? this.featureId,
     );
   }
 }

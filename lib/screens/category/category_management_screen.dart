@@ -16,7 +16,8 @@ class CategoryManagementScreen extends StatefulWidget {
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> with SingleTickerProviderStateMixin {
   final CategoryRepository _categoryRepository = CategoryRepository();
-  final QuickActionService _quickActionService = QuickActionService();
+  final QuickActionService _quickActionService = const QuickActionService();
+  final QuickActionService _widgetQuickActionService = const QuickActionService.widget();
   late TabController _tabController;
 
   // Raw data from database (not filtered)
@@ -206,6 +207,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
             await _categoryRepository.deleteCategory(categoryId);
             // Also remove any shortcuts associated with this category
             await _quickActionService.removeShortcutsWithCategory(categoryId);
+            await _widgetQuickActionService.removeShortcutsWithCategory(categoryId);
             successCount++;
           } catch (e) {
             failCount++;
@@ -321,6 +323,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> wit
 
         // Also remove any shortcuts associated with this category
         await _quickActionService.removeShortcutsWithCategory(category.id!);
+        await _widgetQuickActionService.removeShortcutsWithCategory(category.id!);
 
         _loadCategories();
       } catch (e) {

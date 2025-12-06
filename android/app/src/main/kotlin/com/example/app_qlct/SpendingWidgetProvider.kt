@@ -8,10 +8,16 @@ import android.app.PendingIntent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.os.Build
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
+import java.util.Locale
+import java.text.NumberFormat
 import es.antonborri.home_widget.HomeWidgetPlugin
 import org.json.JSONArray
 
@@ -24,6 +30,13 @@ class SpendingWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val TAG = "SpendingWidget"
         private const val CHART_SIZE_DP = 104
+        private val quickActionSlots = listOf(
+            QuickActionSlot(R.id.quick_action_slot_1, R.id.quick_action_icon_1, R.id.quick_action_label_1, 0),
+            QuickActionSlot(R.id.quick_action_slot_2, R.id.quick_action_icon_2, R.id.quick_action_label_2, 1),
+            QuickActionSlot(R.id.quick_action_slot_3, R.id.quick_action_icon_3, R.id.quick_action_label_3, 2),
+            QuickActionSlot(R.id.quick_action_slot_4, R.id.quick_action_icon_4, R.id.quick_action_label_4, 3),
+            QuickActionSlot(R.id.quick_action_slot_5, R.id.quick_action_icon_5, R.id.quick_action_label_5, 4)
+        )
     }
 
     override fun onUpdate(
@@ -60,6 +73,12 @@ class SpendingWidgetProvider : AppWidgetProvider() {
             // Đọc dữ liệu từ SharedPreferences
             val prefs = HomeWidgetPlugin.getData(context)
             val lastUpdate = prefs.getString("last_update", null)
+            val totalExpenseDisplay = prefs.getString("total_expense_formatted", "₫0") ?: "₫0"
+            val totalExpenseLabel = prefs.getString("total_expense_label", "Chi tiêu tháng này") ?: "Chi tiêu tháng này"
+
+            val quickActionsJson = prefs.getString("widget_quick_actions", "[]") ?: "[]"
+            val quickActions = parseQuickActions(quickActionsJson)
+            bindQuickActions(context, views, quickActions, appWidgetId)
 
             if (lastUpdate != null && lastUpdate.isNotEmpty()) {
                 // CÓ DỮ LIỆU
@@ -83,7 +102,14 @@ class SpendingWidgetProvider : AppWidgetProvider() {
                     }
 
                     if (colors.isNotEmpty()) {
-                        drawPieChart(context, views, categories.take(colors.size), colors)
+                        drawPieChart(
+                            context,
+                            views,
+                            categories.take(colors.size),
+                            colors,
+                            totalExpenseLabel,
+                            totalExpenseDisplay
+                        )
                     }
 
                     views.setViewVisibility(R.id.widget_content_container, View.VISIBLE)
@@ -139,7 +165,8 @@ class SpendingWidgetProvider : AppWidgetProvider() {
                             icon = obj.optString("icon"),
                             categoryId = obj.optInt("category_id", i),
                             type = obj.optString("type", "expense"),
-                            iconImage = obj.optString("icon_image", null)
+                            iconImage = obj.optString("icon_image", null),
+                            formattedAmount = obj.optString("formatted_amount", null)
                         )
                     )
                 }
@@ -150,11 +177,149 @@ class SpendingWidgetProvider : AppWidgetProvider() {
         return list
     }
 
+    private fun parseQuickActions(json: String): List<QuickActionData> {
+        val list = mutableListOf<QuickActionData>()
+        try {
+            if (json.isNotEmpty() && json != "[]") {
+                val jsonArray = JSONArray(json)
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    val featureValue = obj.optString("feature_id", "")
+                    list.add(
+                        QuickActionData(
+                            slot = obj.optInt("slot", i),
+                            id = obj.optInt("id", i),
+                            label = obj.optString("label", "Tác vụ"),
+                            type = obj.optString("type", "expense"),
+                            shortcutType = obj.optString("shortcut_type", "category"),
+                            featureId = if (featureValue.isBlank()) null else featureValue,
+                            categoryId = obj.optInt("category_id", -1),
+                            categoryName = obj.optString("category_name", ""),
+                            icon = obj.optString("icon"),
+                            iconImage = obj.optString("icon_image", null),
+                            amount = if (obj.has("amount") && !obj.isNull("amount")) obj.getDouble("amount") else null,
+                            isQuickAdd = obj.optBoolean("is_quick_add", false)
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing quick actions", e)
+        }
+        return list
+    }
+
+    private fun bindQuickActions(
+        context: Context,
+        views: RemoteViews,
+        quickActions: List<QuickActionData>,
+        appWidgetId: Int
+    ) {
+        quickActionSlots.forEach { slot ->
+            val action = quickActions.firstOrNull { it.slot == slot.index }
+                ?: quickActions.getOrNull(slot.index)
+
+            if (action != null) {
+                val bitmap = decodeIconBitmap(action.iconImage)
+                if (bitmap != null) {
+                    views.setImageViewBitmap(slot.iconId, bitmap)
+                } else {
+                    views.setImageViewResource(slot.iconId, R.drawable.ic_default_category)
+                }
+                val labelColor = if (action.isQuickAdd) Color.parseColor("#FFD54F") else Color.WHITE
+                views.setTextViewText(slot.labelId, action.label.uppercase(Locale.getDefault()))
+                views.setTextColor(slot.labelId, labelColor)
+                views.setOnClickPendingIntent(
+                    slot.containerId,
+                    createQuickActionPendingIntent(context, appWidgetId, action)
+                )
+            } else {
+                setQuickActionPlaceholder(context, views, slot, appWidgetId)
+            }
+        }
+
+        val hintText = if (quickActions.isEmpty()) {
+            "Chạm để thêm tác vụ"
+        } else {
+            "Nhấn giữ widget để chỉnh"
+        }
+        views.setTextViewText(R.id.widget_quick_action_hint, hintText)
+        views.setOnClickPendingIntent(
+            R.id.widget_quick_actions_container,
+            createWidgetConfigPendingIntent(context, appWidgetId)
+        )
+    }
+
+    private fun setQuickActionPlaceholder(
+        context: Context,
+        views: RemoteViews,
+        slot: QuickActionSlot,
+        appWidgetId: Int
+    ) {
+        views.setImageViewResource(slot.iconId, R.drawable.ic_default_category)
+        views.setTextViewText(slot.labelId, "Thêm")
+        views.setTextColor(slot.labelId, Color.parseColor("#9FB3FF"))
+        views.setOnClickPendingIntent(
+            slot.containerId,
+            createWidgetConfigPendingIntent(context, appWidgetId)
+        )
+    }
+
+    private fun createQuickActionPendingIntent(
+        context: Context,
+        appWidgetId: Int,
+        action: QuickActionData
+    ): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            this.action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("open_quick_action", true)
+            putExtra("quick_action_type", action.type)
+            putExtra("quick_action_category_id", action.categoryId)
+            putExtra("quick_action_category_name", action.categoryName)
+            putExtra("quick_action_category_icon", action.icon)
+            putExtra("quick_action_label", action.label)
+            putExtra("quick_action_amount", action.amount ?: 0.0)
+            putExtra("quick_action_is_quick_add", action.isQuickAdd)
+            putExtra("quick_action_shortcut_type", action.shortcutType)
+            putExtra("quick_action_feature_id", action.featureId)
+            putExtra("quick_action_slot", action.slot)
+            putExtra("trigger_haptic", true)
+        }
+
+        val requestCode = appWidgetId * 100 + action.slot
+        return PendingIntent.getActivity(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createWidgetConfigPendingIntent(context: Context, appWidgetId: Int): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            this.action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("open_widget_quick_actions", true)
+        }
+
+        return PendingIntent.getActivity(
+            context,
+            appWidgetId * 1000,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     private fun drawPieChart(
         context: Context,
         views: RemoteViews,
         categories: List<CategoryData>,
-        colors: List<Int>
+        colors: List<Int>,
+        centerLabel: String?,
+        centerValue: String?
     ) {
         try {
             val chartSize = (CHART_SIZE_DP * context.resources.displayMetrics.density).toInt()
@@ -216,17 +381,29 @@ class SpendingWidgetProvider : AppWidgetProvider() {
             paint.color = 0x3327C9E8
             canvas.drawCircle(centerX, centerY, radius, paint)
 
-            // Nhãn trung tâm
-            val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            val labelText = "TOP\nSPEND"
+            val labelPaint = TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.WHITE
-                textSize = chartSize * 0.16f
-                textAlign = android.graphics.Paint.Align.CENTER
-                typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT_BOLD, android.graphics.Typeface.BOLD)
+                textSize = innerRadius * 0.4f
+                textAlign = android.graphics.Paint.Align.LEFT
+                typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
             }
-            canvas.drawText("TOP", centerX, centerY - 4f, textPaint)
-            textPaint.textSize = chartSize * 0.11f
-            textPaint.color = 0xFF9CECFB.toInt()
-            canvas.drawText("SPEND", centerX, centerY + textPaint.textSize, textPaint)
+
+            val textWidth = (innerRadius * 1.4f).toInt().coerceAtLeast(1)
+            val staticLayout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                StaticLayout.Builder.obtain(labelText, 0, labelText.length, labelPaint, textWidth)
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                    .setIncludePad(false)
+                    .build()
+            } else {
+                @Suppress("DEPRECATION")
+                StaticLayout(labelText, labelPaint, textWidth, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false)
+            }
+
+            canvas.save()
+            canvas.translate(centerX - staticLayout.width / 2f, centerY - staticLayout.height / 2f)
+            staticLayout.draw(canvas)
+            canvas.restore()
 
             // Set bitmap vào ImageView
             views.setImageViewBitmap(R.id.widget_pie_chart, bitmap)
@@ -265,7 +442,7 @@ class SpendingWidgetProvider : AppWidgetProvider() {
             else -> null
         }
 
-        if (rowIds != null && iconId != null && colorBarId != null) {
+        if (rowIds != null && colorBarId != null && iconId != null) {
             val rowText = "${category.percent}%"
 
             views.setViewVisibility(rowIds.first, View.VISIBLE)
@@ -347,6 +524,14 @@ class SpendingWidgetProvider : AppWidgetProvider() {
         return palette[id % palette.size]
     }
 
+    private fun formatAmountFallback(amount: Double): String {
+        return try {
+            NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(amount)
+        } catch (e: Exception) {
+            "₫" + String.format(Locale.getDefault(), "%,.0f", amount)
+        }
+    }
+
     private fun applyAlpha(color: Int, alpha: Float): Int {
         val a = (Color.alpha(color) * alpha).toInt()
         val r = Color.red(color)
@@ -362,6 +547,29 @@ class SpendingWidgetProvider : AppWidgetProvider() {
         val icon: String?,
         val categoryId: Int,
         val type: String?,
-        val iconImage: String?
+        val iconImage: String?,
+        val formattedAmount: String?
+    )
+
+    data class QuickActionSlot(
+        val containerId: Int,
+        val iconId: Int,
+        val labelId: Int,
+        val index: Int
+    )
+
+    data class QuickActionData(
+        val slot: Int,
+        val id: Int,
+        val label: String,
+        val type: String,
+        val shortcutType: String,
+        val featureId: String?,
+        val categoryId: Int,
+        val categoryName: String?,
+        val icon: String?,
+        val iconImage: String?,
+        val amount: Double?,
+        val isQuickAdd: Boolean
     )
 }

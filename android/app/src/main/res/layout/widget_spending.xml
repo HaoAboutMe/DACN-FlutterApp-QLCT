@@ -4,12 +4,210 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#041C32"
+    android:minHeight="220dp"
     android:orientation="vertical"
     android:padding="12dp">
 
     <LinearLayout
+        android:id="@+id/widget_quick_actions_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Tác vụ nhanh"
+                android:textColor="#E0F7FA"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_quick_action_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.7"
+                android:text="Nhấn giữ để chỉnh"
+                android:textColor="#9CECFB"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:id="@+id/quick_action_slot_1"
+                    style="@style/WidgetQuickActionSlot"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/quick_action_icon_1"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/widget_icon_circle_bg"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_default_category" />
+
+                    <TextView
+                        android:id="@+id/quick_action_label_1"
+                        style="@style/WidgetQuickActionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Thêm"
+                        android:textColor="#BFE9FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/quick_action_slot_2"
+                    style="@style/WidgetQuickActionSlot"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/quick_action_icon_2"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/widget_icon_circle_bg"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_default_category" />
+
+                    <TextView
+                        android:id="@+id/quick_action_label_2"
+                        style="@style/WidgetQuickActionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Thêm"
+                        android:textColor="#BFE9FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/quick_action_slot_3"
+                    style="@style/WidgetQuickActionSlot"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/quick_action_icon_3"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/widget_icon_circle_bg"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_default_category" />
+
+                    <TextView
+                        android:id="@+id/quick_action_label_3"
+                        style="@style/WidgetQuickActionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Thêm"
+                        android:textColor="#BFE9FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/quick_action_slot_4"
+                    style="@style/WidgetQuickActionSlot"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/quick_action_icon_4"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/widget_icon_circle_bg"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_default_category" />
+
+                    <TextView
+                        android:id="@+id/quick_action_label_4"
+                        style="@style/WidgetQuickActionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Thêm"
+                        android:textColor="#BFE9FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/quick_action_slot_5"
+                    style="@style/WidgetQuickActionSlot"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/quick_action_icon_5"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/widget_icon_circle_bg"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_default_category" />
+
+                    <TextView
+                        android:id="@+id/quick_action_label_5"
+                        style="@style/WidgetQuickActionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Thêm"
+                        android:textColor="#BFE9FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -18,8 +216,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:maxLines="1"
             android:ellipsize="end"
+            android:maxLines="1"
             android:text="Chi tiêu tháng này"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
@@ -43,9 +241,8 @@
     <LinearLayout
         android:id="@+id/widget_content_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -53,6 +250,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1.3"
+            android:paddingBottom="4dp"
             android:orientation="vertical">
 
             <TextView
@@ -68,15 +266,15 @@
                 android:id="@+id/category_1_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/widget_category_row_bg"
                 android:gravity="center_vertical"
-                android:minHeight="44dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
                 android:paddingStart="8dp"
-                android:paddingTop="8dp"
+                android:paddingTop="6dp"
                 android:paddingEnd="8dp"
-                android:paddingBottom="8dp"
+                android:paddingBottom="6dp"
                 android:visibility="gone">
 
                 <ImageView
@@ -92,9 +290,9 @@
                     android:id="@+id/category_1_icon"
                     android:layout_width="28dp"
                     android:layout_height="28dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="10dp"
                     android:background="@drawable/widget_icon_circle_bg"
-                    android:padding="4dp"
+                    android:padding="5dp"
                     android:scaleType="centerInside"
                     android:src="@drawable/ic_default_category" />
 
@@ -103,8 +301,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:maxLines="1"
                     android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="Ăn uống"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
@@ -125,15 +323,15 @@
                 android:id="@+id/category_2_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:background="@drawable/widget_category_row_bg"
                 android:gravity="center_vertical"
-                android:minHeight="44dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
                 android:paddingStart="8dp"
-                android:paddingTop="8dp"
+                android:paddingTop="6dp"
                 android:paddingEnd="8dp"
-                android:paddingBottom="8dp"
+                android:paddingBottom="6dp"
                 android:visibility="gone">
 
                 <ImageView
@@ -149,9 +347,9 @@
                     android:id="@+id/category_2_icon"
                     android:layout_width="28dp"
                     android:layout_height="28dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="10dp"
                     android:background="@drawable/widget_icon_circle_bg"
-                    android:padding="4dp"
+                    android:padding="5dp"
                     android:scaleType="centerInside"
                     android:src="@drawable/ic_default_category" />
 
@@ -160,8 +358,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:maxLines="1"
                     android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="Di chuyển"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
@@ -182,15 +380,15 @@
                 android:id="@+id/category_3_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:background="@drawable/widget_category_row_bg"
                 android:gravity="center_vertical"
-                android:minHeight="44dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
                 android:paddingStart="8dp"
-                android:paddingTop="8dp"
+                android:paddingTop="6dp"
                 android:paddingEnd="8dp"
-                android:paddingBottom="8dp"
+                android:paddingBottom="6dp"
                 android:visibility="gone">
 
                 <ImageView
@@ -206,9 +404,9 @@
                     android:id="@+id/category_3_icon"
                     android:layout_width="28dp"
                     android:layout_height="28dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="10dp"
                     android:background="@drawable/widget_icon_circle_bg"
-                    android:padding="4dp"
+                    android:padding="5dp"
                     android:scaleType="centerInside"
                     android:src="@drawable/ic_default_category" />
 
@@ -217,8 +415,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:maxLines="1"
                     android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="Mua sắm"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
@@ -241,20 +439,30 @@
             android:layout_height="match_parent"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:gravity="center"
+            android:gravity="top|center_horizontal"
             android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Placeholder Title"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="invisible" />
 
             <FrameLayout
                 android:id="@+id/widget_chart_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/widget_chart_glow_bg"
-                android:padding="12dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:id="@+id/widget_pie_chart"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
+                    android:layout_width="110dp"
+                    android:layout_height="110dp"
+                    android:layout_gravity="center"
                     android:adjustViewBounds="true"
                     android:contentDescription="Biểu đồ chi tiêu"
                     android:scaleType="fitCenter" />
@@ -265,8 +473,8 @@
     <TextView
         android:id="@+id/widget_empty_state"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:gravity="center"
         android:text="Chưa có dữ liệu\nMở Whales Spent để đồng bộ"
         android:textAlignment="center"
@@ -275,6 +483,3 @@
         android:visibility="gone" />
 
 </LinearLayout>
-
-
-

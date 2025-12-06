@@ -9,6 +9,7 @@ class ProfileSettingsList extends StatelessWidget {
   final VoidCallback onNavigateToAbout;
   final VoidCallback onNavigateToUserGuide;
   final VoidCallback onManageShortcutsTap;
+  final VoidCallback onManageWidgetShortcutsTap;
   final VoidCallback onNavigateToBackupRestore;
   final Function(String) onShowFeatureSnackbar;
   final bool supportsAndroidWidget;
@@ -25,6 +26,7 @@ class ProfileSettingsList extends StatelessWidget {
     required this.onNavigateToAbout,
     required this.onNavigateToUserGuide,
     required this.onManageShortcutsTap,
+    required this.onManageWidgetShortcutsTap,
     required this.onNavigateToBackupRestore,
     required this.onShowFeatureSnackbar,
     required this.supportsAndroidWidget,
@@ -39,6 +41,11 @@ class ProfileSettingsList extends StatelessWidget {
         'icon': Icons.widgets_outlined,
         'title': 'Thêm Widget',
         'subtitle': 'Tùy chỉnh widget trên màn hình chính',
+      },
+      {
+        'icon': Icons.tune,
+        'title': 'Tác vụ widget',
+        'subtitle': 'Chỉnh shortcut hiển thị trên widget',
       },
       {
         'icon': Icons.cloud_sync_outlined,
@@ -153,45 +160,82 @@ class ProfileSettingsList extends StatelessWidget {
         ),
         trailing: supportsAndroidWidget
             ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isWidgetPinned)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'Đã thêm',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  if (isRequestingWidget)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                ],
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isWidgetPinned)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Đã thêm',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.green,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 8),
+            if (isRequestingWidget)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Icon(
+            else
+              Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
                 color: Theme.of(context).textTheme.bodySmall?.color,
               ),
+          ],
+        )
+            : Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Theme.of(context).textTheme.bodySmall?.color,
+        ),
         onTap: onWidgetSettingTap,
+      );
+    }
+
+    if (setting['title'] == 'Tác vụ widget') {
+      return ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF5D5FEF).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            setting['icon'] as IconData,
+            color: const Color(0xFF5D5FEF),
+            size: 20,
+          ),
+        ),
+        title: Text(
+          setting['title'] as String,
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          setting['subtitle'] as String,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Theme.of(context).textTheme.bodySmall?.color,
+        ),
+        onTap: onManageWidgetShortcutsTap,
       );
     }
 
