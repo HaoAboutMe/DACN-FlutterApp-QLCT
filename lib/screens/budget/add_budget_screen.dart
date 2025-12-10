@@ -130,6 +130,11 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         _endDate = picked.end;
       });
     }
+    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _saveBudget() async {

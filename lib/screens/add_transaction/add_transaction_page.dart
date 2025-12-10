@@ -130,6 +130,9 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   Future<void> _selectDate() async {
+    // Dismiss keyboard trước khi mở date picker
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -159,9 +162,17 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         );
       });
     }
+    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+    await Future.delayed(const Duration(milliseconds: 0));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _selectTime() async {
+    // Dismiss keyboard trước khi mở time picker
+    FocusScope.of(context).unfocus();
+
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDate),
@@ -187,6 +198,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           picked.minute,
         );
       });
+    }
+    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
     }
   }
 
@@ -669,6 +685,14 @@ class _AddTransactionPageState extends State<AddTransactionPage>
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    // Tìm category được chọn một lần để tránh lặp lại
+    final selectedCategory = _selectedCategoryId != null
+        ? _filteredCategories.cast<Category?>().firstWhere(
+            (c) => c?.id == _selectedCategoryId,
+            orElse: () => null,
+          )
+        : null;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -694,62 +718,46 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedCategoryId,
-            decoration: InputDecoration(
-              hintText: 'Chọn danh mục',
-              hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-              prefixIcon: Icon(Icons.category, color: colorScheme.onSurfaceVariant),
-              border: OutlineInputBorder(
+          InkWell(
+            onTap: _showAddCategorySheet,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.5),
+                ),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colorScheme.primary, width: 2),
-              ),
-              filled: true,
-              fillColor: colorScheme.surface,
-            ),
-            style: TextStyle(color: colorScheme.onSurface),
-            items: _filteredCategories.map((category) {
-              return DropdownMenuItem<int>(
-                value: category.id,
-                child: Row(
-                  children: [
-                    Icon(
-                      _getCategoryIcon(category.icon),
-                      size: 20,
-                      color: _getTypeColor(_selectedType),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    selectedCategory != null
+                        ? _getCategoryIcon(selectedCategory.icon)
+                        : Icons.category,
+                    size: 20,
+                    color: selectedCategory != null
+                        ? _getTypeColor(_selectedType)
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      selectedCategory?.name ?? 'Chọn danh mục',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: selectedCategory != null
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(category.name),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedCategoryId = value;
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Vui lòng chọn danh mục';
-              }
-              return null;
-            },
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _showAddCategorySheet,
-              child: Text(
-                'Thêm danh mục mới',
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
           ),
@@ -898,6 +906,9 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
   // Mở CategoryPickerSheet mới
   Future<void> _showAddCategorySheet() async {
+    // Dismiss keyboard trước khi mở category picker
+    FocusScope.of(context).unfocus();
+
     final selectedCategory = await openCategoryPickerSheet(
       context,
       type: _selectedType,
@@ -916,6 +927,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           _selectedCategoryId = selectedCategory.id;
         });
       }
+    }
+    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+    await Future.delayed(const Duration(milliseconds: 0));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
     }
   }
 }
