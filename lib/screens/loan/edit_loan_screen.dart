@@ -136,7 +136,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       });
     }
 
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 0));
     if (mounted) {
       FocusScope.of(context).unfocus();
     }
@@ -167,7 +167,7 @@ class _EditLoanScreenState extends State<EditLoanScreen>
       _dueDate = picked;
     });
 
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 0));
     if (mounted) {
       FocusScope.of(context).unfocus();
     }

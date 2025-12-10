@@ -119,7 +119,7 @@ class _AddLoanPageState extends State<AddLoanPage>
       });
     }
 
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 0));
     if (mounted) {
       FocusScope.of(context).unfocus();
     }
@@ -151,7 +151,7 @@ class _AddLoanPageState extends State<AddLoanPage>
     });
 
     // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 0));
     if (mounted) {
       FocusScope.of(context).unfocus();
     }
