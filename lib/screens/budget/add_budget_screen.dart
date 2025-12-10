@@ -486,6 +486,9 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   }
 
   void _showCategoryPicker() {
+    // Dismiss keyboard trước khi mở category picker
+    FocusScope.of(context).unfocus();
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -538,9 +541,15 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                     trailing: _selectedCategory?.id == category.id
                         ? const Icon(Icons.check_circle, color: Colors.green, size: 28)
                         : null,
-                    onTap: () {
+                    onTap: () async {
                       setState(() => _selectedCategory = category);
                       Navigator.pop(context);
+
+                      // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      if (mounted) {
+                        FocusScope.of(context).unfocus();
+                      }
                     },
                   );
 
