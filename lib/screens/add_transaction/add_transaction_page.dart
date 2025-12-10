@@ -929,7 +929,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
       }
     }
     // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 0));
     if (mounted) {
       FocusScope.of(context).unfocus();
     }
