@@ -93,6 +93,9 @@ class _AddLoanPageState extends State<AddLoanPage>
   }
 
   Future<void> _selectLoanDate() async {
+    // Dismiss keyboard trước khi mở date picker
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _loanDate,
@@ -115,9 +118,17 @@ class _AddLoanPageState extends State<AddLoanPage>
         _loanDate = picked;
       });
     }
+
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _selectDueDate() async {
+    // Dismiss keyboard trước khi mở date picker
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _dueDate ?? _loanDate,
@@ -138,6 +149,12 @@ class _AddLoanPageState extends State<AddLoanPage>
     setState(() {
       _dueDate = picked;
     });
+
+    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _saveLoan() async {

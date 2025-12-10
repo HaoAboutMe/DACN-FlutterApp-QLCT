@@ -110,6 +110,9 @@ class _EditLoanScreenState extends State<EditLoanScreen>
   }
 
   Future<void> _selectLoanDate() async {
+    // Dismiss keyboard trước khi mở date picker
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _loanDate,
@@ -132,9 +135,17 @@ class _EditLoanScreenState extends State<EditLoanScreen>
         _loanDate = picked;
       });
     }
+
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _selectDueDate() async {
+    // Dismiss keyboard trước khi mở date picker
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _dueDate ?? _loanDate,
@@ -155,6 +166,11 @@ class _EditLoanScreenState extends State<EditLoanScreen>
     setState(() {
       _dueDate = picked;
     });
+
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _updateLoan() async {

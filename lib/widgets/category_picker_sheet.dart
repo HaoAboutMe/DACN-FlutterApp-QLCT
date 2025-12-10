@@ -299,9 +299,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                       // Toggle loại danh mục nếu đang thêm mới
                       if (_dangThemDanhMuc) _buildToggleLoaiDanhMuc(),
 
-                      // Chips nhóm icon
-                      _buildNhomIconChips(),
-                      const SizedBox(height: 16),
+                      // Chips nhóm icon - chỉ hiển thị khi đang thêm danh mục mới
+                      if (_dangThemDanhMuc) _buildNhomIconChips(),
+                      if (_dangThemDanhMuc) const SizedBox(height: 16),
 
                       // Content chính
                       if (_dangThemDanhMuc)
