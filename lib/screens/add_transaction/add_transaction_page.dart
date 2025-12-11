@@ -131,7 +131,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
   Future<void> _selectDate() async {
     // Dismiss keyboard trước khi mở date picker
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -162,16 +162,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         );
       });
     }
-    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 0));
-    if (mounted) {
-      FocusScope.of(context).unfocus();
-    }
   }
 
   Future<void> _selectTime() async {
     // Dismiss keyboard trước khi mở time picker
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -198,11 +193,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           picked.minute,
         );
       });
-    }
-    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 0));
-    if (mounted) {
-      FocusScope.of(context).unfocus();
     }
   }
 
@@ -907,7 +897,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   // Mở CategoryPickerSheet mới
   Future<void> _showAddCategorySheet() async {
     // Dismiss keyboard trước khi mở category picker
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     final selectedCategory = await openCategoryPickerSheet(
       context,
@@ -927,11 +917,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           _selectedCategoryId = selectedCategory.id;
         });
       }
-    }
-    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 0));
-    if (mounted) {
-      FocusScope.of(context).unfocus();
     }
   }
 }

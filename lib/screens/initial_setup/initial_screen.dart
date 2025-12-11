@@ -65,7 +65,7 @@ class _InitialScreenState extends State<InitialScreen> {
     }
 
     // Dismiss keyboard before moving to next step
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     if (_currentStep < 4) {
       setState(() {
@@ -93,7 +93,7 @@ class _InitialScreenState extends State<InitialScreen> {
 
   /// Hàm quay lại bước trước
   void _previousStep() {
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     if (_currentStep > 0) {
       setState(() {

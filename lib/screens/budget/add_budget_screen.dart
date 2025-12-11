@@ -107,6 +107,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   }
 
   Future<void> _selectDateRange() async {
+    FocusScope.of(context).requestFocus(FocusNode());
+
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -129,11 +131,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         _startDate = picked.start;
         _endDate = picked.end;
       });
-    }
-    // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-    await Future.delayed(const Duration(milliseconds: 100));
-    if (mounted) {
-      FocusScope.of(context).unfocus();
     }
   }
 
@@ -487,7 +484,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   void _showCategoryPicker() {
     // Dismiss keyboard trước khi mở category picker
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).requestFocus(FocusNode());
 
     showModalBottomSheet(
       context: context,
@@ -541,15 +538,9 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                     trailing: _selectedCategory?.id == category.id
                         ? const Icon(Icons.check_circle, color: Colors.green, size: 28)
                         : null,
-                    onTap: () async {
+                    onTap: () {
                       setState(() => _selectedCategory = category);
                       Navigator.pop(context);
-
-                      // Đảm bảo keyboard không tự động hiện lại sau khi chọn xong
-                      await Future.delayed(const Duration(milliseconds: 100));
-                      if (mounted) {
-                        FocusScope.of(context).unfocus();
-                      }
                     },
                   );
 
