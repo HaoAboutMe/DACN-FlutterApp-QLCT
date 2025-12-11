@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../database/repositories/repositories.dart';
 import '../../models/budget.dart';
 import '../../utils/icon_helper.dart';
@@ -18,10 +17,11 @@ class BudgetListScreen extends StatefulWidget {
 
 class _BudgetListScreenState extends State<BudgetListScreen> {
   final BudgetRepository _budgetRepository = BudgetRepository();
-  final CategoryRepository _categoryRepository = CategoryRepository();
   bool _isLoading = true;
   List<Map<String, dynamic>> _budgetProgress = [];
-  Map<String, dynamic>? _overallBudgetProgress;
+  List<Map<String, dynamic>> _overallBudgetsProgress = [];
+  bool _isOverallBudgetsCollapsed = true;
+  bool _isCategoryBudgetsCollapsed = true;
 
   @override
   void initState() {
@@ -33,14 +33,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Lấy tiến độ ngân sách tổng
-      final overallProgress = await _budgetRepository.getOverallBudgetProgress();
+      // Lấy tất cả tiến độ ngân sách tổng
+      final overallProgress = await _budgetRepository.getAllOverallBudgetsProgress();
 
       // Lấy tiến độ ngân sách theo danh mục
       final categoryProgress = await _budgetRepository.getBudgetProgress();
 
       setState(() {
-        _overallBudgetProgress = overallProgress;
+        _overallBudgetsProgress = overallProgress;
         _budgetProgress = categoryProgress;
         _isLoading = false;
       });
@@ -133,13 +133,50 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Ngân sách tổng
-                  if (_overallBudgetProgress != null)
-                    _buildOverallBudgetCard(_overallBudgetProgress!, isDark),
+                  // Phần ngân sách tổng
+                  if (_overallBudgetsProgress.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Ngân sách tổng',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        // Toggle button for collapse/expand
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _isOverallBudgetsCollapsed = !_isOverallBudgetsCollapsed;
+                            });
+                          },
+                          icon: Icon(
+                            _isOverallBudgetsCollapsed
+                                ? Icons.expand_more
+                                : Icons.expand_less,
+                            size: 20,
+                          ),
+                          label: Text(
+                            _isOverallBudgetsCollapsed ? 'Mở rộng' : 'Thu gọn',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...(_isOverallBudgetsCollapsed
+                        ? _overallBudgetsProgress.where((progress) =>
+                            progress['isExpired'] != true)
+                        : _overallBudgetsProgress
+                    ).map((progress) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildOverallBudgetCard(progress, isDark),
+                        )),
+                    const SizedBox(height: 16),
+                  ],
 
-                  const SizedBox(height: 16),
-
-                  // Header
+                  // Phần ngân sách theo danh mục
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -149,7 +186,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                       ),
-                      if (_budgetProgress.isEmpty)
+                      if (_budgetProgress.isEmpty && _overallBudgetsProgress.isEmpty)
                         TextButton.icon(
                           onPressed: () async {
                             final result = await Navigator.push(
@@ -164,6 +201,25 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                           },
                           icon: const Icon(Icons.add),
                           label: const Text('Thêm'),
+                        )
+                      else if (_budgetProgress.isNotEmpty)
+                        // Toggle button for collapse/expand
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _isCategoryBudgetsCollapsed = !_isCategoryBudgetsCollapsed;
+                            });
+                          },
+                          icon: Icon(
+                            _isCategoryBudgetsCollapsed
+                                ? Icons.expand_more
+                                : Icons.expand_less,
+                            size: 20,
+                          ),
+                          label: Text(
+                            _isCategoryBudgetsCollapsed ? 'Mở rộng' : 'Thu gọn',
+                            style: const TextStyle(fontSize: 13),
+                          ),
                         ),
                     ],
                   ),
@@ -171,12 +227,27 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   const SizedBox(height: 8),
 
                   // Danh sách ngân sách theo danh mục
-                  if (_budgetProgress.isEmpty)
+                  if (_budgetProgress.isEmpty && _overallBudgetsProgress.isEmpty)
                     _buildEmptyState()
+                  else if (_budgetProgress.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Text(
+                          'Chưa có ngân sách theo danh mục',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    )
                   else
-                    ..._budgetProgress.map((item) => _buildBudgetCategoryCard(
+                    ...(_isCategoryBudgetsCollapsed
+                        ? _budgetProgress.where((item) =>
+                            item['isExpired'] != true)
+                        : _budgetProgress
+                    ).map((item) => _buildBudgetCategoryCard(
                           item,
-
                           isDark,
                         )),
                 ],
@@ -193,6 +264,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final totalSpent = (progress['totalSpent'] as num).toDouble();
     final progressPercentage = (progress['progressPercentage'] as num).toDouble();
     final isOverBudget = progress['isOverBudget'] as bool;
+    final isExpired = progress['isExpired'] as bool? ?? false;
     final remainingAmount = budgetAmount - totalSpent;
     final progressColor = _getProgressColor(progressPercentage);
     final budgetId = progress['budgetId'] as int;
@@ -274,25 +346,6 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     ],
                   ),
                 ),
-                if (isOverBudget)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'VƯỢT MỨC',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
                 // Menu sửa/xóa cho ngân sách tổng
                 PopupMenuButton(
                   itemBuilder: (context) => [
@@ -327,6 +380,55 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 ),
               ],
             ),
+
+            // Badges for expired and over budget
+            if (isExpired || isOverBudget) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (isExpired)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'HẾT HẠN',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  if (isExpired && isOverBudget) const SizedBox(width: 8),
+                  if (isOverBudget)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'VƯỢT MỨC',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+
             const SizedBox(height: 20),
 
             // Progress bar
@@ -392,6 +494,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final progressPercentage = (item['progressPercentage'] as num).toDouble();
     final remainingAmount = (item['remainingAmount'] as num).toDouble();
     final isOverBudget = item['isOverBudget'] as bool;
+    final isExpired = item['isExpired'] as bool? ?? false;
     final budgetId = item['budgetId'] as int;
 
     final progressColor = _getProgressColor(progressPercentage);
@@ -467,18 +570,51 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              '${CurrencyFormatter.formatAmount(totalSpent)} / ${CurrencyFormatter.formatAmount(budgetAmount)}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                            Flexible(
+                              child: Text(
+                                '${CurrencyFormatter.formatAmount(totalSpent)} / ${CurrencyFormatter.formatAmount(budgetAmount)}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            Text(
-                              isOverBudget
-                                  ? 'Vượt ${CurrencyFormatter.formatAmount(remainingAmount.abs())}'
-                                  : 'Còn ${CurrencyFormatter.formatAmount(remainingAmount)}',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: isOverBudget ? Colors.red : Colors.grey,
-                                    fontWeight: FontWeight.w500,
+                            const SizedBox(width: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isExpired)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.grey,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'HẾT HẠN',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 9,
+                                      ),
+                                    ),
                                   ),
+                                if (isExpired) const SizedBox(width: 6),
+                                Text(
+                                  isOverBudget
+                                      ? 'Vượt ${CurrencyFormatter.formatAmount(remainingAmount.abs())}'
+                                      : 'Còn ${CurrencyFormatter.formatAmount(remainingAmount)}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: isOverBudget ? Colors.red : Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

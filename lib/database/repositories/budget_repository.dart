@@ -168,8 +168,20 @@ class BudgetRepository {
 
   Future<Map<String, dynamic>?> getOverallBudgetProgress() async {
     try {
-      final overallBudget = await getActiveOverallBudget();
-      if (overallBudget == null) return null;
+      // Get the latest overall budget (active or expired)
+      final db = await _db.database;
+      final maps = await db.query(
+        'budgets',
+        where: 'category_id IS NULL',
+        orderBy: 'end_date DESC, start_date DESC',
+        limit: 1,
+      );
+
+      if (maps.isEmpty) return null;
+
+      final overallBudget = Budget.fromMap(maps.first);
+      final now = DateTime.now();
+      final isExpired = now.isAfter(overallBudget.endDate);
 
       final totalSpent = await _getTotalExpenseInPeriod(
         overallBudget.startDate,
@@ -187,11 +199,59 @@ class BudgetRepository {
         'progressPercentage': progressPercentage,
         'remainingAmount': overallBudget.amount - totalSpent,
         'isOverBudget': totalSpent > overallBudget.amount,
+        'isExpired': isExpired,
         'startDate': overallBudget.startDate.toIso8601String(),
         'endDate': overallBudget.endDate.toIso8601String(),
       };
     } catch (e) {
       log('Lỗi lấy tiến độ ngân sách tổng: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllOverallBudgetsProgress() async {
+    try {
+      final db = await _db.database;
+      final maps = await db.query(
+        'budgets',
+        where: 'category_id IS NULL',
+        orderBy: 'end_date DESC, start_date DESC',
+      );
+
+      if (maps.isEmpty) return [];
+
+      final now = DateTime.now();
+      final List<Map<String, dynamic>> results = [];
+
+      for (final map in maps) {
+        final budget = Budget.fromMap(map);
+        final isExpired = now.isAfter(budget.endDate);
+
+        final totalSpent = await _getTotalExpenseInPeriod(
+          budget.startDate,
+          budget.endDate,
+        );
+
+        final progressPercentage = budget.amount > 0
+            ? (totalSpent / budget.amount) * 100
+            : 0.0;
+
+        results.add({
+          'budgetId': budget.id,
+          'budgetAmount': budget.amount,
+          'totalSpent': totalSpent,
+          'progressPercentage': progressPercentage,
+          'remainingAmount': budget.amount - totalSpent,
+          'isOverBudget': totalSpent > budget.amount,
+          'isExpired': isExpired,
+          'startDate': budget.startDate.toIso8601String(),
+          'endDate': budget.endDate.toIso8601String(),
+        });
+      }
+
+      return results;
+    } catch (e) {
+      log('Lỗi lấy tất cả tiến độ ngân sách tổng: $e');
       rethrow;
     }
   }
@@ -238,22 +298,28 @@ class BudgetRepository {
         LEFT JOIN transactions t ON t.categoryId = c.id 
           AND t.type = 'expense'
           AND t.date BETWEEN b.start_date AND b.end_date
-        WHERE b.start_date <= ? AND b.end_date >= ?
+        WHERE b.category_id IS NOT NULL
         GROUP BY b.id, b.amount, b.start_date, b.end_date, 
                  c.id, c.name, c.icon
-        ORDER BY (COALESCE(SUM(t.amount), 0) / b.amount) DESC
-      ''', [now, now]);
+        ORDER BY 
+          CASE WHEN b.end_date >= ? THEN 0 ELSE 1 END,
+          (COALESCE(SUM(t.amount), 0) / b.amount) DESC,
+          b.end_date DESC
+      ''', [now]);
 
       return result.map((row) {
         final budgetAmount = (row['budgetAmount'] as num).toDouble();
         final totalSpent = (row['totalSpent'] as num).toDouble();
         final progressPercentage = budgetAmount > 0 ? (totalSpent / budgetAmount) * 100 : 0.0;
+        final endDate = DateTime.parse(row['endDate'] as String);
+        final isExpired = DateTime.now().isAfter(endDate);
 
         return {
           ...row,
           'progressPercentage': progressPercentage,
           'remainingAmount': budgetAmount - totalSpent,
           'isOverBudget': totalSpent > budgetAmount,
+          'isExpired': isExpired,
         };
       }).toList();
     } catch (e) {
