@@ -157,14 +157,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       // Lấy danh sách ngân sách theo danh mục
       final categoryBudgets = await _budgetRepository.getBudgetProgress();
 
+      // Lọc bỏ các budget đã hết hạn (chỉ hiển thị budget active ở home page)
+      final activeBudgetProgress = budgetProgress != null &&
+                                    (budgetProgress['isExpired'] == false || budgetProgress['isExpired'] == null)
+          ? budgetProgress
+          : null;
+
+      final activeCategoryBudgets = categoryBudgets
+          .where((budget) => budget['isExpired'] == false || budget['isExpired'] == null)
+          .toList();
+
       setState(() {
-        _overallBudgetProgress = budgetProgress;
-        _categoryBudgets = categoryBudgets;
+        _overallBudgetProgress = activeBudgetProgress;
+        _categoryBudgets = activeCategoryBudgets;
         _hasCheckedBudget = true;
       });
 
-      // Kiểm tra và hiển thị cảnh báo nếu vượt hạn mức
-      if (budgetProgress != null && budgetProgress['isOverBudget'] == true) {
+      // Kiểm tra và hiển thị cảnh báo nếu vượt hạn mức (chỉ với budget active)
+      if (activeBudgetProgress != null && activeBudgetProgress['isOverBudget'] == true) {
         _showOverBudgetWarning();
       }
     } catch (e) {

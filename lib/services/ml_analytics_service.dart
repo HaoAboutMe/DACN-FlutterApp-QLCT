@@ -341,7 +341,8 @@ class MLAnalyticsService {
       final overallProgress = await _budgetRepo.getOverallBudgetProgress();
       log('📊 Overall Budget Progress: $overallProgress');
 
-      if (overallProgress != null) {
+      // Chỉ kiểm tra nếu ngân sách tổng chưa hết hạn
+      if (overallProgress != null && (overallProgress['isExpired'] != true)) {
         final budgetAmount = (overallProgress['budgetAmount'] as num).toDouble();
         final spent = (overallProgress['totalSpent'] as num).toDouble();
 
@@ -406,6 +407,8 @@ class MLAnalyticsService {
             spentAmount: spent,
           ));
         }
+      } else if (overallProgress != null && overallProgress['isExpired'] == true) {
+        log('⏭️ Bỏ qua ngân sách tổng đã hết hạn');
       } else {
         log('⚠️ Không tìm thấy ngân sách tổng đang hoạt động');
       }
@@ -418,6 +421,12 @@ class MLAnalyticsService {
       final budgetProgress = await _budgetRepo.getBudgetProgress();
 
       for (var item in budgetProgress) {
+        // Bỏ qua ngân sách đã hết hạn
+        if (item['isExpired'] == true) {
+          log('⏭️ Bỏ qua ngân sách hết hạn: ${item['categoryName']}');
+          continue;
+        }
+
         final budgetAmount = (item['budgetAmount'] as num).toDouble();
         final spent = (item['totalSpent'] as num).toDouble();
         final categoryName = item['categoryName'] as String? ?? 'Tổng chi tiêu';
